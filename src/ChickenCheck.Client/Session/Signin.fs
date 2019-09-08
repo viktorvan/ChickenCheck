@@ -74,7 +74,7 @@ let styles (theme : ITheme) : IStyles list =
             Height "100vh" 
         ]
         Styles.Custom("image", [
-            BackgroundImage "url(https://chickencheck.z6.web.core.windows.net/Images/signin.jpg)"
+            BackgroundImage "url(https://chickencheck.z6.web.core.windows.net/Images/Signin1.jpg)"
             BackgroundRepeat "no-repeat" 
             BackgroundSize "cover"
             BackgroundPosition "center"

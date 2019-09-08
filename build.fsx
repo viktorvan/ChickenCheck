@@ -31,6 +31,21 @@ let tee f x =
     f x |> ignore
     x
 
+module Config =
+    let clientPath = Path.getFullName "./src/ChickenCheck.Client"
+    let clientOutputPath = Path.combine clientPath "output"
+    let backendPath = Path.getFullName "./src/ChickenCheck.Backend"
+    let backendProj = Path.combine backendPath "ChickenCheck.Backend.fsproj"
+    let backendBinPath =
+        match Environment.environVarOrDefault "CHICKENCHECK_CONFIGURATION" "debug" with
+        | "release" -> Path.combine backendPath "bin/Release/netcoreapp2.2"
+        | _ -> Path.combine backendPath "bin/Debug/netcoreapp2.2"
+
+    let deployPath = Path.getFullName "./deploy"
+    let backendDeployPath = Path.combine deployPath "ChickenCheck.Backend"
+    let clientDeployPath = Path.combine deployPath "ChickenCheck.Client/output"
+    let migrationsPath = "./src/ChickenCheck.Migrations"
+
 module Tools =
     let run cmd args workingDir =
         let arguments =
@@ -53,21 +68,6 @@ module Tools =
         |> CreateProcess.redirectOutput
         |> Proc.run
         |> raiseError
-
-module Config =
-    let clientPath = Path.getFullName "./src/ChickenCheck.Client"
-    let clientOutputPath = Path.combine clientPath "output"
-    let backendPath = Path.getFullName "./src/ChickenCheck.Backend"
-    let backendProj = Path.combine backendPath "ChickenCheck.Backend.fsproj"
-    let backendBinPath =
-        match Environment.environVarOrDefault "CHICKENCHECK_CONFIGURATION" "debug" with
-        | "release" -> Path.combine backendPath "bin/Release/netcoreapp2.2"
-        | _ -> Path.combine backendPath "bin/Debug/netcoreapp2.2"
-
-    let deployPath = Path.getFullName "./deploy"
-    let backendDeployPath = Path.combine deployPath "ChickenCheck.Backend"
-    let clientDeployPath = Path.combine deployPath "ChickenCheck.Client/output"
-    let migrationsPath = "./src/ChickenCheck.Migrations"
 
 module Azure =
     let private az args = 
@@ -111,7 +111,7 @@ module Azure =
     type ConnectionString = private ConnectionString of string
     module ConnectionString =
         let create str =
-            if String.isNullOrWhiteSpace str then invalidArg "connectionString" "Connection string cannot be empty"
+            if String.IsNullOrWhiteSpace str then invalidArg "connectionString" "Connection string cannot be empty"
             elif str.StartsWith("\"") || str.EndsWith("\"") then invalidArg "connectionString" "Not correctly parsed"
             else ConnectionString str
         let value (ConnectionString conn) = conn
@@ -165,7 +165,6 @@ module Azure =
                 json?tenantId.AsString()
                 |> Tenant.create
 
-            // sprintf "account show"
             [ "account"; "show" ]
             |> az
             |> toJson
@@ -265,7 +264,6 @@ module Azure =
             sprintf "settings add AzureWebJobsStorage %s" storageConnection |> func workingDir
 
     module Sql =
-
         let createDatabase (location:Location) (ResourceGroupName resourceGroup) (ServerName serverName) (DatabaseName databaseName) (Credentials (user, pw)) =
 
             let createServer() =
