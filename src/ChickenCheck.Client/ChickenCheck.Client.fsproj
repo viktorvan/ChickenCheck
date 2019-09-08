@@ -1,0 +1,22 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+    <PropertyGroup>
+        <TargetFramework>netcoreapp2.2</TargetFramework>
+        <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    </PropertyGroup>
+    <ItemGroup>
+        <Compile Include="Types.fs" />
+        <Compile Include="ApiHelpers.fs" />
+        <Compile Include="EventHelpers.fs" />
+        <Compile Include="ViewComponents.fs" />
+        <Compile Include="Session/Signin.fs" />
+        <Compile Include="Chicken/Index.fs" />
+        <Compile Include="Messages.fs" />
+        <Compile Include="View.fs" />
+        <Compile Include="Client.fs" />
+    </ItemGroup>
+    <ItemGroup>
+      <ProjectReference Include="..\ChickenCheck.Domain\ChickenCheck.Domain.fsproj" />
+    </ItemGroup>
+    <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

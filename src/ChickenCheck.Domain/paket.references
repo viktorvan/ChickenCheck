@@ -1,0 +1,3 @@
+group Domain
+    FSharp.Core
+    FsToolkit.ErrorHandling

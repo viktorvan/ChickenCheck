@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <AzureFunctionsVersion></AzureFunctionsVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="Authentication.fs" />
+    <Compile Include="CompositionRoot.fs" />
+    <Compile Include="Functions.fs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ChickenCheck.Domain\ChickenCheck.Domain.fsproj" />
+    <ProjectReference Include="..\ChickenCheck.Infrastructure\ChickenCheck.Infrastructure.fsproj" />
+    <ProjectReference Include="..\ChickenCheck.PasswordHasher.Console\ChickenCheck.PasswordHasher.Console.fsproj" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Update="host.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Update="local.settings.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
+    </Content>
+  </ItemGroup>
+  <Import Project="../../fsc.props" />
+  <Import Project="..\..\.paket\Paket.Restore.targets" />
+</Project>

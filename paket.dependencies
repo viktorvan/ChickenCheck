@@ -1,0 +1,73 @@
+group Domain
+    source https://api.nuget.org/v3/index.json
+    framework: netcoreapp2.2
+    storage: none
+
+    nuget FSharp.Core 4.6.2
+    nuget FsToolkit.ErrorHandling
+
+group Backend
+    source https://api.nuget.org/v3/index.json
+    framework: netcoreapp2.2
+    storage: none
+
+    nuget FSharp.Core 4.6.2
+    nuget FsToolkit.ErrorHandling
+    nuget Microsoft.Azure.WebJobs.Extensions.Storage 3.0.4
+    nuget Microsoft.NET.Sdk.Functions 1.0.26
+    nuget Microsoft.Extensions.Configuration.UserSecrets
+    nuget Microsoft.AspNetCore.Cors
+    nuget System.IdentityModel.Tokens.Jwt
+    nuget Fable.Remoting.Server
+    nuget Fable.Remoting.Giraffe
+    nuget FsConfig
+    nuget Newtonsoft.Json 11.0.2
+    nuget Microsoft.AspNetCore.Cryptography.KeyDerivation
+
+group Infrastructure
+    source https://api.nuget.org/v3/index.json
+    framework: netcoreapp2.2
+    storage: none
+
+    nuget FSharp.Core 4.6.2
+    nuget FsToolkit.ErrorHandling
+    nuget FSharp.Data.SqlClient
+
+group Client
+    source https://api.nuget.org/v3/index.json
+    framework: netcoreapp2.2
+    storage: none
+
+    nuget Fable.Core ~> 3
+    nuget Fable.Elmish ~> 3
+    nuget Fable.Elmish.Debugger ~> 3
+    nuget Fable.Elmish.React ~> 3
+    nuget Fable.Elmish.HMR ~> 4
+    nuget Fable.Elmish.Browser ~> 3
+    nuget Fable.React ~> 5
+    nuget Fable.MaterialUI
+    nuget Fable.MaterialUI.Icons
+    nuget Fable.MaterialUI.MaterialDesignIcons
+    nuget fstoolkit.errorhandling
+    nuget Fable.Remoting.Client ~> 5
+    nuget Fable.SimpleJson ~> 3.1.1-beta prerelease
+
+group Console
+    source https://api.nuget.org/v3/index.json
+    framework: netcoreapp2.2
+    storage: none
+
+    nuget FSharp.Core 4.6.2
+    nuget FsToolkit.ErrorHandling
+    nuget System.IdentityModel.Tokens.Jwt
+    nuget Microsoft.AspNetCore.Cryptography.KeyDerivation
+    nuget Argu
+
+group Migrations
+    source https://api.nuget.org/v3/index.json
+    framework: netcoreapp2.2
+    storage: none
+
+    nuget Argu
+    nuget Simple.Migrations
+    nuget System.Data.SqlClient

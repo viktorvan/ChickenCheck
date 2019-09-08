@@ -1,0 +1,13 @@
+group Client
+    FSharp.Core
+    Fable.Elmish.Debugger
+    Fable.Elmish.React
+    Fable.Elmish.HMR
+    Fable.Elmish.Browser
+    Fable.Core
+    Fable.Remoting.Client
+    Fable.MaterialUI
+    Fable.MaterialUI.Icons
+    Fable.MaterialUI.MaterialDesignIcons
+    FsToolkit.Errorhandling
+    Thoth.Json

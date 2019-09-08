@@ -1,0 +1,47 @@
+### fsharp ###
+lib/debug
+lib/release
+Debug
+*.suo
+*.user
+obj
+bin
+deploy
+release.sh
+createdockerimage.sh
+
+# paket
+*.exe
+!.paket/paket.bootstrapper.exe
+.paket/load
+.paket/.store
+.paket/paket
+paket-files
+packages
+
+# vim swapfiles
+*.swp
+
+appsettings.development.json
+appsettings.production.json
+node_modules
+
+# FAKE
+.fake
+
+# database
+app_data
+
+#vscode
+.vscode
+.ionide
+
+#build
+**/output
+
+tdd.fsx
+
+#deploy
+release.sh
+infrastructure.sh
+local.settings.json

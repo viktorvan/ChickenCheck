@@ -1,0 +1,6 @@
+group Console
+    FSharp.Core
+    FsToolkit.ErrorHandling
+    System.IdentityModel.Tokens.Jwt
+    Microsoft.AspNetCore.Cryptography.KeyDerivation
+    Argu
