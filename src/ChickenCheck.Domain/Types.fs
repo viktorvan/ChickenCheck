@@ -127,6 +127,9 @@ module Session =
 
 type ChickenId = ChickenId of Guid
 module ChickenId =
+    let create guid =
+        if guid = Guid.Empty then ("ChickenId", "empty guid") |> ValidationError |> Error
+        else ChickenId guid |> Ok
     let value (ChickenId guid) = guid
 type ChickenId with
     member this.Value = this |> ChickenId.value
@@ -134,8 +137,12 @@ type ChickenId with
 type ImageUrl = ImageUrl of string
 module ImageUrl =
     let create (str: string) = 
-        if String.IsNullOrWhiteSpace(str) && str.StartsWith("https://") then ImageUrl str |> Ok
-        else ("ImageUrl", "Not a valid url") |> ValidationError |> Error
+        if String.IsNullOrWhiteSpace(str) || str.StartsWith("https://") |> not then 
+            ("ImageUrl", "Not a valid url") 
+            |> ValidationError 
+            |> Error
+        else 
+            ImageUrl str |> Ok
     let value (ImageUrl str) = str
 
 type ImageUrl with
@@ -145,4 +152,5 @@ type Chicken =
     { Id: ChickenId
       Name : String200 
       ImageUrl : ImageUrl option 
-      Breed : String200 }
+      Breed : String200 
+      TotalEggCount : NaturalNum }

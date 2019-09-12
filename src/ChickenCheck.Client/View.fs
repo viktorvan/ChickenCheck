@@ -81,7 +81,7 @@ let private view' (classes: Mui.IClasses) model dispatch =
                       [ Mui.typography 
                           [ Variant TypographyVariant.H6
                             Class !!classes?toolbarTitle ] 
-                          [ str "ChickenCheck" ]
+                          [ str "Mina hönor" ]
                         str loggedInUsername ] ] 
           yield div [ Class !!classes?content ] [ pageHtml model.CurrentPage ]
           if isLoggedIn then yield bottomNav ] 

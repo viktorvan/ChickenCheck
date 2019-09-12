@@ -6,6 +6,7 @@
   <ItemGroup>
     <Compile Include="201909061610.User.fs" />
     <Compile Include="201909061715.Chicken.fs" />
+    <Compile Include="201909110858.Egg.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

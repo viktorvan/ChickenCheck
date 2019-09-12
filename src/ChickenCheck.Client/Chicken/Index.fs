@@ -11,47 +11,47 @@ open ChickenCheck.Client
 open ChickenCheck.Domain
 open Elmish
 open ChickenCheck.Client.Pages
+open System
 
 type Msg = 
     | FetchChickens
     | FetchedChickens of Chicken list
-    | FetchFailed of string
+    | FetchChickensFailed of string
+    | OnChangeDate of DateTime
+    | FetchEggsOnDate of DateTime
+    | FetchedEggsOnDate of DateTime * (ChickenId * NaturalNum)
     | ClearErrorMsg
 
 
-let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBuilder) msg (model: ChickensPageModel) =
-    let fetchSuccess result = 
-        match result with
-        | Ok customers ->
-            customers |> FetchedChickens
-        | Result.Error (err:DomainError) -> err.ErrorMsg |> FetchFailed
-            
-
-    let fetchError _ = "Serverfel" |> FetchFailed
+let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBuilder) msg (model: ChickenIndexModel) =
 
     match msg with
     | FetchChickens -> 
+        let fetchSuccess result = 
+            match result with
+            | Ok customers ->
+                customers |> FetchedChickens
+            | Result.Error (err:DomainError) -> err.ErrorMsg |> FetchChickensFailed
+        let fetchError _ = "Serverfel" |> FetchChickensFailed
         let request = requestBuilder.Build ()
-        { model with FetchStatus = Running }, Cmd.OfAsync.either chickenCheckApi.GetChickens request fetchSuccess fetchError
+        { model with FetchStatus = Running }, 
+        Cmd.OfAsync.either chickenCheckApi.GetChickens request fetchSuccess fetchError
     | FetchedChickens customers -> 
-        { model with FetchStatus = ApiCallStatus.Completed; Chickens = customers }, Cmd.none
-    | FetchFailed msg ->
+        { model with FetchStatus = ApiCallStatus.Completed; Chickens = customers }, FetchEggsOnDate model.SelectedDate |> Cmd.ofMsg
+    | FetchChickensFailed msg ->
         { model with FetchStatus = Failed msg }, Cmd.none
+    | OnChangeDate date ->
+        { model with SelectedDate = date }, Cmd.none
+    | FetchEggsOnDate(_) -> model, Cmd.none
+    | FetchedEggsOnDate _ -> failwith "Not Implemented"
     | ClearErrorMsg ->
         { model with FetchStatus = NotStarted }, Cmd.none
 
 let styles (theme : ITheme) : IStyles list =
     [
         Styles.Root [
-            Display DisplayOptions.Flex
-            FlexWrap "wrap"
-            JustifyContent "space-around"
-            BackgroundColor theme.palette.background.paper
+            Width "100%"
         ]
-        Styles.Custom("gridList", [ 
-            Width 800
-            Height 450 
-        ] )
         Styles.Icon [
             Color "rgba(255, 255, 255, 0.54)"
         ]
@@ -60,13 +60,26 @@ let styles (theme : ITheme) : IStyles list =
         ]
     ]
 
-let private view' (classes: Mui.IClasses) (model: ChickensPageModel) (dispatch: Msg -> unit) =
-    let loading =
-        Mui.circularProgress [] 
+module internal DateNavigator = 
+    let view (classes: Mui.IClasses) (selectedDate: DateTime) onChangeDate = 
+        div [ Class !!classes?root ]
+            [ Mui.appBar [ AppBarProp.Position AppBarPosition.Static ] 
+                [ Mui.tabs 
+                    [ Value false ]
+                    [ Mui.tab 
+                        [ OnClick (fun _ -> onChangeDate (selectedDate.AddDays(-1.).ToString()))
+                          Label "Föregående" ] 
+                      Mui.tab 
+                          [ Label (selectedDate.ToShortDateString()) ]
+                      Mui.tab 
+                          [ OnClick (fun _ -> onChangeDate (selectedDate.AddDays(1.).ToString()))
+                            Label "Nästa"; Disabled (selectedDate.AddDays(1.) > DateTime.Today) ] ] ] 
+              (ViewComponents.datePicker "date" onChangeDate selectedDate) |> List.singleton |> ViewComponents.centered ]
 
-    let chickenTiles =  
-        match model.Chickens with
-        | [] -> Mui.typography [ Variant TypographyVariant.H6 ] [ str "Du har inga hönor" ] |> List.singleton
+module internal ChickenList =
+    let chickenTiles chickens =  
+        match chickens with
+        | [] -> Mui.typography [ Variant TypographyVariant.H6 ] [ str "Har du inga hönor?" ] |> List.singleton
         | chickens ->
             let chickenTile (chicken: Chicken) =
                 let hasImage, imageUrl = 
@@ -78,16 +91,16 @@ let private view' (classes: Mui.IClasses) (model: ChickensPageModel) (dispatch: 
                 let subTitle = Mui.typography [] [ str (chicken.Breed.Value) ]
                 let removeEggButton = 
                     Mui.iconButton 
-                        [ MaterialProp.Color ComponentColor.Primary ] 
+                        [ MaterialProp.Color ComponentColor.Secondary ] 
                         [ minusIcon [] ]
                 let addEggButton = 
                     Mui.iconButton 
-                        [ MaterialProp.Color ComponentColor.Primary ] 
+                        [ MaterialProp.Color ComponentColor.Secondary ] 
                         [ plusIcon [] ]
 
                 let buttons = span [] [ removeEggButton; addEggButton ]
                 Mui.gridListTile 
-                    [] 
+                    [ Style [ Width "300px" ] ] 
                     [ img 
                         [ if hasImage then yield Src imageUrl
                           yield Alt chicken.Name.Value ]
@@ -99,28 +112,41 @@ let private view' (classes: Mui.IClasses) (model: ChickensPageModel) (dispatch: 
                 
             chickens |> List.map chickenTile 
 
-    let chickenList =
+    let chickenList (classes: Mui.IClasses) (chickens) =
         div
             [ Class !!classes?root ]
             [ Mui.gridList 
                [ Class !!classes?gridList ] 
-               chickenTiles ]
+               (chickenTiles chickens) ]
 
     let tryAgainButton =
         button [] [ str "Försök igen" ]
 
+    let view (classes: Mui.IClasses) (chickens, fetchStatus) =
+        [ yield 
+            match fetchStatus with
+            | NotStarted | Running -> ViewComponents.loading
+            | ApiCallStatus.Completed -> chickenList classes chickens
+            | Failed _ -> tryAgainButton ] 
+
+let private view' (classes: Mui.IClasses) (model: ChickenIndexModel) (dispatch: Msg -> unit) =
+
     if model.FetchStatus = ApiCallStatus.NotStarted
         then FetchChickens |> dispatch
 
+    let onChangeDate = 
+        DateTime.Parse
+        >> OnChangeDate
+        >> dispatch
+
     let content = 
-        [ yield 
-            match model.FetchStatus with
-            | NotStarted | Running -> loading
-            | ApiCallStatus.Completed -> chickenList
-            | Failed _ -> tryAgainButton ] 
+        [ Mui.typography [ Variant TypographyVariant.H6 ] [ str "Vem värpte?" ]
+          DateNavigator.view classes model.SelectedDate onChangeDate 
+          div [] (ChickenList.view classes (model.Chickens, model.FetchStatus) ) ]
         |> ViewComponents.centered 
 
     let clearAction = fun _ -> ClearErrorMsg |> dispatch
+
     div []
         [ content
           ViewComponents.apiErrorMsg clearAction !!classes?error model.FetchStatus ]
@@ -129,7 +155,7 @@ let private view' (classes: Mui.IClasses) (model: ChickensPageModel) (dispatch: 
 // Workaround for using JSS with Elmish
 // https://github.com/mvsmal/fable-material-ui/issues/4#issuecomment-423477900
 type private IProps =
-    abstract member Model: ChickensPageModel with get, set
+    abstract member Model: ChickenIndexModel with get, set
     abstract member Dispatch: (Msg -> unit) with get, set
     inherit Mui.IClassesProps
 
@@ -139,7 +165,7 @@ type private Component(p) =
     let viewWithStyles = Mui.withStyles (StyleType.Func styles) [] viewFun
     override this.render() = ReactElementType.create !!viewWithStyles this.props []
 
-let view (model: ChickensPageModel) (dispatch: Msg -> unit) : ReactElement =
+let view (model: ChickenIndexModel) (dispatch: Msg -> unit) : ReactElement =
     let props = jsOptions<IProps>(fun p ->
         p.Model <- model
         p.Dispatch <- dispatch)

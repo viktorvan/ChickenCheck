@@ -13,6 +13,8 @@ open Elmish
 open ChickenCheck.Client.ApiHelpers
 open ChickenCheck.Client.Pages
 
+let loading = Mui.circularProgress [] 
+
 let apiErrorMsg clearAction classNames status =
     let (isOpen, msg) = 
         match status with
@@ -60,8 +62,7 @@ let optionalLongTextField name label autoFocus onChange (inputValue: StringInput
 let datePicker name onChange (date: System.DateTime) =
     Mui.textField 
         [ OnChange (fun ev -> ev.Value |> onChange)
-        //   Class !!classes?datePicker 
           Id name
           Label name
           Type "date" 
-          DefaultValue (date.ToString("yyyy-MM-dd")) ] []
+          Value (date.ToString("yyyy-MM-dd")) ] []

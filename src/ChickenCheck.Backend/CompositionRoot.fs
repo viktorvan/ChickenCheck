@@ -53,13 +53,23 @@ module Chicken =
     let getChickens : GetChickensApi = 
         fun request ->
             asyncResult {
-                    let! _ = request |> Authentication.validate |> Result.mapError Authentication
-                    return!
-                        SqlChickenStore.getChickens connectionString ()
-                        |> AsyncResult.mapError Database
+                let! _ = request |> Authentication.validate |> Result.mapError Authentication
+                return!
+                    SqlChickenStore.getChickens connectionString ()
+                    |> AsyncResult.mapError Database
+            }
+
+    let getEggsOnDate : GetEggsOnDateApi =
+        fun request ->
+            asyncResult {
+                let! onDate = request |> Authentication.validate |> Result.mapError Authentication
+                return!
+                    SqlChickenStore.getEggsOnDate connectionString onDate
+                    |> AsyncResult.mapError Database
             }
 
 let chickenCheckApi : IChickenCheckApi = {
     GetStatus = fun () -> async { return getStatus() }
     CreateSession = User.createSession 
-    GetChickens = Chicken.getChickens }
+    GetChickens = Chicken.getChickens 
+    GetEggsOnDate = Chicken.getEggsOnDate }

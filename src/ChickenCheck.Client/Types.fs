@@ -1,6 +1,7 @@
 namespace ChickenCheck.Client
 open ChickenCheck.Domain.Session
 open ChickenCheck.Domain
+open System
 
 [<AutoOpen>]
 module DomainError =
@@ -80,25 +81,27 @@ type SigninModel =
           Password = StringInput.Empty 
           LoginStatus = NotStarted }
 
-type ChickensPageModel =
+type ChickenIndexModel =
     { Chickens : Chicken list
-      FetchStatus : ApiCallStatus } with
+      FetchStatus : ApiCallStatus 
+      SelectedDate : DateTime } with
       static member Init =
         { Chickens = [] 
-          FetchStatus = NotStarted }
+          FetchStatus = NotStarted 
+          SelectedDate = DateTime.Today }
 
 module Pages =
     open Elmish.Navigation
 
     type Page =
         | SigninPage of SigninModel
-        | ChickensPage of ChickensPageModel
+        | ChickensPage of ChickenIndexModel
 
     module SigninPage =
         let init = SigninModel.Init |> SigninPage
 
     module ChickensPage =
-        let init = ChickensPageModel.Init |> ChickensPage
+        let init = ChickenIndexModel.Init |> ChickensPage
 
 
     let signinPageUrl = "#signin"
