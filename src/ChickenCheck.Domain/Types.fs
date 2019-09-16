@@ -152,5 +152,13 @@ type Chicken =
     { Id: ChickenId
       Name : String200 
       ImageUrl : ImageUrl option 
-      Breed : String200 
-      TotalEggCount : NaturalNum }
+      Breed : String200 }
+
+type Date = { Year: int; Month: int; Day: int }
+module Date =
+    let create (date: DateTime) =
+        { Year = date.Year
+          Month = date.Month
+          Day = date.Day }
+
+    let toDateTime (date: Date) = DateTime(date.Year, date.Month, date.Day)

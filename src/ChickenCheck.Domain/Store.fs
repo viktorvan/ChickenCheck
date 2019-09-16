@@ -13,4 +13,6 @@ module Store =
         type GetUserByEmail = Email -> AsyncResult<User option, DatabaseError>
     module Chicken =
         type GetChickens = unit -> AsyncResult<Chicken list, DatabaseError>
-        type GetEggsOnDate = DateTime -> AsyncResult<(ChickenId * NaturalNum) list, DatabaseError>
+        type GetTotalEggCount = unit -> AsyncResult<Map<ChickenId, NaturalNum>, DatabaseError>
+        type GetEggCountOnDate = Date -> AsyncResult<Map<ChickenId, NaturalNum>, DatabaseError>
+        type AddEgg = ChickenId * Date -> AsyncResult<unit, DatabaseError>

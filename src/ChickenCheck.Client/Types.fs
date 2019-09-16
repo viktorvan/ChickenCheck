@@ -83,12 +83,22 @@ type SigninModel =
 
 type ChickenIndexModel =
     { Chickens : Chicken list
-      FetchStatus : ApiCallStatus 
-      SelectedDate : DateTime } with
+      TotalEggCount : Map<ChickenId, NaturalNum> option
+      EggCountOnDate : Map<ChickenId, NaturalNum> option
+      FetchChickensStatus : ApiCallStatus 
+      FetchTotalEggCountStatus : ApiCallStatus 
+      FetchEggCountOnDateStatus : ApiCallStatus 
+      AddEggStatus : ApiCallStatus
+      SelectedDate : Date } with
       static member Init =
-        { Chickens = [] 
-          FetchStatus = NotStarted 
-          SelectedDate = DateTime.Today }
+        { Chickens = []
+          TotalEggCount = Some Map.empty
+          EggCountOnDate = Some Map.empty
+          FetchChickensStatus = NotStarted 
+          FetchTotalEggCountStatus = NotStarted 
+          FetchEggCountOnDateStatus = NotStarted 
+          AddEggStatus = NotStarted
+          SelectedDate = DateTime.Today |> Date.create }
 
 module Pages =
     open Elmish.Navigation

@@ -12,7 +12,9 @@ let appendEvents connection : AppendEvents =
         let handleEvent =
             fun event ->
                 match event with
-                | ChickenEvent ev -> notImplemented()
+                | ChickenEvent ev -> 
+                    match ev with
+                    | EggAdded ev -> SqlChickenStore.addEgg connection (ev.ChickenId, ev.Date)
 
         asyncResult {
             try

@@ -59,17 +59,39 @@ module Chicken =
                     |> AsyncResult.mapError Database
             }
 
-    let getEggsOnDate : GetEggsOnDateApi =
+    let getEggsOnDate : GetEggCountOnDateApi =
         fun request ->
             asyncResult {
                 let! onDate = request |> Authentication.validate |> Result.mapError Authentication
                 return!
-                    SqlChickenStore.getEggsOnDate connectionString onDate
+                    SqlChickenStore.getEggCountOnDate connectionString onDate
                     |> AsyncResult.mapError Database
+            }
+
+    let getTotalEggCount : GetTotalEggCountApi =
+        fun request ->
+            asyncResult {
+                let! _ = request |> Authentication.validate |> Result.mapError Authentication
+                return!
+                    SqlChickenStore.getTotalEggCount connectionString ()
+                    |> AsyncResult.mapError Database
+            }
+
+
+
+    let addEgg : AddEggApi =
+        fun request ->
+            asyncResult {
+                let! cmd = request |> Authentication.validate |> Result.mapError Authentication
+                let event = cmd |> ChickenCommandHandler.addEgg |> Events.ChickenEvent
+                let! _ = event |> (appendEvent >> AsyncResult.mapError Database)
+                return ()
             }
 
 let chickenCheckApi : IChickenCheckApi = {
     GetStatus = fun () -> async { return getStatus() }
     CreateSession = User.createSession 
     GetChickens = Chicken.getChickens 
-    GetEggsOnDate = Chicken.getEggsOnDate }
+    GetEggCountOnDate = Chicken.getEggsOnDate 
+    GetTotalEggCount = Chicken.getTotalEggCount
+    AddEgg = Chicken.addEgg }

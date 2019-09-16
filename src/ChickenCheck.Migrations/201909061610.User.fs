@@ -8,14 +8,13 @@ type CreateUserTable() =
     override __.Up() =
         base.Execute(@"
             CREATE TABLE [User]
-            (
-                Id UNIQUEIDENTIFIER NOT NULL,
-                [Name] NVARCHAR(200) NOT NULL,
-                Email NVARCHAR(1000) NOT NULL,
-                PasswordHash NVARCHAR(MAX) NOT NULL,
-                Salt NVARCHAR(MAX) NOT NULL,
-                Created DateTime2(0) NOT NULL,
-                LastModified DateTime2(0) NOT NULL
+            ( Id UNIQUEIDENTIFIER NOT NULL
+            , [Name] NVARCHAR(200) NOT NULL
+            , Email NVARCHAR(1000) NOT NULL
+            , PasswordHash NVARCHAR(MAX) NOT NULL
+            , Salt NVARCHAR(MAX) NOT NULL
+            , Created DateTime2(0) NOT NULL
+            , LastModified DateTime2(0) NOT NULL
             )
             CREATE UNIQUE INDEX IX_User_Id
                 ON [User] (Id)

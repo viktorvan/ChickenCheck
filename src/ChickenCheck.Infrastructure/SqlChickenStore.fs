@@ -8,9 +8,7 @@ open Store.Chicken
 
 
 type internal GetChickensSql = SqlCommandProvider<"
-                        SELECT TOP 100 c.Id, c.Name, c.Breed, c.ImageUrl, SUM(e.EggCount) AS EggCount FROM Chicken c
-                        INNER JOIN Egg e on e.ChickenId = c.Id
-                        GROUP BY c.Id, c.Name, c.Breed, c.ImageUrl
+                        SELECT TOP 100 c.Id, c.Name, c.Breed, c.ImageUrl FROM Chicken c
                         ORDER BY c.Name
                         ", DevConnectionString>
 
@@ -26,11 +24,6 @@ let getChickens (ConnectionString conn) : GetChickens =
                 entity.Breed 
                 |> String200.create "breed" 
                 |> Result.mapError toDatabaseError
-            let! eggCount = 
-                entity.EggCount 
-                |> Option.defaultValue 0 
-                |> NaturalNum.create 
-                |> Result.mapError toDatabaseError
             let! imageUrl = 
                 entity.ImageUrl 
                 |> Option.map (ImageUrl.create >> (Result.mapError toDatabaseError)) 
@@ -39,8 +32,7 @@ let getChickens (ConnectionString conn) : GetChickens =
                 { Chicken.Id = id
                   Name = name
                   Breed = breed
-                  ImageUrl = imageUrl 
-                  TotalEggCount = eggCount }
+                  ImageUrl = imageUrl }
         }
 
     fun () ->
@@ -52,15 +44,15 @@ let getChickens (ConnectionString conn) : GetChickens =
             with exn -> return! exn.ToString() |> DatabaseError |> Error
         }
 
-type internal GetEggsOnDateSql = SqlCommandProvider<"
+type internal GetEggCountOnDateSql = SqlCommandProvider<"
                             SELECT c.Id AS ChickenId, Sum(e.EggCount) AS EggCount FROM Chicken c
-                            INNER JOIN Egg e on e.ChickenId = c.Id
-                            WHERE e.Date = @date
+                            LEFT OUTER JOIN Egg e ON e.ChickenId = c.Id
+                                             AND e.Date = @date
                             GROUP BY c.Id
                             ", DevConnectionString>
 
-let getEggsOnDate (ConnectionString conn) : GetEggsOnDate =
-    let toDomain (entity: GetEggsOnDateSql.Record) =
+let getEggCountOnDate (ConnectionString conn) : GetEggCountOnDate =
+    let toDomain (entity: GetEggCountOnDateSql.Record) =
         result {
             let! chickenId = entity.ChickenId |> ChickenId.create |> Result.mapError toDatabaseError
             let! eggsOrZero = Option.defaultValue 0 entity.EggCount |> NaturalNum.create |> Result.mapError toDatabaseError
@@ -68,13 +60,77 @@ let getEggsOnDate (ConnectionString conn) : GetEggsOnDate =
         }
 
     fun date ->
+        let date = System.DateTime(date.Year, date.Month, date.Day)
         asyncResult {
             try
-                use cmd = new GetEggsOnDateSql(conn)
+                use cmd = new GetEggCountOnDateSql(conn)
                 let! result = cmd.AsyncExecute(date)
-                return! result |> Seq.map toDomain |> Seq.toList |> List.sequenceResultM
+                let! mapped = result |> Seq.map toDomain |> Seq.toList |> List.sequenceResultM
+                return mapped |> Map.ofList
             with exn -> return! exn.ToString() |> DatabaseError |> Error
         }
 
+type internal GetTotalEggCountSql = SqlCommandProvider<"
+                            SELECT c.Id AS ChickenId, Sum(e.EggCount) AS EggCount FROM Chicken c
+                            LEFT OUTER JOIN Egg e ON e.ChickenId = c.Id
+                            GROUP BY c.Id
+                            ", DevConnectionString>
 
+let getTotalEggCount (ConnectionString conn) : GetTotalEggCount =
+    let toDomain (entity: GetTotalEggCountSql.Record) =
+        result {
+            let! id = entity.ChickenId |> ChickenId.create |> Result.mapError toDatabaseError
+            let! count = entity.EggCount |> Option.defaultValue 0 |> NaturalNum.create |> Result.mapError toDatabaseError
+            return id, count
+        }
+
+    fun () ->
+        asyncResult {
+            try
+                use cmd = new GetTotalEggCountSql(conn)
+                let! result = cmd.AsyncExecute()
+                let! mapped = result |> Seq.map toDomain |> Seq.toList |> List.sequenceResultM
+                return mapped |> Map.ofList
+            with exn -> return! exn.ToString() |> DatabaseError |> Error
+        }
+
+type internal AddEggSql = SqlCommandProvider<"
+                            DECLARE @chickenId UNIQUEIDENTIFIER 
+                            SET @chickenId = @theChickenId
+                            DECLARE @date DATE
+                            SET @date = @theDate
+                            DECLARE @now DATETIME2(0)
+                            SET @now = @theNow
+
+                            DECLARE @oldCount INT 
+
+                            SELECT @oldCount = ISNULL((SELECT e.eggCount FROM Egg e
+                            WHERE e.ChickenId = @chickenId
+                            AND e.Date = @date),0)
+
+                            IF @oldCount = 0
+                            BEGIN
+                                INSERT INTO Egg 
+                                    (ChickenId, [Date], EggCount, Created, LastModified)
+                                    VALUES (@chickenId, @date, 1, @now, @now)
+                            END
+                            ELSE
+                            BEGIN
+                                UPDATE Egg SET EggCount = @oldcount + 1
+                                WHERE ChickenId = @chickenId
+                                AND Date = @date
+                            END
+                            ", DevConnectionString>
+
+let addEgg (ConnectionString conn) : AddEgg =
+    fun (chickenId, (date: Date)) ->
+        let date = System.DateTime(date.Year, date.Month, date.Day)
+        asyncResult {
+            try
+                use cmd = new AddEggSql(conn)
+                let! _ = cmd.AsyncExecute(chickenId.Value, date, System.DateTime.Now)
+                return ()
+            with exn -> return! exn.ToString() |> DatabaseError |> Error
+        }
+        
 

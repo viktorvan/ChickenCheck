@@ -42,3 +42,46 @@ let main argv =
         | None -> 
             printUsage()
             0
+
+
+//  /// <summary>
+//         /// Assign <see cref="SubCommands"/> (and optionally <see cref="DefaultSubCommand"/>)
+//         /// </summary>
+//         protected virtual void CreateSubCommands()
+//         {
+//             this.SubCommands = new List<SubCommand>()
+//             {
+//                 new SubCommand()
+//                 {
+//                     Command = "up",
+//                     Description = "up: Migrate to the latest version",
+//                     Action = this.MigrateUp,
+//                 },
+//                 new SubCommand()
+//                 {
+//                     Command = "to",
+//                     Description = "to <n>: Migrate up/down to the version n",
+//                     Action = this.MigrateTo
+//                 },
+//                 new SubCommand()
+//                 {
+//                     Command = "reapply",
+//                     Description = "reapply: Re-apply the current migration",
+//                     Action = this.ReApply
+//                 },
+//                 new SubCommand()
+//                 {
+//                     Command = "list",
+//                     Description = "list: List all available migrations",
+//                     Action = this.ListMigrations
+//                 },
+//                 new SubCommand()
+//                 {
+//                     Command = "baseline",
+//                     Description = "baseline <n>: Move the database to version n, without apply migrations",
+//                     Action = this.Baseline
+//                 },
+//             };
+
+//             this.DefaultSubCommand = this.SubCommands[0];
+//         }

@@ -2,12 +2,12 @@
 
 open ChickenCheck.Domain
 
-type LaidEgg =
+type EggAdded =
     { ChickenId : ChickenId
-      Date: System.DateTime }
+      Date: Date }
 
 type ChickenEvent =
-    | LaidEgg of LaidEgg
+    | EggAdded of EggAdded
 
 type DomainEvent =
     | ChickenEvent of ChickenEvent

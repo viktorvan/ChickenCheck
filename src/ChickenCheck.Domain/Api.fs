@@ -1,17 +1,20 @@
 namespace ChickenCheck.Domain
-open System
 open ChickenCheck.Domain.Commands
 open Session
 
 type CreateSessionApi = CreateSession -> AsyncResult<Session, DomainError>
 type GetChickensApi = SecureRequest<unit> -> AsyncResult<Chicken list, DomainError>
-type GetEggsOnDateApi = SecureRequest<DateTime> -> AsyncResult<(ChickenId * NaturalNum) list, DomainError>
+type GetEggCountOnDateApi = SecureRequest<Date> -> AsyncResult<Map<ChickenId, NaturalNum>, DomainError>
+type GetTotalEggCountApi = SecureRequest<unit> -> AsyncResult<Map<ChickenId, NaturalNum>, DomainError>
+type AddEggApi = SecureRequest<AddEgg> -> AsyncResult<unit, DomainError>
 
 type IChickenCheckApi =
     { GetStatus: unit -> Async<string>
       CreateSession: CreateSessionApi 
       GetChickens: GetChickensApi 
-      GetEggsOnDate : GetEggsOnDateApi}
+      GetEggCountOnDate : GetEggCountOnDateApi
+      GetTotalEggCount : GetTotalEggCountApi
+      AddEgg : AddEggApi }
 
 module Api =
     let routeBuilder (typeName: string) (methodName: string) =
