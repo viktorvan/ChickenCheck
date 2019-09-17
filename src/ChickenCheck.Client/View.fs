@@ -51,20 +51,6 @@ let private view' (classes: Mui.IClasses) model dispatch =
         | SigninPage pageModel -> lazyView2 Session.Signin.view pageModel (SigninMsg >> dispatch)
         | ChickensPage pageModel -> lazyView2 Chicken.Index.view pageModel (IndexMsg >> ChickenMsg >> dispatch)
 
-    let bottomNav =
-        let getValue =
-            match model.CurrentPage with
-            | ChickensPage _ -> 0
-            | _ -> -1
-        Mui.bottomNavigation 
-            [ ShowLabels true
-              MaterialProp.Value getValue
-              Class !!classes?bottomNavigation ] 
-            [ Mui.bottomNavigationAction 
-                [ OnClick (fun _ -> dispatch GoToChickens)
-                  MaterialProp.Icon (accountGroupIcon []) 
-                  MaterialProp.Label (Mui.typography [] [ str "hönor" ]) ] ]
-
     let isLoggedIn, loggedInUsername =
         match model.Session with
         | None -> false, ""
@@ -83,8 +69,7 @@ let private view' (classes: Mui.IClasses) model dispatch =
                             Class !!classes?toolbarTitle ] 
                           [ str "Mina hönor" ]
                         str loggedInUsername ] ] 
-          yield div [ Class !!classes?content ] [ pageHtml model.CurrentPage ]
-          if isLoggedIn then yield bottomNav ] 
+          yield div [ Class !!classes?content ] [ pageHtml model.CurrentPage ] ] 
 
 
 // Boilerplate below to support JSS with Elmish

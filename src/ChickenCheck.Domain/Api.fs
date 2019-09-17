@@ -7,6 +7,7 @@ type GetChickensApi = SecureRequest<unit> -> AsyncResult<Chicken list, DomainErr
 type GetEggCountOnDateApi = SecureRequest<Date> -> AsyncResult<Map<ChickenId, NaturalNum>, DomainError>
 type GetTotalEggCountApi = SecureRequest<unit> -> AsyncResult<Map<ChickenId, NaturalNum>, DomainError>
 type AddEggApi = SecureRequest<AddEgg> -> AsyncResult<unit, DomainError>
+type RemoveEggApi = SecureRequest<RemoveEgg> -> AsyncResult<unit, DomainError>
 
 type IChickenCheckApi =
     { GetStatus: unit -> Async<string>
@@ -14,7 +15,8 @@ type IChickenCheckApi =
       GetChickens: GetChickensApi 
       GetEggCountOnDate : GetEggCountOnDateApi
       GetTotalEggCount : GetTotalEggCountApi
-      AddEgg : AddEggApi }
+      AddEgg : AddEggApi 
+      RemoveEgg : RemoveEggApi }
 
 module Api =
     let routeBuilder (typeName: string) (methodName: string) =

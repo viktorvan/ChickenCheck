@@ -77,8 +77,6 @@ module Chicken =
                     |> AsyncResult.mapError Database
             }
 
-
-
     let addEgg : AddEggApi =
         fun request ->
             asyncResult {
@@ -88,10 +86,22 @@ module Chicken =
                 return ()
             }
 
+    let removeEgg : RemoveEggApi =
+        fun request ->
+            asyncResult {
+                let! cmd = request |> Authentication.validate |> Result.mapError Authentication
+                let event = cmd |> ChickenCommandHandler.removeEgg |> Events.ChickenEvent
+                let! _ = event |> (appendEvent >> AsyncResult.mapError Database)
+                return ()
+            }
+
+
+
 let chickenCheckApi : IChickenCheckApi = {
     GetStatus = fun () -> async { return getStatus() }
     CreateSession = User.createSession 
     GetChickens = Chicken.getChickens 
     GetEggCountOnDate = Chicken.getEggsOnDate 
     GetTotalEggCount = Chicken.getTotalEggCount
-    AddEgg = Chicken.addEgg }
+    AddEgg = Chicken.addEgg 
+    RemoveEgg = Chicken.removeEgg }

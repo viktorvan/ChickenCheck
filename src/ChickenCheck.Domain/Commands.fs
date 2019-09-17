@@ -9,3 +9,7 @@ type CreateSession =
 type AddEgg =
     { ChickenId : ChickenId
       Date : Date }
+
+type RemoveEgg =
+    { ChickenId : ChickenId
+      Date : Date }

@@ -2,6 +2,7 @@ namespace ChickenCheck.Client
 open ChickenCheck.Domain.Session
 open ChickenCheck.Domain
 open System
+open System.Collections.Generic
 
 [<AutoOpen>]
 module DomainError =
@@ -89,6 +90,7 @@ type ChickenIndexModel =
       FetchTotalEggCountStatus : ApiCallStatus 
       FetchEggCountOnDateStatus : ApiCallStatus 
       AddEggStatus : ApiCallStatus
+      RemoveEggStatus : ApiCallStatus
       SelectedDate : Date } with
       static member Init =
         { Chickens = []
@@ -98,6 +100,7 @@ type ChickenIndexModel =
           FetchTotalEggCountStatus = NotStarted 
           FetchEggCountOnDateStatus = NotStarted 
           AddEggStatus = NotStarted
+          RemoveEggStatus = NotStarted
           SelectedDate = DateTime.Today |> Date.create }
 
 module Pages =

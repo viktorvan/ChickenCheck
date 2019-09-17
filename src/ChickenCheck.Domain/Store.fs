@@ -16,3 +16,4 @@ module Store =
         type GetTotalEggCount = unit -> AsyncResult<Map<ChickenId, NaturalNum>, DatabaseError>
         type GetEggCountOnDate = Date -> AsyncResult<Map<ChickenId, NaturalNum>, DatabaseError>
         type AddEgg = ChickenId * Date -> AsyncResult<unit, DatabaseError>
+        type RemoveEgg = ChickenId * Date -> AsyncResult<unit, DatabaseError>

@@ -3,7 +3,6 @@ module ChickenCheck.Client.Chicken.Index
 open Fable.MaterialUI
 module Mui = Fable.MaterialUI.Core
 open Fable.React.Props
-open Fable.MaterialUI.Icons
 open Fable.MaterialUI.MaterialDesignIcons
 open Fable.React
 open Fable.Core.JsInterop
@@ -11,134 +10,193 @@ open ChickenCheck.Client
 open ChickenCheck.Domain
 open ChickenCheck.Domain.Commands
 open Elmish
-open ChickenCheck.Client.Pages
 open System
 
 type EggCount = Map<ChickenId, NaturalNum>
 
+type Chickens =
+    | Request
+    | Result of Chicken list
+    | Error of string
+    | ClearError
+
+type TotalCount =
+    | Request
+    | Result of EggCount
+    | Error of string
+    | ClearError
+
+type EggCountOnDate =
+    | Request of Date
+    | Result of Date * EggCount
+    | Error of string
+    | ClearError
+
+type AddEgg =
+    | Request of ChickenId * Date
+    | Result of ChickenId * Date
+    | Error of string
+    | ClearError
+
+type RemoveEgg =
+    | Request of ChickenId * Date
+    | Result of ChickenId * Date
+    | Error of string
+    | ClearError
+
 type Msg = 
-    | FetchChickens
-    | FetchedChickens of Chicken list
-    | FetchChickensFailed of string
+    | Chickens of Chickens
+    | TotalCount of TotalCount
+    | EggCountOnDate of EggCountOnDate
+    | AddEgg of AddEgg
+    | RemoveEgg of RemoveEgg
     | OnChangeDate of Date
-    | FetchEggCountOnDate of Date
-    | FetchedEggCountOnDate of Date * EggCount
-    | FetchEggCountOnDateFailed of string
-    | FetchTotalEggCount
-    | FetchedTotalEggCount of EggCount
-    | FetchTotalEggCountFailed of string
-    | AddEgg of ChickenId * Date
-    | AddedEgg of ChickenId * Date
-    | AddEggFailed of string
-    | ClearChickensErrorMsg
-    | ClearEggCountOnDateErrorMsg
-    | ClearTotalEggCountErrorMsg
-    | ClearAddEggErrorMsg
 
 
 let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBuilder) msg (model: ChickenIndexModel) =
+    let inline callApi apiFunc arg successMsg errorMsg =
+        let ofSuccess = function
+            | Ok res -> res |> successMsg
+            | Result.Error (err:DomainError) -> err.ErrorMsg |> errorMsg
+        let ofError _ = "Serverfel" |> errorMsg
+        Cmd.OfAsync.either apiFunc (requestBuilder.Build arg) ofSuccess ofError
+
+    let handleChickens = function
+        | Chickens.Request -> 
+            { model with FetchChickensStatus = Running }, 
+            (callApi
+                chickenCheckApi.GetChickens 
+                () 
+                (Chickens.Result >> Chickens) 
+                (Chickens.Error >> Chickens))
+
+        | Chickens.Result chickens -> 
+            { model with FetchChickensStatus = ApiCallStatus.Completed
+                         Chickens = chickens }, 
+                         [ Cmd.ofMsg (TotalCount.Request |> TotalCount)
+                           Cmd.ofMsg (EggCountOnDate.Request model.SelectedDate |> EggCountOnDate) ] 
+                           |> Cmd.batch
+
+        | Chickens.Error msg ->
+            { model with FetchChickensStatus = Failed msg }, Cmd.none
+
+        | Chickens.ClearError ->
+            { model with FetchChickensStatus = NotStarted }, Cmd.none
+
+    let handleEggCountOnDate = function
+        | EggCountOnDate.Request date -> 
+            { model with FetchEggCountOnDateStatus = Running }, 
+                callApi
+                    chickenCheckApi.GetEggCountOnDate 
+                    date 
+                    ((fun res -> EggCountOnDate.Result (date, res)) >> EggCountOnDate) 
+                    (EggCountOnDate.Error >> EggCountOnDate)
+
+        | EggCountOnDate.Result (date, countByChicken) -> 
+            if model.SelectedDate = date then
+                { model with FetchEggCountOnDateStatus = Completed
+                             EggCountOnDate = Some countByChicken }, Cmd.none
+            else
+                model, Cmd.none
+
+        | EggCountOnDate.Error msg -> 
+            { model with FetchEggCountOnDateStatus = Failed msg }, Cmd.none
+
+        | EggCountOnDate.ClearError ->
+            { model with FetchEggCountOnDateStatus = NotStarted }, Cmd.none
+
+    let handleTotalCount = function
+        | TotalCount.Request -> 
+            { model with FetchTotalEggCountStatus = Running }, 
+            callApi
+                chickenCheckApi.GetTotalEggCount
+                ()
+                (TotalCount.Result >> TotalCount)
+                (TotalCount.Error >> TotalCount)
+
+        | TotalCount.Result countByChicken -> 
+            { model with FetchTotalEggCountStatus = Completed
+                         TotalEggCount = Some countByChicken }, Cmd.none
+
+        | TotalCount.Error msg -> 
+            { model with FetchTotalEggCountStatus = Failed msg }, Cmd.none
+
+        | TotalCount.ClearError ->
+            { model with FetchTotalEggCountStatus = NotStarted }, Cmd.none
+
+    let handleAddEgg = function
+        | AddEgg.Request (chickenId, date) -> 
+            { model with AddEggStatus = Running }, 
+            callApi
+                chickenCheckApi.AddEgg
+                { AddEgg.ChickenId = chickenId; Date = date }
+                ((fun _ -> AddEgg.Result (chickenId, date)) >> AddEgg) 
+                (AddEgg.Error >> AddEgg)
+
+        | AddEgg.Result (chickenId, date) -> 
+            match model.TotalEggCount, model.EggCountOnDate with
+            | None, _ | _, None -> model, AddEgg.Error "Could not add egg" |> AddEgg |> Cmd.ofMsg
+            | Some totalCount, Some onDateCount ->
+                let newTotal = totalCount.[chickenId].Value + 1 |> NaturalNum.create
+                let newOnDate = 
+                    if date = model.SelectedDate then
+                        onDateCount.[chickenId].Value + 1 |> NaturalNum.create
+                    else onDateCount.[chickenId] |> Ok
+                match (newTotal, newOnDate) with
+                | Ok newTotal, Ok newOnDate ->
+                    { model with AddEggStatus = Completed
+                                 TotalEggCount = model.TotalEggCount |> Option.map (fun total -> total |> Map.add chickenId newTotal)
+                                 EggCountOnDate = model.EggCountOnDate |> Option.map (fun onDate -> onDate |> Map.add chickenId newOnDate) }, Cmd.none
+                | Result.Error _, _ | _, Result.Error _ -> model,AddEgg.Error "Could not add egg" |> AddEgg |> Cmd.ofMsg 
+
+        | AddEgg.Error msg -> 
+            { model with AddEggStatus = Failed msg }, Cmd.none
+
+        | AddEgg.ClearError ->
+            { model with AddEggStatus = NotStarted }, Cmd.none
+
+    let handleRemoveEgg = function
+        | RemoveEgg.Request (chickenId, date) -> 
+            { model with RemoveEggStatus = Running }, 
+            callApi
+                chickenCheckApi.RemoveEgg
+                { RemoveEgg.ChickenId = chickenId; Date = date }
+                ((fun _ -> RemoveEgg.Result (chickenId, date)) >> RemoveEgg) 
+                (RemoveEgg.Error >> RemoveEgg)
+
+        | RemoveEgg.Result (chickenId, date) -> 
+            match model.TotalEggCount, model.EggCountOnDate with
+            | None, _ | _, None -> model, RemoveEgg.Error "Could not remove egg" |> RemoveEgg |> Cmd.ofMsg
+            | Some totalCount, Some onDateCount ->
+                let newTotal = 
+                    let current = totalCount.[chickenId].Value
+                    if current < 1 then 0 |> NaturalNum.create
+                    else current - 1 |> NaturalNum.create
+                let newOnDate = 
+                    if date = model.SelectedDate && onDateCount.[chickenId].Value > 0 then
+                        onDateCount.[chickenId].Value - 1 |> NaturalNum.create
+                    else onDateCount.[chickenId] |> Ok
+                match (newTotal, newOnDate) with
+                | Ok newTotal, Ok newOnDate ->
+                    { model with RemoveEggStatus = Completed
+                                 TotalEggCount = model.TotalEggCount |> Option.map (fun total -> total |> Map.add chickenId newTotal)
+                                 EggCountOnDate = model.EggCountOnDate |> Option.map (fun onDate -> onDate |> Map.add chickenId newOnDate) }, Cmd.none
+                | Result.Error _, _ | _, Result.Error _ -> model, RemoveEgg.Error "Could not add egg" |> RemoveEgg |> Cmd.ofMsg 
+
+        | RemoveEgg.Error msg -> 
+            { model with RemoveEggStatus = Failed msg }, Cmd.none
+
+        | RemoveEgg.ClearError ->
+            { model with RemoveEggStatus = NotStarted }, Cmd.none
 
     match msg with
-    | FetchChickens -> 
-        let fetchSuccess result = 
-            match result with
-            | Ok customers ->
-                customers |> FetchedChickens
-            | Result.Error (err:DomainError) -> err.ErrorMsg |> FetchChickensFailed
-        let fetchError _ = "Serverfel" |> FetchChickensFailed
-        let request = requestBuilder.Build ()
-        { model with FetchChickensStatus = Running }, 
-        Cmd.OfAsync.either chickenCheckApi.GetChickens request fetchSuccess fetchError
-
-    | FetchedChickens chickens -> 
-        { model with FetchChickensStatus = ApiCallStatus.Completed
-                     Chickens = chickens }, [ Cmd.ofMsg FetchTotalEggCount; Cmd.ofMsg (FetchEggCountOnDate model.SelectedDate) ] |> Cmd.batch
-
-    | FetchChickensFailed msg ->
-        { model with FetchChickensStatus = Failed msg }, Cmd.none
-
+    | Chickens msg -> handleChickens msg
+    | EggCountOnDate msg -> handleEggCountOnDate msg
+    | TotalCount msg -> handleTotalCount msg
+    | AddEgg msg -> handleAddEgg msg
+    | RemoveEgg msg -> handleRemoveEgg msg
     | OnChangeDate date ->
-        { model with SelectedDate = date }, FetchEggCountOnDate date |> Cmd.ofMsg
-
-    | FetchEggCountOnDate date -> 
-        let fetchSuccess result = 
-            match result with
-            | Ok (eggsByChicken) ->
-                (date, eggsByChicken) |> FetchedEggCountOnDate
-            | Result.Error (err:DomainError) -> err.ErrorMsg |> FetchEggCountOnDateFailed
-        let fetchError _ = "Serverfel" |> FetchEggCountOnDateFailed
-        let request = requestBuilder.Build date
-        { model with FetchEggCountOnDateStatus = Running }, 
-        Cmd.OfAsync.either chickenCheckApi.GetEggCountOnDate request fetchSuccess fetchError
-
-    | FetchedEggCountOnDate (date, countByChicken) -> 
-        if model.SelectedDate = date then
-            { model with FetchEggCountOnDateStatus = Completed
-                         EggCountOnDate = Some countByChicken }, Cmd.none
-        else
-            model, Cmd.none
-
-    | FetchEggCountOnDateFailed msg -> 
-        { model with FetchEggCountOnDateStatus = Failed msg }, Cmd.none
-
-    | FetchTotalEggCount -> 
-        let fetchSuccess result = 
-            match result with
-            | Ok (eggsByChicken) ->
-                (eggsByChicken) |> FetchedTotalEggCount
-            | Result.Error (err:DomainError) -> err.ErrorMsg |> FetchTotalEggCountFailed
-        let fetchError _ = "Serverfel" |> FetchChickensFailed
-        let request = requestBuilder.Build ()
-        { model with FetchEggCountOnDateStatus = Running }, 
-        Cmd.OfAsync.either chickenCheckApi.GetTotalEggCount request fetchSuccess fetchError
-
-    | FetchedTotalEggCount countByChicken -> 
-        { model with FetchTotalEggCountStatus = Completed
-                     TotalEggCount = Some countByChicken }, Cmd.none
-
-    | FetchTotalEggCountFailed msg -> 
-        { model with FetchTotalEggCountStatus = Failed msg }, Cmd.none
-
-    | AddEgg (chickenId, date) -> 
-        let addSuccess result = 
-            match result with
-            | Ok () -> AddedEgg (chickenId, date)
-            | Result.Error (err:DomainError) -> err.ErrorMsg |> AddEggFailed
-        let fetchError _ = "Serverfel" |> AddEggFailed
-        let cmd = { AddEgg.ChickenId = chickenId; Date = date }
-        let request = requestBuilder.Build cmd
-        { model with AddEggStatus = Running }, 
-        Cmd.OfAsync.either chickenCheckApi.AddEgg request addSuccess fetchError
-
-    | AddedEgg (chickenId, date) -> 
-        match model.TotalEggCount, model.EggCountOnDate with
-        | None, _ | _, None -> model, AddEggFailed "Could not add egg" |> Cmd.ofMsg
-        | Some totalCount, Some onDateCount ->
-            let newTotal = totalCount.[chickenId].Value + 1 |> NaturalNum.create
-            let newOnDate = 
-                if date = model.SelectedDate then
-                    onDateCount.[chickenId].Value + 1 |> NaturalNum.create
-                else onDateCount.[chickenId] |> Ok
-            match (newTotal, newOnDate) with
-            | Ok newTotal, Ok newOnDate ->
-                { model with TotalEggCount = model.TotalEggCount |> Option.map (fun total -> total |> Map.add chickenId newTotal)
-                             EggCountOnDate = model.EggCountOnDate |> Option.map (fun onDate -> onDate |> Map.add chickenId newOnDate) }, Cmd.none
-            | Result.Error _, _ | _, Result.Error _ -> model,AddEggFailed "Could not add egg" |> Cmd.ofMsg 
-
-    | AddEggFailed msg -> 
-        { model with AddEggStatus = Failed msg }, Cmd.none
-
-    | ClearChickensErrorMsg ->
-        { model with FetchChickensStatus = NotStarted }, Cmd.none
-
-    | ClearEggCountOnDateErrorMsg ->
-        { model with FetchEggCountOnDateStatus = NotStarted }, Cmd.none
-
-    | ClearTotalEggCountErrorMsg ->
-        { model with FetchTotalEggCountStatus = NotStarted }, Cmd.none
-
-    | ClearAddEggErrorMsg ->
-        { model with AddEggStatus = NotStarted }, Cmd.none
+        { model with SelectedDate = date }, EggCountOnDate.Request date |> EggCountOnDate |> Cmd.ofMsg
 
 let styles (theme : ITheme) : IStyles list =
     [
@@ -171,7 +229,7 @@ module internal DateNavigator =
               (ViewComponents.datePicker "date" onChangeDate selectedDate) |> List.singleton |> ViewComponents.centered ]
 
 module internal ChickenList =
-    let chickenTiles chickens (totalCount: EggCount option, countOnDate: EggCount option) onAddEgg =  
+    let chickenTiles chickens (totalCount: EggCount option, countOnDate: EggCount option) onAddEgg onRemoveEgg =  
         match chickens with
         | [] ->
             Mui.typography [ Variant TypographyVariant.H6 ] [ str "Har du inga hönor?" ] |> List.singleton
@@ -194,7 +252,8 @@ module internal ChickenList =
                     Mui.typography [] [ sprintf "%s (totalt: %s)" onDate total |> str ]
                 let removeEggButton = 
                     Mui.iconButton 
-                        [ MaterialProp.Color ComponentColor.Secondary ] 
+                        [ OnClick (fun _ -> onRemoveEgg chicken.Id)
+                          MaterialProp.Color ComponentColor.Secondary ] 
                         [ minusIcon [] ]
                 let addEggButton = 
                     Mui.iconButton 
@@ -218,27 +277,27 @@ module internal ChickenList =
             chickens 
             |> List.map (chickenTile )
 
-    let chickenList (classes: Mui.IClasses) (chickens: Chicken list) eggCount onAddEgg =
+    let chickenList (classes: Mui.IClasses) (chickens: Chicken list) eggCount onAddEgg onRemoveEgg =
         div
             [ Class !!classes?root ]
             [ Mui.gridList 
                [ Class !!classes?gridList ] 
-               (chickenTiles chickens eggCount onAddEgg) ]
+               (chickenTiles chickens eggCount onAddEgg onRemoveEgg) ]
 
     let tryAgainButton =
         button [] [ str "Försök igen" ]
 
-    let view (classes: Mui.IClasses) chickens eggCount fetchStatus onAddEgg =
+    let view (classes: Mui.IClasses) chickens eggCount fetchStatus onAddEgg onRemoveEgg =
         [ yield 
             match fetchStatus with
-            | (Completed, Completed, Completed) -> chickenList classes chickens eggCount onAddEgg
+            | (Completed, Completed, Completed) -> chickenList classes chickens eggCount onAddEgg onRemoveEgg
             | (Failed _,_,_) | (_, Failed _, _) | (_, _, Failed _) -> tryAgainButton 
             | _ -> ViewComponents.loading ]
 
 let private view' (classes: Mui.IClasses) (model: ChickenIndexModel) (dispatch: Msg -> unit) =
 
     if model.FetchChickensStatus = ApiCallStatus.NotStarted
-        then FetchChickens |> dispatch
+        then Chickens.Request |> Chickens |> dispatch
 
     let onChangeDate = 
         DateTime.Parse
@@ -246,7 +305,8 @@ let private view' (classes: Mui.IClasses) (model: ChickenIndexModel) (dispatch: 
         >> OnChangeDate
         >> dispatch
 
-    let onAddEgg chickenId = AddEgg (chickenId, model.SelectedDate) |> dispatch
+    let onAddEgg chickenId = AddEgg.Request (chickenId, model.SelectedDate) |> AddEgg |> dispatch
+    let onRemoveEgg chickenId = RemoveEgg.Request (chickenId, model.SelectedDate) |> RemoveEgg |> dispatch
     let content = 
         [ Mui.typography [ Variant TypographyVariant.H6 ] [ str "Vem värpte?" ]
           DateNavigator.view classes model.SelectedDate onChangeDate 
@@ -257,16 +317,29 @@ let private view' (classes: Mui.IClasses) (model: ChickenIndexModel) (dispatch: 
                   model.Chickens 
                   (model.TotalEggCount, model.EggCountOnDate) 
                   (model.FetchChickensStatus, model.FetchTotalEggCountStatus, model.FetchEggCountOnDateStatus) 
-                  onAddEgg ) ]
+                  onAddEgg 
+                  onRemoveEgg) ]
         |> ViewComponents.centered 
 
     let clearAction msg = fun _ -> msg |> dispatch
 
     div []
         [ content
-          ViewComponents.apiErrorMsg (clearAction ClearChickensErrorMsg) !!classes?error model.FetchChickensStatus 
-          ViewComponents.apiErrorMsg (clearAction ClearEggCountOnDateErrorMsg) !!classes?error model.FetchEggCountOnDateStatus 
-          ViewComponents.apiErrorMsg (clearAction ClearAddEggErrorMsg) !!classes?error model.AddEggStatus ]
+          ViewComponents.apiErrorMsg 
+              (clearAction (Chickens.ClearError |> Chickens)) 
+              !!classes?error model.FetchChickensStatus 
+          ViewComponents.apiErrorMsg 
+              (clearAction (EggCountOnDate.ClearError |> EggCountOnDate)) 
+              !!classes?error model.FetchEggCountOnDateStatus 
+          ViewComponents.apiErrorMsg 
+              (clearAction (TotalCount.ClearError |> TotalCount)) 
+              !!classes?error model.FetchTotalEggCountStatus 
+          ViewComponents.apiErrorMsg 
+              (clearAction (AddEgg.ClearError |> AddEgg)) 
+              !!classes?error model.AddEggStatus 
+          ViewComponents.apiErrorMsg 
+              (clearAction (RemoveEgg.ClearError |> RemoveEgg)) 
+              !!classes?error model.RemoveEggStatus ]
 
 
 // Workaround for using JSS with Elmish

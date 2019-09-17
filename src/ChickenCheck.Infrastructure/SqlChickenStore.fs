@@ -132,5 +132,42 @@ let addEgg (ConnectionString conn) : AddEgg =
                 return ()
             with exn -> return! exn.ToString() |> DatabaseError |> Error
         }
-        
 
+type internal RemoveEggSql = SqlCommandProvider<"
+                            DECLARE @chickenId UNIQUEIDENTIFIER 
+                            SET @chickenId = @theChickenId
+                            DECLARE @date DATE
+                            SET @date = @theDate
+                            DECLARE @now DATETIME2(0)
+                            SET @now = @theNow
+
+                            DECLARE @oldCount INT 
+
+                            SELECT @oldCount = ISNULL((SELECT e.eggCount FROM Egg e
+                            WHERE e.ChickenId = @chickenId
+                            AND e.Date = @date),0)
+
+                            IF @oldCount > 1
+                            BEGIN
+                                UPDATE Egg SET EggCount = @oldcount - 1
+                                WHERE ChickenId = @chickenId
+                                AND Date = @date
+                            END
+                            ELSE
+                            BEGIN
+                                DELETE FROM Egg
+                                WHERE ChickenId = @chickenId
+                                AND Date = @date
+                            END
+                            ", DevConnectionString>
+
+let removeEgg (ConnectionString conn) : RemoveEgg =
+    fun (chickenId, (date: Date)) ->
+        let date = System.DateTime(date.Year, date.Month, date.Day)
+        asyncResult {
+            try
+                use cmd = new RemoveEggSql(conn)
+                let! _ = cmd.AsyncExecute(chickenId.Value, date, System.DateTime.Now)
+                return ()
+            with exn -> return! exn.ToString() |> DatabaseError |> Error
+        }

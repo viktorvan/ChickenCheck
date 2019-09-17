@@ -15,6 +15,7 @@ let appendEvents connection : AppendEvents =
                 | ChickenEvent ev -> 
                     match ev with
                     | EggAdded ev -> SqlChickenStore.addEgg connection (ev.ChickenId, ev.Date)
+                    | EggRemoved ev -> SqlChickenStore.removeEgg connection (ev.ChickenId, ev.Date)
 
         asyncResult {
             try
