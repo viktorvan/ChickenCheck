@@ -45,12 +45,10 @@ group Client
     nuget Fable.Elmish.HMR ~> 4
     nuget Fable.Elmish.Browser ~> 3
     nuget Fable.React ~> 5
-    nuget Fable.MaterialUI
-    nuget Fable.MaterialUI.Icons
-    nuget Fable.MaterialUI.MaterialDesignIcons
     nuget fstoolkit.errorhandling
     nuget Fable.Remoting.Client ~> 5
     nuget Fable.SimpleJson ~> 3.1.1-beta prerelease
+    nuget Fulma
 
 group Console
     source https://api.nuget.org/v3/index.json
