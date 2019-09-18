@@ -54,7 +54,7 @@ type Msg =
 
 
 let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBuilder) msg (model: ChickenIndexModel) =
-    let inline callApi apiFunc arg successMsg errorMsg =
+    let callApi apiFunc arg successMsg errorMsg =
         let ofSuccess = function
             | Ok res -> res |> successMsg
             | Result.Error (err:DomainError) -> err.ErrorMsg |> errorMsg
