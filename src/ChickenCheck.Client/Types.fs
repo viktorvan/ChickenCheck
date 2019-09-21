@@ -82,6 +82,22 @@ type SigninModel =
           Password = StringInput.Empty 
           LoginStatus = NotStarted }
 
+module Calendar =
+    open Fulma.Elmish
+    open Elmish
+    type Model =
+        { DatePickerState : DatePicker.Types.State // Store the state of the date picker into your model
+          CurrentDate : DateTime option } // Current date selected
+
+    type Msg =
+        // Message dispatch when a new date is selected
+        | DatePickerChanged of DatePicker.Types.State * (DateTime option)
+
+    let init() =
+        { DatePickerState = { DatePicker.Types.defaultState with AutoClose = true
+                                                                 ShowDeleteButton = false }
+          CurrentDate = Some DateTime.Today }
+
 type ChickenIndexModel =
     { Chickens : Chicken list
       TotalEggCount : Map<ChickenId, NaturalNum> option
@@ -91,7 +107,7 @@ type ChickenIndexModel =
       FetchEggCountOnDateStatus : ApiCallStatus 
       AddEggStatus : ApiCallStatus
       RemoveEggStatus : ApiCallStatus
-      SelectedDate : Date } with
+      Calendar : Calendar.Model } with
       static member Init =
         { Chickens = []
           TotalEggCount = Some Map.empty
@@ -101,9 +117,10 @@ type ChickenIndexModel =
           FetchEggCountOnDateStatus = NotStarted 
           AddEggStatus = NotStarted
           RemoveEggStatus = NotStarted
-          SelectedDate = DateTime.Today |> Date.create }
+          Calendar = Calendar.init() }
 
 module Pages =
+
     open Elmish.Navigation
 
     type Page =

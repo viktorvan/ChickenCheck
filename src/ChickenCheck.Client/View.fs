@@ -5,8 +5,6 @@ open Fable.Core
 open Fable.Core.JsInterop
 open Fable.React
 open Fable.React.Props
-open Fable.MaterialUI.MaterialDesignIcons
-open Fable.MaterialUI.Icons
 open ChickenCheck.Client
 open Messages
 open ChickenCheck.Client.Pages
@@ -32,11 +30,11 @@ let view model dispatch =
             [ Navbar.Brand.div [ ]
                 [ Navbar.Item.a [ Navbar.Item.Props [ Href "#" ] ]
                     [ img [ Style [ Width "2.5em" ] // Force svg display
-                            Src "Icons/android-chrome-192x192.png" ] ]  
+                            Src "https://chickencheck.z6.web.core.windows.net/Icons/android-chrome-192x192.png" ] ]  
                   Navbar.Item.a [ Navbar.Item.Props [ Href "#" ] ]
                     [ str "Mina hönor" ] ] ]
 
     div [] 
         [ if isLoggedIn then
               yield navbar 
-          yield div [ ] [ pageHtml model.CurrentPage ] ] 
+          yield div [] [ pageHtml model.CurrentPage ] ] 

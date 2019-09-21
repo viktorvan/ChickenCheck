@@ -137,7 +137,7 @@ type ChickenId with
 type ImageUrl = ImageUrl of string
 module ImageUrl =
     let create (str: string) = 
-        if String.IsNullOrWhiteSpace(str) || str.StartsWith("https://") |> not then 
+        if String.IsNullOrWhiteSpace(str) then 
             ("ImageUrl", "Not a valid url") 
             |> ValidationError 
             |> Error

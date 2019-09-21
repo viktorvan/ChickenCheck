@@ -1,0 +1,25 @@
+@import "~bulma/sass/utilities/initial-variables";
+@import "~bulma/sass/utilities/functions";
+
+// Customize
+// Colors
+$primary: #2D3947;
+// Links
+$link-hover: #00D1B2;
+
+$fa-font-path: "~@fortawesome/fontawesome-free/webfonts/";
+@import '~@fortawesome/fontawesome-free/scss/fontawesome.scss';
+@import "~@fortawesome/fontawesome-free/scss/solid.scss";
+@import "~@fortawesome/fontawesome-free/scss/regular.scss";
+@import "~@fortawesome/fontawesome-free/scss/brands.scss";
+
+@import '~bulma/bulma.sass';
+@import "~bulma-calendar/calendar.sass";
+
+.login-img { 
+    background: url(https://chickencheck.z6.web.core.windows.net/Images/Signin1.jpg) no-repeat center center fixed; 
+    background-size: cover;
+    text-align: center;
+    text-justify: center;
+    // background-color: #999;
+}

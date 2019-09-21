@@ -1,9 +1,6 @@
 module ChickenCheck.Client.Chicken.Index
 
-open Fable.MaterialUI
-module Mui = Fable.MaterialUI.Core
 open Fable.React.Props
-open Fable.MaterialUI.MaterialDesignIcons
 open Fable.React
 open Fable.Core.JsInterop
 open ChickenCheck.Client
@@ -11,6 +8,9 @@ open ChickenCheck.Domain
 open ChickenCheck.Domain.Commands
 open Elmish
 open System
+open Fulma
+open Fable.FontAwesome
+open Fulma.Elmish
 
 type EggCount = Map<ChickenId, NaturalNum>
 
@@ -50,7 +50,38 @@ type Msg =
     | EggCountOnDate of EggCountOnDate
     | AddEgg of AddEgg
     | RemoveEgg of RemoveEgg
-    | OnChangeDate of Date
+    | DatePicker of Calendar.Msg
+
+let updateDatePicker msg model =
+    match msg with
+
+    | Calendar.DatePickerChanged (newState, date) ->
+        // Store the new state and the selected date
+        { model with Calendar.DatePickerState = newState
+                     Calendar.CurrentDate = date }
+
+// Configuration passed to the components
+let pickerConfig : DatePicker.Types.Config<Calendar.Msg> =
+    let cfg = DatePicker.Types.defaultConfig Calendar.DatePickerChanged
+    { cfg with DatePickerStyle = 
+                [ Position PositionOptions.Absolute
+                  MaxWidth "450px"
+                  ZIndex 10. ] }
+
+let datePickerView (model: Calendar.Model) dispatch =
+    Column.column []
+      [ Field.div [ Field.Props [ Data ("display-mode", "inline") ] ]
+          [ DatePicker.View.root pickerConfig model.DatePickerState model.CurrentDate dispatch ] ] 
+
+let private getCount chickenId (countMap:EggCount option) = 
+    countMap
+    |> Option.map (fun c -> c.[chickenId].Value) 
+
+let private getCountStr chickenId (countMap: EggCount option) =
+    countMap
+    |> getCount chickenId
+    |> Option.map string
+    |> Option.defaultValue "-"
 
 
 let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBuilder) msg (model: ChickenIndexModel) =
@@ -71,11 +102,15 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
                 (Chickens.Error >> Chickens))
 
         | Chickens.Result chickens -> 
-            { model with FetchChickensStatus = ApiCallStatus.Completed
-                         Chickens = chickens }, 
-                         [ Cmd.ofMsg (TotalCount.Request |> TotalCount)
-                           Cmd.ofMsg (EggCountOnDate.Request model.SelectedDate |> EggCountOnDate) ] 
-                           |> Cmd.batch
+            match model.Calendar.CurrentDate with
+            | Some date ->
+                { model with FetchChickensStatus = ApiCallStatus.Completed
+                             Chickens = chickens }, 
+                             [ Cmd.ofMsg (TotalCount.Request |> TotalCount)
+                               Cmd.ofMsg (EggCountOnDate.Request (Date.create date) |> EggCountOnDate) ] 
+                               |> Cmd.batch
+            | None ->
+                model, Cmd.none
 
         | Chickens.Error msg ->
             { model with FetchChickensStatus = Failed msg }, Cmd.none
@@ -93,10 +128,11 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
                     (EggCountOnDate.Error >> EggCountOnDate)
 
         | EggCountOnDate.Result (date, countByChicken) -> 
-            if model.SelectedDate = date then
+            match model.Calendar.CurrentDate with
+            | Some currentDate when Date.create currentDate = date ->
                 { model with FetchEggCountOnDateStatus = Completed
                              EggCountOnDate = Some countByChicken }, Cmd.none
-            else
+            | _ ->
                 model, Cmd.none
 
         | EggCountOnDate.Error msg -> 
@@ -134,12 +170,12 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
                 (AddEgg.Error >> AddEgg)
 
         | AddEgg.Result (chickenId, date) -> 
-            match model.TotalEggCount, model.EggCountOnDate with
-            | None, _ | _, None -> model, AddEgg.Error "Could not add egg" |> AddEgg |> Cmd.ofMsg
-            | Some totalCount, Some onDateCount ->
+            match model.TotalEggCount, model.EggCountOnDate, model.Calendar.CurrentDate with
+            | None, _, _ | _, None, _ | _, _, None -> model, AddEgg.Error "Could not add egg" |> AddEgg |> Cmd.ofMsg
+            | Some totalCount, Some onDateCount, Some currentDate ->
                 let newTotal = totalCount.[chickenId].Value + 1 |> NaturalNum.create
                 let newOnDate = 
-                    if date = model.SelectedDate then
+                    if date = Date.create currentDate then
                         onDateCount.[chickenId].Value + 1 |> NaturalNum.create
                     else onDateCount.[chickenId] |> Ok
                 match (newTotal, newOnDate) with
@@ -165,15 +201,15 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
                 (RemoveEgg.Error >> RemoveEgg)
 
         | RemoveEgg.Result (chickenId, date) -> 
-            match model.TotalEggCount, model.EggCountOnDate with
-            | None, _ | _, None -> model, RemoveEgg.Error "Could not remove egg" |> RemoveEgg |> Cmd.ofMsg
-            | Some totalCount, Some onDateCount ->
+            match model.TotalEggCount, model.EggCountOnDate, model.Calendar.CurrentDate with
+            | None, _, _ | _, None, _ | _, _, None -> model, RemoveEgg.Error "Could not remove egg" |> RemoveEgg |> Cmd.ofMsg
+            | Some totalCount, Some onDateCount, Some currentDate when onDateCount.[chickenId].Value > 0 ->
                 let newTotal = 
                     let current = totalCount.[chickenId].Value
                     if current < 1 then 0 |> NaturalNum.create
                     else current - 1 |> NaturalNum.create
                 let newOnDate = 
-                    if date = model.SelectedDate && onDateCount.[chickenId].Value > 0 then
+                    if date = Date.create currentDate && onDateCount.[chickenId].Value > 0 then
                         onDateCount.[chickenId].Value - 1 |> NaturalNum.create
                     else onDateCount.[chickenId] |> Ok
                 match (newTotal, newOnDate) with
@@ -182,6 +218,7 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
                                  TotalEggCount = model.TotalEggCount |> Option.map (fun total -> total |> Map.add chickenId newTotal)
                                  EggCountOnDate = model.EggCountOnDate |> Option.map (fun onDate -> onDate |> Map.add chickenId newOnDate) }, Cmd.none
                 | Result.Error _, _ | _, Result.Error _ -> model, RemoveEgg.Error "Could not add egg" |> RemoveEgg |> Cmd.ofMsg 
+            | Some _, Some _, _ -> model, Cmd.none
 
         | RemoveEgg.Error msg -> 
             { model with RemoveEggStatus = Failed msg }, Cmd.none
@@ -195,44 +232,41 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
     | TotalCount msg -> handleTotalCount msg
     | AddEgg msg -> handleAddEgg msg
     | RemoveEgg msg -> handleRemoveEgg msg
-    | OnChangeDate date ->
-        { model with SelectedDate = date }, EggCountOnDate.Request date |> EggCountOnDate |> Cmd.ofMsg
+    | DatePicker msg -> 
+        let calendarModel = updateDatePicker msg model.Calendar
+        let date = 
+            match msg with
+            | Calendar.DatePickerChanged (_, dateOption) -> dateOption.Value |> Date.create
 
-let styles (theme : ITheme) : IStyles list =
-    [
-        Styles.Root [
-            Width "100%"
-        ]
-        Styles.Icon [
-            Color "rgba(255, 255, 255, 0.54)"
-        ]
-        Styles.Error [
-            BackgroundColor theme.palette.error.dark
-        ]
-    ]
-
-module internal DateNavigator = 
-    let view (classes: Mui.IClasses) (selectedDate: Date) onChangeDate = 
-        let selectedDate = selectedDate |> Date.toDateTime
-        div [ Class !!classes?root ]
-            [ Mui.appBar [ AppBarProp.Position AppBarPosition.Static ] 
-                [ Mui.tabs 
-                    [ Value false ]
-                    [ Mui.tab 
-                        [ OnClick (fun _ -> onChangeDate (selectedDate.AddDays(-1.).ToString()))
-                          Label "Föregående" ] 
-                      Mui.tab 
-                          [ Label (selectedDate.ToShortDateString()) ]
-                      Mui.tab 
-                          [ OnClick (fun _ -> onChangeDate (selectedDate.AddDays(1.).ToString()))
-                            Label "Nästa"; Disabled (selectedDate.AddDays(1.) > DateTime.Today) ] ] ] 
-              (ViewComponents.datePicker "date" onChangeDate selectedDate) |> List.singleton |> ViewComponents.centered ]
+        { model with Calendar = calendarModel }, EggCountOnDate.Request date |> EggCountOnDate |> Cmd.ofMsg
 
 module internal ChickenList =
-    let chickenTiles chickens (totalCount: EggCount option, countOnDate: EggCount option) onAddEgg onRemoveEgg =  
-        match chickens with
+
+    let batchesOf size input = 
+        // Inner function that does the actual work.
+        // 'input' is the remaining part of the list, 'num' is the number of elements
+        // in a current batch, which is stored in 'batch'. Finally, 'acc' is a list of
+        // batches (in a reverse order)
+        let rec loop input num batch acc =
+            match input with
+            | [] -> 
+                // We've reached the end - add current batch to the list of all
+                // batches if it is not empty and return batch (in the right order)
+                if batch <> [] then (List.rev batch)::acc else acc
+                |> List.rev
+            | x::xs when num = size - 1 ->
+                // We've reached the end of the batch - add the last element
+                // and add batch to the list of batches.
+                loop xs 0 [] ((List.rev (x::batch))::acc)
+            | x::xs ->
+                // Take one element from the input and add it to the current batch
+                loop xs (num + 1) (x::batch) acc
+        loop input 0 [] []
+
+    let chickenTiles model onAddEgg onRemoveEgg =  
+        match model.Chickens with
         | [] ->
-            Mui.typography [ Variant TypographyVariant.H6 ] [ str "Har du inga hönor?" ] |> List.singleton
+            h6 [] [ str "Har du inga hönor?" ] |> List.singleton
         | chickens ->
             let chickenTile (chicken: Chicken) =
                 let hasImage, imageUrl = 
@@ -240,123 +274,110 @@ module internal ChickenList =
                     | Some (ImageUrl imageUrl) -> true, imageUrl
                     | None -> false, ""
 
-                let title = Mui.typography [ Variant TypographyVariant.H6 ] [ str chicken.Name.Value ] 
-                let subTitle = 
-                    let getCountStr (countMap:EggCount option) = 
-                        countMap
-                        |> Option.map (fun c -> c.[chicken.Id].Value |> string) 
-                        |> Option.defaultValue "-"
-                    let total = getCountStr totalCount
-                    let onDate = getCountStr countOnDate
+                let isEggButtonDisabled = 
+                    match model.AddEggStatus, model.RemoveEggStatus with 
+                    | (Running,_) | (_, Running) -> true 
+                    | _ -> false
 
-                    Mui.typography [] [ sprintf "%s (totalt: %s)" onDate total |> str ]
                 let removeEggButton = 
-                    Mui.iconButton 
-                        [ OnClick (fun _ -> onRemoveEgg chicken.Id)
-                          MaterialProp.Color ComponentColor.Secondary ] 
-                        [ minusIcon [] ]
+                    Button.a
+                        [ Button.CustomClass "level-item"
+                          Button.OnClick (fun _ -> onRemoveEgg chicken.Id) 
+                          Button.Disabled isEggButtonDisabled ] 
+                        [ Icon.icon [] [ Fa.i [ Fa.Solid.Minus ] [] ] ]
                 let addEggButton = 
-                    Mui.iconButton 
-                        [ OnClick (fun _ -> onAddEgg chicken.Id )
-                          MaterialProp.Color ComponentColor.Secondary ] 
-                        [ plusIcon [] ]
+                    Button.a
+                        [ Button.CustomClass "level-item"
+                          Button.OnClick (fun _ -> onAddEgg chicken.Id) 
+                          Button.Disabled isEggButtonDisabled ] 
+                        [ Icon.icon [] [ Fa.i [ Fa.Solid.Plus ] [] ] ]
 
-                let buttons = span [] [ removeEggButton; addEggButton ]
-                Mui.gridListTile 
-                    [ Style [ Width "300px" ] ] 
-                    [ img 
-                        [ if hasImage then yield Src imageUrl
-                          yield Alt chicken.Name.Value ]
-                      Mui.gridListTileBar 
-                        [ GridListTileBarProp.Title title 
-                          GridListTileBarProp.Subtitle subTitle 
-                          GridListTileBarProp.ActionIcon buttons ]
-                        [] ]
-                
+                let tile =
+                    let image =
+                        Image.image [ Image.Is128x128 ] 
+                            [ img [ if hasImage then yield Src imageUrl ] ]
 
-            chickens 
-            |> List.map (chickenTile )
+                    let content = 
+                        let buttons =
+                            Level.level [ Level.Level.IsMobile ]
+                                [ Level.left [] [ removeEggButton ]
+                                  Level.right [] [ addEggButton ] ]
+                        Media.content [] 
+                            [ div [] 
+                                [ Heading.h4 [] [ str chicken.Name.Value ]
+                                  Heading.h6 [ Heading.IsSubtitle ] [ str chicken.Breed.Value ] ]
+                              Level.level [ Level.Level.Props [ Style [ MarginTop "10px"] ] ] 
+                                [ Level.item [ Level.Item.HasTextCentered ]
+                                    [ div []
+                                        [ Level.heading [] [ str "Totalt" ]
+                                          Level.title [] [ getCountStr chicken.Id model.TotalEggCount |> str ] ] ]
+                                  Level.item [ Level.Item.HasTextCentered ]
+                                    [ div []
+                                        [ Level.heading [] [ str "Idag" ]
+                                          Level.title [] [ getCountStr chicken.Id model.EggCountOnDate |> str ] ] ] ]
+                              buttons ]
 
-    let chickenList (classes: Mui.IClasses) (chickens: Chicken list) eggCount onAddEgg onRemoveEgg =
-        div
-            [ Class !!classes?root ]
-            [ Mui.gridList 
-               [ Class !!classes?gridList ] 
-               (chickenTiles chickens eggCount onAddEgg onRemoveEgg) ]
+                    Panel.panel []
+                        [ Panel.block [] 
+                            [ Media.media [] 
+                                [ Media.left [] [ image ] 
+                                  content ] ] ]
 
-    let tryAgainButton =
-        button [] [ str "Försök igen" ]
+                Column.column
+                    [ Column.Width (Screen.Desktop, Column.Is6 ); Column.Width (Screen.Mobile, Column.Is12)]
+                    [ tile ]   
 
-    let view (classes: Mui.IClasses) chickens eggCount fetchStatus onAddEgg onRemoveEgg =
-        [ yield 
-            match fetchStatus with
-            | (Completed, Completed, Completed) -> chickenList classes chickens eggCount onAddEgg onRemoveEgg
-            | (Failed _,_,_) | (_, Failed _, _) | (_, _, Failed _) -> tryAgainButton 
-            | _ -> ViewComponents.loading ]
+            let rows = chickens |> batchesOf 2 |> List.map (fun batch -> Columns.columns [] (batch |> List.map chickenTile))
+            rows
 
-let private view' (classes: Mui.IClasses) (model: ChickenIndexModel) (dispatch: Msg -> unit) =
+    let view model onAddEgg onRemoveEgg =
+        let fetchStatus = (model.FetchChickensStatus, model.FetchTotalEggCountStatus, model.FetchEggCountOnDateStatus) 
+
+        match fetchStatus with
+        | (Completed, _, _) -> chickenTiles model onAddEgg onRemoveEgg
+        | _ -> [ ViewComponents.loading ]
+
+module Statistics =
+    let view model =
+        let totalCount = 
+            model.TotalEggCount 
+            |> Option.map (Map.toList >> List.map (snd >> NaturalNum.value) >> List.sum) 
+            |> Option.defaultValue 0 
+            |> string
+            |> str
+        Level.level []
+            [ Level.item [] 
+                [ div []
+                    [ Level.heading [] [ str "Alla ägg" ]
+                      Level.title [] [ totalCount ] ] ] ]
+
+let view (model: ChickenIndexModel) (dispatch: Msg -> unit) =
 
     if model.FetchChickensStatus = ApiCallStatus.NotStarted
         then Chickens.Request |> Chickens |> dispatch
 
-    let onChangeDate = 
-        DateTime.Parse
-        >> Date.create
-        >> OnChangeDate
-        >> dispatch
+    let onChangeDate  = 
+        DatePicker >> dispatch
 
-    let onAddEgg chickenId = AddEgg.Request (chickenId, model.SelectedDate) |> AddEgg |> dispatch
-    let onRemoveEgg chickenId = RemoveEgg.Request (chickenId, model.SelectedDate) |> RemoveEgg |> dispatch
+    let onAddEgg chickenId = AddEgg.Request (chickenId, (model.Calendar.CurrentDate.Value |> Date.create)) |> AddEgg |> dispatch
+    let onRemoveEgg chickenId = RemoveEgg.Request (chickenId, (model.Calendar.CurrentDate.Value |> Date.create)) |> RemoveEgg |> dispatch
     let content = 
-        [ Mui.typography [ Variant TypographyVariant.H6 ] [ str "Vem värpte?" ]
-          DateNavigator.view classes model.SelectedDate onChangeDate 
-          div 
-              [] 
-              (ChickenList.view 
-                  classes 
-                  model.Chickens 
-                  (model.TotalEggCount, model.EggCountOnDate) 
-                  (model.FetchChickensStatus, model.FetchTotalEggCountStatus, model.FetchEggCountOnDateStatus) 
-                  onAddEgg 
-                  onRemoveEgg) ]
-        |> ViewComponents.centered 
+        Section.section []
+            [ Container.container []
+                [ Text.p 
+                    [ Modifiers 
+                        [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered)
+                          Modifier.TextSize (Screen.All, TextSize.Is1)] ] 
+                    [ str "Vem värpte?" ]
+                  datePickerView model.Calendar onChangeDate
+                  Container.container
+                      [] 
+                      (ChickenList.view 
+                          model
+                          onAddEgg 
+                          onRemoveEgg)  
+                  Statistics.view model ] ]
 
     let clearAction msg = fun _ -> msg |> dispatch
 
-    div []
-        [ content
-          ViewComponents.apiErrorMsg 
-              (clearAction (Chickens.ClearError |> Chickens)) 
-              !!classes?error model.FetchChickensStatus 
-          ViewComponents.apiErrorMsg 
-              (clearAction (EggCountOnDate.ClearError |> EggCountOnDate)) 
-              !!classes?error model.FetchEggCountOnDateStatus 
-          ViewComponents.apiErrorMsg 
-              (clearAction (TotalCount.ClearError |> TotalCount)) 
-              !!classes?error model.FetchTotalEggCountStatus 
-          ViewComponents.apiErrorMsg 
-              (clearAction (AddEgg.ClearError |> AddEgg)) 
-              !!classes?error model.AddEggStatus 
-          ViewComponents.apiErrorMsg 
-              (clearAction (RemoveEgg.ClearError |> RemoveEgg)) 
-              !!classes?error model.RemoveEggStatus ]
-
-
-// Workaround for using JSS with Elmish
-// https://github.com/mvsmal/fable-material-ui/issues/4#issuecomment-423477900
-type private IProps =
-    abstract member Model: ChickenIndexModel with get, set
-    abstract member Dispatch: (Msg -> unit) with get, set
-    inherit Mui.IClassesProps
-
-type private Component(p) =
-    inherit PureStatelessComponent<IProps>(p)
-    let viewFun (p: IProps) = view' p.classes p.Model p.Dispatch
-    let viewWithStyles = Mui.withStyles (StyleType.Func styles) [] viewFun
-    override this.render() = ReactElementType.create !!viewWithStyles this.props []
-
-let view (model: ChickenIndexModel) (dispatch: Msg -> unit) : ReactElement =
-    let props = jsOptions<IProps>(fun p ->
-        p.Model <- model
-        p.Dispatch <- dispatch)
-    ofType<Component,_,_> props [] 
+    content

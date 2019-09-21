@@ -9,3 +9,6 @@ group Client
     FsToolkit.Errorhandling
     Thoth.Json
     Fulma
+    Fable.FontAwesome.Free
+    Fulma.Elmish
+    Fulma.Extensions.Wikiki.Calendar
