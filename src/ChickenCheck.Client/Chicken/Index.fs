@@ -69,9 +69,21 @@ let pickerConfig : DatePicker.Types.Config<Calendar.Msg> =
                   ZIndex 10. ] }
 
 let datePickerView (model: Calendar.Model) dispatch =
-    Column.column []
-      [ Field.div [ Field.Props [ Data ("display-mode", "inline") ] ]
-          [ DatePicker.View.root pickerConfig model.DatePickerState model.CurrentDate dispatch ] ] 
+    let onDateChange delta =    
+        match model.CurrentDate with
+        | None -> ()
+        | Some date ->
+            Calendar.DatePickerChanged (model.DatePickerState, date.AddDays delta |> Some) |> dispatch
+    let previousDate _ = onDateChange -1.
+    let nextDate _ = onDateChange 1.
+    Level.level []
+        [ Level.item []
+            [ Button.a [ Button.IsLink; Button.OnClick previousDate ] [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.CaretLeft ] [] ] ] ]
+          Level.item []
+            [ Field.div [ Field.Props [ Data ("display-mode", "inline") ] ]
+                [ DatePicker.View.root pickerConfig model.DatePickerState model.CurrentDate dispatch ] ]
+          Level.item []
+            [ Button.a [ Button.IsLink; Button.OnClick nextDate ] [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.CaretRight ] [] ] ] ] ]
 
 let private getCount chickenId (countMap:EggCount option) = 
     countMap
@@ -218,7 +230,7 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
                                  TotalEggCount = model.TotalEggCount |> Option.map (fun total -> total |> Map.add chickenId newTotal)
                                  EggCountOnDate = model.EggCountOnDate |> Option.map (fun onDate -> onDate |> Map.add chickenId newOnDate) }, Cmd.none
                 | Result.Error _, _ | _, Result.Error _ -> model, RemoveEgg.Error "Could not add egg" |> RemoveEgg |> Cmd.ofMsg 
-            | Some _, Some _, _ -> model, Cmd.none
+            | Some _, Some _, _ -> { model with RemoveEggStatus = Completed }, Cmd.none
 
         | RemoveEgg.Error msg -> 
             { model with RemoveEggStatus = Failed msg }, Cmd.none
@@ -281,54 +293,54 @@ module internal ChickenList =
 
                 let removeEggButton = 
                     Button.a
-                        [ Button.CustomClass "level-item"
+                        [ Button.IsText
                           Button.OnClick (fun _ -> onRemoveEgg chicken.Id) 
                           Button.Disabled isEggButtonDisabled ] 
-                        [ Icon.icon [] [ Fa.i [ Fa.Solid.Minus ] [] ] ]
+                        [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.Egg ] [] ] ]
                 let addEggButton = 
                     Button.a
-                        [ Button.CustomClass "level-item"
+                        [ Button.IsText
+                          (match model.AddEggStatus with | Running -> true | _ -> false) |> Button.IsLoading
                           Button.OnClick (fun _ -> onAddEgg chicken.Id) 
                           Button.Disabled isEggButtonDisabled ] 
-                        [ Icon.icon [] [ Fa.i [ Fa.Solid.Plus ] [] ] ]
+                        [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.Plus ] [] ] ]
+
+                let eggButtons =
+                    let eggCount = 
+                        model.EggCountOnDate 
+                        |> Option.map (fun c -> c.[chicken.Id].Value) 
+                        |> Option.defaultValue 0
+                    let currentEggs = [ for i in 1..eggCount do yield Column.column [ Column.Width (Screen.All, Column.Is2) ] [ removeEggButton ] ]  
+                    Column.column [ Column.Width (Screen.All, Column.Is1) ] [ addEggButton ] :: currentEggs |> List.rev
+                    |> Columns.columns [] 
+ 
 
                 let tile =
                     let image =
-                        Image.image [ Image.Is128x128 ] 
-                            [ img [ if hasImage then yield Src imageUrl ] ]
+                        Image.image [ Image.Props [ Style [ Height "240px" ] ] ] 
+                            [ img 
+                                [ if hasImage then yield Src imageUrl 
+                                  yield Alt chicken.Name.Value ] ]
 
-                    let content = 
-                        let buttons =
-                            Level.level [ Level.Level.IsMobile ]
-                                [ Level.left [] [ removeEggButton ]
-                                  Level.right [] [ addEggButton ] ]
-                        Media.content [] 
-                            [ div [] 
-                                [ Heading.h4 [] [ str chicken.Name.Value ]
-                                  Heading.h6 [ Heading.IsSubtitle ] [ str chicken.Breed.Value ] ]
-                              Level.level [ Level.Level.Props [ Style [ MarginTop "10px"] ] ] 
-                                [ Level.item [ Level.Item.HasTextCentered ]
-                                    [ div []
-                                        [ Level.heading [] [ str "Totalt" ]
-                                          Level.title [] [ getCountStr chicken.Id model.TotalEggCount |> str ] ] ]
-                                  Level.item [ Level.Item.HasTextCentered ]
-                                    [ div []
-                                        [ Level.heading [] [ str "Idag" ]
-                                          Level.title [] [ getCountStr chicken.Id model.EggCountOnDate |> str ] ] ] ]
-                              buttons ]
+                    let header =
+                        span [] 
+                            [ Heading.h4 [] [ str chicken.Name.Value ]
+                              Heading.h6 [ Heading.IsSubtitle ] [ str chicken.Breed.Value ] ]
 
-                    Panel.panel []
-                        [ Panel.block [] 
-                            [ Media.media [] 
-                                [ Media.left [] [ image ] 
-                                  content ] ] ]
+                    Card.card []
+                        [ Card.image [] [ image ]
+                          Card.header [] [ header ] 
+                          Card.content [] 
+                            [ eggButtons 
+                              [ getCountStr chicken.Id model.TotalEggCount |> sprintf "Totalt: %s" |> str ] |> p [] ] ]
 
                 Column.column
-                    [ Column.Width (Screen.Desktop, Column.Is6 ); Column.Width (Screen.Mobile, Column.Is12)]
+                    [ Column.Width (Screen.Desktop, Column.Is4 ); Column.Width (Screen.Mobile, Column.Is12)]
                     [ tile ]   
 
-            let rows = chickens |> batchesOf 2 |> List.map (fun batch -> Columns.columns [] (batch |> List.map chickenTile))
-            rows
+            chickens 
+            |> batchesOf 3 
+            |> List.map (fun batch -> Columns.columns [] (batch |> List.map chickenTile))
 
     let view model onAddEgg onRemoveEgg =
         let fetchStatus = (model.FetchChickensStatus, model.FetchTotalEggCountStatus, model.FetchEggCountOnDateStatus) 
@@ -363,20 +375,22 @@ let view (model: ChickenIndexModel) (dispatch: Msg -> unit) =
     let onRemoveEgg chickenId = RemoveEgg.Request (chickenId, (model.Calendar.CurrentDate.Value |> Date.create)) |> RemoveEgg |> dispatch
     let content = 
         Section.section []
-            [ Container.container []
-                [ Text.p 
-                    [ Modifiers 
-                        [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered)
-                          Modifier.TextSize (Screen.All, TextSize.Is1)] ] 
-                    [ str "Vem värpte?" ]
-                  datePickerView model.Calendar onChangeDate
-                  Container.container
-                      [] 
-                      (ChickenList.view 
-                          model
-                          onAddEgg 
-                          onRemoveEgg)  
-                  Statistics.view model ] ]
+            [ Section.section []
+                [ Container.container []
+                    [ Text.p 
+                        [ Modifiers 
+                            [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered)
+                              Modifier.TextSize (Screen.All, TextSize.Is1)] ] 
+                        [ str "Vem värpte?" ]
+                      datePickerView model.Calendar onChangeDate
+                      Container.container
+                          [] 
+                          (ChickenList.view 
+                              model
+                              onAddEgg 
+                              onRemoveEgg) ] ]
+              Section.section []
+                [ Statistics.view model ] ]
 
     let clearAction msg = fun _ -> msg |> dispatch
 
