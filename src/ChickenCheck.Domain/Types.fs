@@ -160,5 +160,11 @@ module Date =
         { Year = date.Year
           Month = date.Month
           Day = date.Day }
-
     let toDateTime (date: Date) = DateTime(date.Year, date.Month, date.Day)
+
+type Change =
+    | Up
+    | Down
+    | NoChange
+
+type EggData = Map<Date, NaturalNum>

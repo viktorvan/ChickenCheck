@@ -294,26 +294,31 @@ module internal ChickenList =
                 let removeEggButton = 
                     Button.a
                         [ Button.IsText
+                          Button.IsHovered false
+                          Button.Size Size.IsLarge
                           Button.OnClick (fun _ -> onRemoveEgg chicken.Id) 
                           Button.Disabled isEggButtonDisabled ] 
-                        [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.Egg ] [] ] ]
+                        [ Icon.icon [ Icon.Modifiers [ Modifier.TextColor Color.IsWhite ] ] [ Fa.i [ Fa.Size Fa.Fa3x; Fa.Solid.Egg ] [] ] ]
                 let addEggButton = 
                     Button.a
-                        [ Button.IsText
+                        [ Button.IsOutlined
+                          Button.Size Size.IsLarge
                           (match model.AddEggStatus with | Running -> true | _ -> false) |> Button.IsLoading
                           Button.OnClick (fun _ -> onAddEgg chicken.Id) 
                           Button.Disabled isEggButtonDisabled ] 
-                        [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.Plus ] [] ] ]
+                        [ Icon.icon [ Icon.Modifiers [ Modifier.TextColor (Color.IsInfo) ] ] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.Plus ] [] ] ]
 
                 let eggButtons =
                     let eggCount = 
                         model.EggCountOnDate 
                         |> Option.map (fun c -> c.[chicken.Id].Value) 
                         |> Option.defaultValue 0
-                    let currentEggs = [ for i in 1..eggCount do yield Column.column [ Column.Width (Screen.All, Column.Is2) ] [ removeEggButton ] ]  
-                    Column.column [ Column.Width (Screen.All, Column.Is1) ] [ addEggButton ] :: currentEggs |> List.rev
-                    |> Columns.columns [] 
- 
+                    let currentEggs = [ for i in 1..eggCount do yield Column.column [ Column.Width (Screen.All, Column.Is3) ] [ removeEggButton ] ]  
+                    Column.column [ Column.Width (Screen.All, Column.Is3) ] [ addEggButton ] :: currentEggs |> List.rev
+                    |> Columns.columns 
+                        [ Columns.IsCentered
+                          Columns.IsVCentered
+                          Columns.Props [ Style [ Height 200 ] ] ] 
 
                 let tile =
                     let image =
@@ -324,15 +329,25 @@ module internal ChickenList =
 
                     let header =
                         span [] 
-                            [ Heading.h4 [] [ str chicken.Name.Value ]
-                              Heading.h6 [ Heading.IsSubtitle ] [ str chicken.Breed.Value ] ]
+                            [ Heading.h4 [ Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ] [ str chicken.Name.Value ]
+                              Heading.h6 
+                                  [ Heading.IsSubtitle;  Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ]
+                                  [ str chicken.Breed.Value ] ]
 
-                    Card.card []
-                        [ Card.image [] [ image ]
-                          Card.header [] [ header ] 
-                          Card.content [] 
-                            [ eggButtons 
-                              [ getCountStr chicken.Id model.TotalEggCount |> sprintf "Totalt: %s" |> str ] |> p [] ] ]
+                    let footerSubtitle =
+                        [ getCountStr chicken.Id model.TotalEggCount |> sprintf "Totalt: %s" |> str ] 
+                            |> Heading.h6 [ Heading.IsSubtitle; Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ] 
+                    Card.card 
+                        [ Props 
+                            [ Style 
+                            [ sprintf "url(%s)" imageUrl |> box |> BackgroundImage 
+                              BackgroundRepeat "no-repeat"
+                              BackgroundSize "cover" ] ] ]
+                        [ //Card.image [] [ image ]
+                          Card.header [ Modifiers [ Modifier.BackgroundColor Color.IsGreyLight ] ] [ header ] 
+                          Card.content [] [ eggButtons ]
+                          Card.footer [ Modifiers [ Modifier.BackgroundColor Color.IsGreyLight ] ] 
+                            [ footerSubtitle ] ]
 
                 Column.column
                     [ Column.Width (Screen.Desktop, Column.Is4 ); Column.Width (Screen.Mobile, Column.Is12)]

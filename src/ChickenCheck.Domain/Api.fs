@@ -8,6 +8,7 @@ type GetEggCountOnDateApi = SecureRequest<Date> -> AsyncResult<Map<ChickenId, Na
 type GetTotalEggCountApi = SecureRequest<unit> -> AsyncResult<Map<ChickenId, NaturalNum>, DomainError>
 type AddEggApi = SecureRequest<AddEgg> -> AsyncResult<unit, DomainError>
 type RemoveEggApi = SecureRequest<RemoveEgg> -> AsyncResult<unit, DomainError>
+type GetStatistics = SecureRequest<unit> -> AsyncResult<Map<ChickenId, EggData>, DomainError>
 
 type IChickenCheckApi =
     { GetStatus: unit -> Async<string>
