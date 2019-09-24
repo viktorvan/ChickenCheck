@@ -303,7 +303,7 @@ module internal ChickenList =
                     Button.a
                         [ Button.IsOutlined
                           Button.Size Size.IsLarge
-                          (match model.AddEggStatus with | Running -> true | _ -> false) |> Button.IsLoading
+                        //   (match model.AddEggStatus with | Running -> true | _ -> false) |> Button.IsLoading
                           Button.OnClick (fun _ -> onAddEgg chicken.Id) 
                           Button.Disabled isEggButtonDisabled ] 
                         [ Icon.icon [ Icon.Modifiers [ Modifier.TextColor (Color.IsInfo) ] ] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.Plus ] [] ] ]
@@ -320,13 +320,7 @@ module internal ChickenList =
                           Columns.IsVCentered
                           Columns.Props [ Style [ Height 200 ] ] ] 
 
-                let tile =
-                    let image =
-                        Image.image [ Image.Props [ Style [ Height "240px" ] ] ] 
-                            [ img 
-                                [ if hasImage then yield Src imageUrl 
-                                  yield Alt chicken.Name.Value ] ]
-
+                let card =
                     let header =
                         span [] 
                             [ Heading.h4 [ Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ] [ str chicken.Name.Value ]
@@ -337,21 +331,19 @@ module internal ChickenList =
                     let footerSubtitle =
                         [ getCountStr chicken.Id model.TotalEggCount |> sprintf "Totalt: %s" |> str ] 
                             |> Heading.h6 [ Heading.IsSubtitle; Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ] 
+
                     Card.card 
                         [ Props 
                             [ Style 
-                            [ sprintf "url(%s)" imageUrl |> box |> BackgroundImage 
+                            [ sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrl |> box |> BackgroundImage 
                               BackgroundRepeat "no-repeat"
                               BackgroundSize "cover" ] ] ]
-                        [ //Card.image [] [ image ]
-                          Card.header [ Modifiers [ Modifier.BackgroundColor Color.IsGreyLight ] ] [ header ] 
-                          Card.content [] [ eggButtons ]
-                          Card.footer [ Modifiers [ Modifier.BackgroundColor Color.IsGreyLight ] ] 
-                            [ footerSubtitle ] ]
+                        [ Card.header [] [ header ] 
+                          Card.content [] [ eggButtons ] ]
 
                 Column.column
                     [ Column.Width (Screen.Desktop, Column.Is4 ); Column.Width (Screen.Mobile, Column.Is12)]
-                    [ tile ]   
+                    [ card ]   
 
             chickens 
             |> batchesOf 3 
@@ -365,18 +357,26 @@ module internal ChickenList =
         | _ -> [ ViewComponents.loading ]
 
 module Statistics =
+    let chickenEggCount (countMap: EggCount option) (chicken: Chicken) =
+        let totalCount = getCountStr chicken.Id countMap
+        Level.item []
+            [ div []
+                [ Level.heading [] [ chicken.Name.Value |> str ] 
+                  Level.title [] [ str totalCount ] ] ]
+
+    let allCounts model =
+        model.Chickens |> List.map (chickenEggCount model.TotalEggCount)
+        |> Level.level []
+
     let view model =
-        let totalCount = 
-            model.TotalEggCount 
-            |> Option.map (Map.toList >> List.map (snd >> NaturalNum.value) >> List.sum) 
-            |> Option.defaultValue 0 
-            |> string
-            |> str
-        Level.level []
-            [ Level.item [] 
-                [ div []
-                    [ Level.heading [] [ str "Alla ägg" ]
-                      Level.title [] [ totalCount ] ] ] ]
+        Container.container []
+            [ Text.p 
+                [ Modifiers 
+                    [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered)
+                      Modifier.TextSize (Screen.All, TextSize.Is2)] ] 
+                [ str "Hur mycket har de värpt totalt?" ] 
+              allCounts model ]
+
 
 let view (model: ChickenIndexModel) (dispatch: Msg -> unit) =
 
@@ -395,8 +395,8 @@ let view (model: ChickenIndexModel) (dispatch: Msg -> unit) =
                     [ Text.p 
                         [ Modifiers 
                             [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered)
-                              Modifier.TextSize (Screen.All, TextSize.Is1)] ] 
-                        [ str "Vem värpte?" ]
+                              Modifier.TextSize (Screen.All, TextSize.Is2)] ] 
+                        [ str "Vem värpte idag?" ]
                       datePickerView model.Calendar onChangeDate
                       Container.container
                           [] 
