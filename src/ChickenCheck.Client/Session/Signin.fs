@@ -1,13 +1,28 @@
-module ChickenCheck.Client.Session.Signin
+module ChickenCheck.Client.Signin
 open Elmish
 open ChickenCheck.Client
-open ChickenCheck.Client.Pages
 open ChickenCheck.Domain
 open ChickenCheck.Domain.Session
 open Fable.React
 open Fable.Core.JsInterop
 open ChickenCheck.Client.ApiHelpers
 open Fable.FontAwesome
+
+type Model =
+    { Email : StringInput<Email>
+      Password : StringInput<Password>
+      LoginStatus : ApiCallStatus } with
+    member __.IsValid =
+        match __.Email, __.Password with
+        | StringInput.Valid _, StringInput.Valid _ -> true
+        | _ -> false
+    member __.IsInvalid = __.IsValid |> not
+
+let init () =
+    { Email = StringInput.Empty
+      Password = StringInput.Empty
+      LoginStatus = NotStarted }
+
 
 type ExternalMsg =
     | NoOp
@@ -21,7 +36,7 @@ type Msg =
     | ClearLoginError
     | Submit
 
-let update (chickenCheckApi: IChickenCheckApi) msg (model: SigninModel) =
+let update (chickenCheckApi: IChickenCheckApi) msg (model: Model) =
     match msg with
     | ChangeEmail msg ->
         let newEmail =  
@@ -37,7 +52,7 @@ let update (chickenCheckApi: IChickenCheckApi) msg (model: SigninModel) =
             | Error _ -> StringInput.Invalid msg
         { model with Password = newPassword }, Cmd.none, NoOp
 
-    | LoginCompleted session -> { model with LoginStatus = ApiCallStatus.Completed }, (ChickensPage.init |> newUrl), SignedIn session
+    | LoginCompleted session -> { model with LoginStatus = ApiCallStatus.Completed }, Cmd.none, SignedIn session
 
     | LoginFailed err -> { model with LoginStatus = Failed err }, Cmd.none, NoOp
 
@@ -67,7 +82,7 @@ open Fable.React.Props
 open Fulma
 
 
-let view (model : SigninModel) (dispatch : Msg -> unit) =
+let view (model : Model) (dispatch : Msg -> unit) =
 
     let emailInput =
         let isValid, emailStr = model.Email |> StringInput.tryValid

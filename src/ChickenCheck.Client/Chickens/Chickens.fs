@@ -1,9 +1,7 @@
-module ChickenCheck.Client.Chicken.Index
+module ChickenCheck.Client.Chickens
 
 open Fable.React.Props
 open Fable.React
-open Fable.Core.JsInterop
-open ChickenCheck.Client
 open ChickenCheck.Domain
 open ChickenCheck.Domain.Commands
 open Elmish
@@ -11,33 +9,66 @@ open System
 open Fulma
 open Fable.FontAwesome
 open Fulma.Elmish
+open Router
+open FsToolkit.ErrorHandling
+open ChickenCheck.Client
 
-type EggCount = Map<ChickenId, NaturalNum>
+type Model =
+    { Chickens : Chicken list
+      TotalEggCount : Map<ChickenId, EggCount>
+      EggCountOnDate : Map<ChickenId, EggCount>
+      FetchChickensStatus : ApiCallStatus 
+      FetchTotalEggCountStatus : ApiCallStatus 
+      FetchEggCountOnDateStatus : ApiCallStatus 
+      AddEggStatus : ApiCallStatus
+      RemoveEggStatus : ApiCallStatus
+      CurrentDate : Date }
 
+let init session route =
+    match route with
+    | ChickenRoute.Chickens ->
+        { Chickens = []
+          TotalEggCount = Map.empty
+          EggCountOnDate = Map.empty
+          FetchChickensStatus = NotStarted 
+          FetchTotalEggCountStatus = NotStarted 
+          FetchEggCountOnDateStatus = NotStarted 
+          AddEggStatus = NotStarted
+          RemoveEggStatus = NotStarted
+          CurrentDate = Date.today }, Cmd.none
+
+
+type EggCountMap = Map<ChickenId, EggCount>
+
+[<RequireQualifiedAccess>]
 type Chickens =
     | Request
     | Result of Chicken list
     | Error of string
     | ClearError
 
+[<RequireQualifiedAccess>]
 type TotalCount =
     | Request
-    | Result of EggCount
+    | Result of EggCountMap
     | Error of string
     | ClearError
 
+[<RequireQualifiedAccess>]
 type EggCountOnDate =
     | Request of Date
-    | Result of Date * EggCount
+    | Result of Date * EggCountMap
     | Error of string
     | ClearError
 
+[<RequireQualifiedAccess>]
 type AddEgg =
     | Request of ChickenId * Date
     | Result of ChickenId * Date
     | Error of string
     | ClearError
 
+[<RequireQualifiedAccess>]
 type RemoveEgg =
     | Request of ChickenId * Date
     | Result of ChickenId * Date
@@ -50,53 +81,53 @@ type Msg =
     | EggCountOnDate of EggCountOnDate
     | AddEgg of AddEgg
     | RemoveEgg of RemoveEgg
-    | DatePicker of Calendar.Msg
+    | ChangeDate of Date
 
-let updateDatePicker msg model =
-    match msg with
-
-    | Calendar.DatePickerChanged (newState, date) ->
-        // Store the new state and the selected date
-        { model with Calendar.DatePickerState = newState
-                     Calendar.CurrentDate = date }
-
-// Configuration passed to the components
-let pickerConfig : DatePicker.Types.Config<Calendar.Msg> =
-    let cfg = DatePicker.Types.defaultConfig Calendar.DatePickerChanged
-    { cfg with DatePickerStyle = 
-                [ Position PositionOptions.Absolute
-                  MaxWidth "450px"
-                  ZIndex 10. ] }
-
-let datePickerView (model: Calendar.Model) dispatch =
+let datePickerView date dispatch =
+    let onDateSet date =
+        ChangeDate date |> dispatch
     let onDateChange delta =    
-        match model.CurrentDate with
-        | None -> ()
-        | Some date ->
-            Calendar.DatePickerChanged (model.DatePickerState, date.AddDays delta |> Some) |> dispatch
+        onDateSet (Date.addDays delta date)
     let previousDate _ = onDateChange -1.
     let nextDate _ = onDateChange 1.
-    Level.level []
-        [ Level.item []
-            [ Button.a [ Button.IsLink; Button.OnClick previousDate ] [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.CaretLeft ] [] ] ] ]
-          Level.item []
-            [ Field.div [ Field.Props [ Data ("display-mode", "inline") ] ]
-                [ DatePicker.View.root pickerConfig model.DatePickerState model.CurrentDate dispatch ] ]
-          Level.item []
-            [ Button.a [ Button.IsLink; Button.OnClick nextDate ] [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.CaretRight ] [] ] ] ] ]
 
-let private getCount chickenId (countMap:EggCount option) = 
-    countMap
-    |> Option.map (fun c -> c.[chickenId].Value) 
+    let parseDate (ev: Browser.Types.Event) =
+        ev.Value
+        |> DateTime.Parse
+        |> Date.create
 
-let private getCountStr chickenId (countMap: EggCount option) =
+    Level.level [ Level.Level.IsMobile ]
+        [ 
+            Level.item []
+                [ 
+                    Button.a 
+                        [ Button.IsLink; Button.OnClick previousDate ] 
+                        [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.CaretLeft ] [] ] ] 
+                ]
+            Level.item []
+                [ 
+                    Field.div 
+                        [ 
+                            Field.Props [ Data ("display-mode", "inline") ] 
+                        ]
+                        [ 
+                            Input.date
+                                [ 
+                                    Input.OnChange (parseDate >> onDateSet) 
+                                    date.ToDateTime().ToString("yyyy-MM-dd") |> Input.Value
+                                ] 
+                        ] 
+                ]
+            Level.item []
+              [ Button.a [ Button.IsLink; Button.OnClick nextDate ] [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.CaretRight ] [] ] ] ] ]
+
+let private getCountStr chickenId (countMap: EggCountMap) =
     countMap
-    |> getCount chickenId
-    |> Option.map string
+    |> Map.tryFind chickenId
+    |> Option.map EggCount.toString
     |> Option.defaultValue "-"
 
-
-let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBuilder) msg (model: ChickenIndexModel) =
+let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBuilder) msg (model: Model) =
     let callApi apiFunc arg successMsg errorMsg =
         let ofSuccess = function
             | Ok res -> res |> successMsg
@@ -114,15 +145,11 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
                 (Chickens.Error >> Chickens))
 
         | Chickens.Result chickens -> 
-            match model.Calendar.CurrentDate with
-            | Some date ->
-                { model with FetchChickensStatus = ApiCallStatus.Completed
-                             Chickens = chickens }, 
-                             [ Cmd.ofMsg (TotalCount.Request |> TotalCount)
-                               Cmd.ofMsg (EggCountOnDate.Request (Date.create date) |> EggCountOnDate) ] 
-                               |> Cmd.batch
-            | None ->
-                model, Cmd.none
+            { model with FetchChickensStatus = ApiCallStatus.Completed
+                         Chickens = chickens }, 
+                         [ Cmd.ofMsg (TotalCount.Request |> TotalCount)
+                           Cmd.ofMsg (EggCountOnDate.Request model.CurrentDate |> EggCountOnDate) ] 
+                           |> Cmd.batch
 
         | Chickens.Error msg ->
             { model with FetchChickensStatus = Failed msg }, Cmd.none
@@ -140,11 +167,10 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
                     (EggCountOnDate.Error >> EggCountOnDate)
 
         | EggCountOnDate.Result (date, countByChicken) -> 
-            match model.Calendar.CurrentDate with
-            | Some currentDate when Date.create currentDate = date ->
+            if model.CurrentDate = date then
                 { model with FetchEggCountOnDateStatus = Completed
-                             EggCountOnDate = Some countByChicken }, Cmd.none
-            | _ ->
+                             EggCountOnDate = countByChicken }, Cmd.none
+            else
                 model, Cmd.none
 
         | EggCountOnDate.Error msg -> 
@@ -164,7 +190,7 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
 
         | TotalCount.Result countByChicken -> 
             { model with FetchTotalEggCountStatus = Completed
-                         TotalEggCount = Some countByChicken }, Cmd.none
+                         TotalEggCount = countByChicken }, Cmd.none
 
         | TotalCount.Error msg -> 
             { model with FetchTotalEggCountStatus = Failed msg }, Cmd.none
@@ -182,20 +208,27 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
                 (AddEgg.Error >> AddEgg)
 
         | AddEgg.Result (chickenId, date) -> 
-            match model.TotalEggCount, model.EggCountOnDate, model.Calendar.CurrentDate with
-            | None, _, _ | _, None, _ | _, _, None -> model, AddEgg.Error "Could not add egg" |> AddEgg |> Cmd.ofMsg
-            | Some totalCount, Some onDateCount, Some currentDate ->
-                let newTotal = totalCount.[chickenId].Value + 1 |> NaturalNum.create
-                let newOnDate = 
-                    if date = Date.create currentDate then
-                        onDateCount.[chickenId].Value + 1 |> NaturalNum.create
-                    else onDateCount.[chickenId] |> Ok
-                match (newTotal, newOnDate) with
-                | Ok newTotal, Ok newOnDate ->
-                    { model with AddEggStatus = Completed
-                                 TotalEggCount = model.TotalEggCount |> Option.map (fun total -> total |> Map.add chickenId newTotal)
-                                 EggCountOnDate = model.EggCountOnDate |> Option.map (fun onDate -> onDate |> Map.add chickenId newOnDate) }, Cmd.none
-                | Result.Error _, _ | _, Result.Error _ -> model,AddEgg.Error "Could not add egg" |> AddEgg |> Cmd.ofMsg 
+            let model = { model with AddEggStatus = Completed }
+            let newTotal = 
+                model.TotalEggCount 
+                |> Map.tryFind chickenId 
+                |> Option.defaultValue EggCount.zero
+                |> EggCount.increase
+            let newOnDate = 
+                model.EggCountOnDate 
+                |> Map.tryFind chickenId
+                |> Option.defaultValue EggCount.zero
+                |> (fun count ->
+                        if date = model.CurrentDate then
+                            count |> EggCount.increase
+                        else 
+                            count |> Ok
+                        )
+            match (newTotal, newOnDate) with
+            | Ok newTotal, Ok newOnDate ->
+                { model with TotalEggCount = model.TotalEggCount |> Map.add chickenId newTotal
+                             EggCountOnDate = model.EggCountOnDate |> Map.add chickenId newOnDate }, Cmd.none
+            | Result.Error _, _ | _, Result.Error _ -> model, AddEgg.Error "Could not add egg" |> AddEgg |> Cmd.ofMsg 
 
         | AddEgg.Error msg -> 
             { model with AddEggStatus = Failed msg }, Cmd.none
@@ -213,24 +246,38 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
                 (RemoveEgg.Error >> RemoveEgg)
 
         | RemoveEgg.Result (chickenId, date) -> 
-            match model.TotalEggCount, model.EggCountOnDate, model.Calendar.CurrentDate with
-            | None, _, _ | _, None, _ | _, _, None -> model, RemoveEgg.Error "Could not remove egg" |> RemoveEgg |> Cmd.ofMsg
-            | Some totalCount, Some onDateCount, Some currentDate when onDateCount.[chickenId].Value > 0 ->
+            let model = { model with RemoveEggStatus = Completed }
+            let hasEggsToRemove = 
+                model.EggCountOnDate 
+                |> Map.tryFind chickenId   
+                |> Option.map (fun (EggCount num) -> num.Value > 0)
+                |> Option.defaultValue false
+            if hasEggsToRemove then
                 let newTotal = 
-                    let current = totalCount.[chickenId].Value
-                    if current < 1 then 0 |> NaturalNum.create
-                    else current - 1 |> NaturalNum.create
+                    model.TotalEggCount 
+                    |> Map.tryFind chickenId
+                    |> Option.defaultValue EggCount.zero
+                    |> EggCount.decrease
+                     
                 let newOnDate = 
-                    if date = Date.create currentDate && onDateCount.[chickenId].Value > 0 then
-                        onDateCount.[chickenId].Value - 1 |> NaturalNum.create
-                    else onDateCount.[chickenId] |> Ok
+                    if date = model.CurrentDate then
+                        model.EggCountOnDate
+                        |> Map.tryFind chickenId
+                        |> Option.defaultValue EggCount.zero
+                        |> EggCount.decrease
+                    else 
+                        model.EggCountOnDate
+                        |> Map.tryFind chickenId
+                        |> Option.defaultValue EggCount.zero
+                        |> Ok
                 match (newTotal, newOnDate) with
                 | Ok newTotal, Ok newOnDate ->
-                    { model with RemoveEggStatus = Completed
-                                 TotalEggCount = model.TotalEggCount |> Option.map (fun total -> total |> Map.add chickenId newTotal)
-                                 EggCountOnDate = model.EggCountOnDate |> Option.map (fun onDate -> onDate |> Map.add chickenId newOnDate) }, Cmd.none
-                | Result.Error _, _ | _, Result.Error _ -> model, RemoveEgg.Error "Could not add egg" |> RemoveEgg |> Cmd.ofMsg 
-            | Some _, Some _, _ -> { model with RemoveEggStatus = Completed }, Cmd.none
+                    { model with TotalEggCount = model.TotalEggCount |> Map.add chickenId newTotal
+                                 EggCountOnDate = model.EggCountOnDate |> Map.add chickenId newOnDate }, Cmd.none
+                | Result.Error _, _ | _, Result.Error _ -> 
+                    model, RemoveEgg.Error "Could not add egg" |> RemoveEgg |> Cmd.ofMsg 
+            else
+                model, Cmd.none
 
         | RemoveEgg.Error msg -> 
             { model with RemoveEggStatus = Failed msg }, Cmd.none
@@ -244,13 +291,8 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
     | TotalCount msg -> handleTotalCount msg
     | AddEgg msg -> handleAddEgg msg
     | RemoveEgg msg -> handleRemoveEgg msg
-    | DatePicker msg -> 
-        let calendarModel = updateDatePicker msg model.Calendar
-        let date = 
-            match msg with
-            | Calendar.DatePickerChanged (_, dateOption) -> dateOption.Value |> Date.create
-
-        { model with Calendar = calendarModel }, EggCountOnDate.Request date |> EggCountOnDate |> Cmd.ofMsg
+    | ChangeDate date -> 
+        { model with CurrentDate = date }, EggCountOnDate.Request date |> EggCountOnDate |> Cmd.ofMsg
 
 module internal ChickenList =
 
@@ -296,53 +338,62 @@ module internal ChickenList =
                         [ Button.IsText
                           Button.IsHovered false
                           Button.Size Size.IsLarge
-                          Button.OnClick (fun _ -> onRemoveEgg chicken.Id) 
+                          Button.OnClick (fun ev -> 
+                            ev.cancelBubble <- true
+                            ev.stopPropagation()
+                            onRemoveEgg chicken.Id) 
+                          
                           Button.Disabled isEggButtonDisabled ] 
                         [ Icon.icon [ Icon.Modifiers [ Modifier.TextColor Color.IsWhite ] ] [ Fa.i [ Fa.Size Fa.Fa3x; Fa.Solid.Egg ] [] ] ]
-                let addEggButton = 
-                    Button.a
-                        [ Button.IsOutlined
-                          Button.Size Size.IsLarge
-                        //   (match model.AddEggStatus with | Running -> true | _ -> false) |> Button.IsLoading
-                          Button.OnClick (fun _ -> onAddEgg chicken.Id) 
-                          Button.Disabled isEggButtonDisabled ] 
-                        [ Icon.icon [ Icon.Modifiers [ Modifier.TextColor (Color.IsInfo) ] ] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.Plus ] [] ] ]
 
                 let eggButtons =
                     let eggCount = 
                         model.EggCountOnDate 
-                        |> Option.map (fun c -> c.[chicken.Id].Value) 
-                        |> Option.defaultValue 0
+                        |> Map.tryFind chicken.Id
+                        |> Option.defaultValue EggCount.zero
+                        |> EggCount.value
                     let currentEggs = [ for i in 1..eggCount do yield Column.column [ Column.Width (Screen.All, Column.Is3) ] [ removeEggButton ] ]  
-                    Column.column [ Column.Width (Screen.All, Column.Is3) ] [ addEggButton ] :: currentEggs |> List.rev
+                    currentEggs 
                     |> Columns.columns 
                         [ Columns.IsCentered
                           Columns.IsVCentered
+                          Columns.IsMobile
                           Columns.Props [ Style [ Height 200 ] ] ] 
 
                 let card =
                     let header =
-                        span [] 
-                            [ Heading.h4 [ Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ] [ str chicken.Name.Value ]
-                              Heading.h6 
-                                  [ Heading.IsSubtitle;  Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ]
-                                  [ str chicken.Breed.Value ] ]
-
-                    let footerSubtitle =
-                        [ getCountStr chicken.Id model.TotalEggCount |> sprintf "Totalt: %s" |> str ] 
-                            |> Heading.h6 [ Heading.IsSubtitle; Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ] 
+                        span 
+                            [ ] 
+                            [ 
+                                Heading.h4 
+                                    [ Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ] 
+                                    [ str chicken.Name.Value ]
+                                Heading.h6 
+                                    [ Heading.IsSubtitle;  Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ]
+                                    [ str chicken.Breed.Value ] ]
 
                     Card.card 
-                        [ Props 
-                            [ Style 
-                            [ sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrl |> box |> BackgroundImage 
-                              BackgroundRepeat "no-repeat"
-                              BackgroundSize "cover" ] ] ]
-                        [ Card.header [] [ header ] 
-                          Card.content [] [ eggButtons ] ]
+                        [ 
+                            Props 
+                                [ 
+                                    OnClick (fun _ -> onAddEgg chicken.Id)
+                                    Style 
+                                        [ 
+                                            sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrl |> box |> BackgroundImage 
+                                            BackgroundRepeat "no-repeat"
+                                            BackgroundSize "cover" 
+                                        ] 
+                                ] 
+                        ]
+                        [ 
+                            Card.header [] [ header ] 
+                            Card.content [] [ eggButtons ] 
+                        ]
 
                 Column.column
-                    [ Column.Width (Screen.Desktop, Column.Is4 ); Column.Width (Screen.Mobile, Column.Is12)]
+                    [ 
+                        Column.Width (Screen.Desktop, Column.Is4 ); Column.Width (Screen.Mobile, Column.Is12)
+                    ]
                     [ card ]   
 
             chickens 
@@ -357,7 +408,7 @@ module internal ChickenList =
         | _ -> [ ViewComponents.loading ]
 
 module Statistics =
-    let chickenEggCount (countMap: EggCount option) (chicken: Chicken) =
+    let chickenEggCount (countMap: EggCountMap) (chicken: Chicken) =
         let totalCount = getCountStr chicken.Id countMap
         Level.item []
             [ div []
@@ -378,35 +429,42 @@ module Statistics =
               allCounts model ]
 
 
-let view (model: ChickenIndexModel) (dispatch: Msg -> unit) =
+let view (model: Model) (dispatch: Msg -> unit) =
 
     if model.FetchChickensStatus = ApiCallStatus.NotStarted
         then Chickens.Request |> Chickens |> dispatch
 
-    let onChangeDate  = 
-        DatePicker >> dispatch
 
-    let onAddEgg chickenId = AddEgg.Request (chickenId, (model.Calendar.CurrentDate.Value |> Date.create)) |> AddEgg |> dispatch
-    let onRemoveEgg chickenId = RemoveEgg.Request (chickenId, (model.Calendar.CurrentDate.Value |> Date.create)) |> RemoveEgg |> dispatch
-    let content = 
-        Section.section []
-            [ Section.section []
-                [ Container.container []
-                    [ Text.p 
-                        [ Modifiers 
-                            [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered)
-                              Modifier.TextSize (Screen.All, TextSize.Is2)] ] 
-                        [ str "Vem värpte idag?" ]
-                      datePickerView model.Calendar onChangeDate
-                      Container.container
-                          [] 
-                          (ChickenList.view 
-                              model
-                              onAddEgg 
-                              onRemoveEgg) ] ]
-              Section.section []
-                [ Statistics.view model ] ]
+    let onAddEgg chickenId = AddEgg.Request (chickenId, model.CurrentDate) |> AddEgg |> dispatch
+    let onRemoveEgg chickenId = RemoveEgg.Request (chickenId, model.CurrentDate) |> RemoveEgg |> dispatch
 
     let clearAction msg = fun _ -> msg |> dispatch
 
-    content
+    let header =
+        Text.p 
+            [ 
+                Modifiers 
+                    [ 
+                        Modifier.TextAlignment (Screen.All, TextAlignment.Centered)
+                        Modifier.TextSize (Screen.All, TextSize.Is2)
+                    ] 
+            ] 
+            [ str "Vem värpte idag?" ]
+
+    Section.section 
+        [ ]
+        [ 
+            Section.section 
+                [ ]
+                [ 
+                    Container.container 
+                        [ ]
+                        [ 
+                            header
+                            datePickerView model.CurrentDate dispatch
+                            Container.container
+                                [ ] 
+                                (ChickenList.view model onAddEgg onRemoveEgg) ] ]
+            Section.section 
+                [ ]
+                [ Statistics.view model ] ]

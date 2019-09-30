@@ -7,26 +7,83 @@ open Elmish.UrlParser
 open ChickenCheck.Client
 open Messages
 open Fable.Remoting.Client
-open ChickenCheck.Client.Pages
 open ChickenCheck.Domain
 open ChickenCheck.Domain.Session
+open Fable.Core
+open Elmish.Navigation
+open Fulma
+open Fable.React
+open Fable.React.Props
 
-let urlUpdate (result : Option<Page>) model =
-    match model.Session, result with
-    | None, _ -> { model with CurrentPage = SigninPage.init }, Cmd.none
+[<RequireQualifiedAccess>]
+type Page =
+    | Signin of Signin.Model
+    | Chickens of Chickens.Model
+    | Loading
+    | NotFound
 
-    | _, None ->
-        // Fable.Import.Browser.console.error ("Error parsing url: " + Fable.Import.Browser.window.location.href)
-        model, model.CurrentPage |> modifyUrl
+type Model =
+    { CurrentRoute: Router.Route option
+      Session: Session option
+      ActivePage: Page }
 
-    | _, Some page -> { model with CurrentPage = page }, Cmd.none
+let private setRoute (result: Option<Router.Route>) (model : Model) =
+    let model = { model with CurrentRoute = result }
+    match result with
+    | None ->
+        let requestedUrl = Browser.Dom.window.location.href
+
+        JS.console.error("Error parsing url: " + requestedUrl)
+
+        { model with
+            ActivePage = Page.NotFound
+        }, Cmd.none
+
+    | Some route ->
+        match route with
+        | Router.Chicken chickenRoute ->
+            match model.Session with
+            | Some session ->
+                let (chickenModel, chickenCmd) = Chickens.init session chickenRoute
+
+                { model with
+                    ActivePage =
+                        chickenModel
+                        |> Page.Chickens
+                }, Cmd.map ChickenMsg chickenCmd
+
+            | None ->
+                model, Router.Login |> Router.newUrl
+
+        | Router.Login ->
+            let signinModel = Signin.init ()
+            { model with
+                ActivePage =
+                    Page.Signin signinModel
+            }, Cmd.none
+
+module Session =
+    let tryGet () =
+        None
 
 // defines the initial state and initial command (= side-effect) of the application
-let init result : Model * Cmd<Msg> =
-    let model =
-        { Session = None
-          CurrentPage = ChickensPage.init }
-    urlUpdate result model
+let private init (optRoute : Router.Route option) =
+    match Session.tryGet () with
+    | Some session ->
+        {
+            CurrentRoute = None
+            ActivePage = Page.Loading
+            Session = Some session
+        }
+        |> setRoute optRoute
+
+    | None ->
+        {
+            CurrentRoute = None
+            ActivePage = Page.Loading
+            Session = None
+        }
+        |> setRoute (Some Router.Login)
 
 let chickenCheckApi : IChickenCheckApi =
     Remoting.createApi()
@@ -50,25 +107,50 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
         | Some session -> SecureRequestBuilder(session.Token)
         | None -> failwith "Cannot request secure resource when not logged in"
 
-    match msg, model.CurrentPage with
-    | SigninMsg msg, SigninPage signinModel ->
-        let (pageModel, subMsg, extraMsg) = Session.Signin.update chickenCheckApi msg signinModel
-        let newModel =
-            match extraMsg with
-            | Session.Signin.NoOp -> model
-            | Session.Signin.SignedIn session -> { model with Session = Some session }
-        { newModel with CurrentPage = pageModel |> SigninPage }, Cmd.map SigninMsg subMsg
+    match msg, model.ActivePage with
+    | SigninMsg msg, Page.Signin signinModel ->
+        let (pageModel, subMsg, extraMsg) = Signin.update chickenCheckApi msg signinModel
+        match extraMsg with
+        | Signin.NoOp ->
+            { model with ActivePage = pageModel |> Page.Signin }, Cmd.map SigninMsg subMsg
+        | Signin.SignedIn session -> 
+            { model with Session = Some session } 
+            |> setRoute (Router.ChickenRoute.Chickens |> Router.Chicken |> Some)
 
-    | ChickenMsg (IndexMsg msg), ChickensPage chickensPageModel -> 
-        let (pageModel, subMsg) = Chicken.Index.update chickenCheckApi (requestBuilder()) msg chickensPageModel
-        { model with CurrentPage = pageModel |> ChickensPage }, Cmd.map (IndexMsg >> ChickenMsg) subMsg
-
-    | GoToChickens, _ ->
-        let page = ChickensPage.init
-        { model with CurrentPage = page }, page |> newUrl 
+    | ChickenMsg msg, Page.Chickens chickensPageModel -> 
+        let (pageModel, subMsg) = Chickens.update chickenCheckApi (requestBuilder()) msg chickensPageModel
+        { model with ActivePage = pageModel |> Page.Chickens }, Cmd.map ChickenMsg subMsg
 
     | _ -> notImplemented()
 
+
+let view model dispatch =
+
+    let pageHtml (page : Page) =
+        match page with
+        | Page.Signin pageModel -> lazyView2 Signin.view pageModel (SigninMsg >> dispatch)
+        | Page.Chickens pageModel -> lazyView2 Chickens.view pageModel (ChickenMsg >> dispatch)
+        | Page.NotFound -> failwith "Not Implemented"
+        | Page.Loading -> failwith "Not Implemented"
+
+    let isLoggedIn, loggedInUsername =
+        match model.Session with
+        | None -> false, ""
+        | Some session -> true, session.Name.Value
+
+    let navbar =
+        Navbar.navbar [ Navbar.Color IsInfo ]
+            [ Navbar.Brand.div [ ]
+                [ Navbar.Item.a [ Navbar.Item.Props [ Href "#" ] ]
+                    [ img [ Style [ Width "2.5em" ] // Force svg display
+                            Src "https://chickencheck.z6.web.core.windows.net/Icons/android-chrome-192x192.png" ] ]  
+                  Navbar.Item.a [ Navbar.Item.Props [ Href "#" ] ]
+                    [ str "Mina hönor" ] ] ]
+
+    div [] 
+        [ if isLoggedIn then
+              yield navbar 
+          yield div [] [ pageHtml model.ActivePage ] ] 
 
 #if DEBUG
 
@@ -76,12 +158,8 @@ open Elmish.Debug
 open Elmish.HMR
 #endif
 
-let pageParser : Parser<Page -> Page, Page> =
-    oneOf [ map (ChickensPage.init) top
-            map (SigninPage.init) (s "signin") ] 
-
-Program.mkProgram init update View.view
-|> Program.toNavigable (parseHash pageParser) urlUpdate
+Program.mkProgram init update view
+|> Program.toNavigable (parseHash Router.pageParser) setRoute
 #if DEBUG
 |> Program.withConsoleTrace
 #endif

@@ -38,7 +38,7 @@ type NaturalNum = NaturalNum of int
 
 module NaturalNum =
     let create i =
-        if i < 0 then ("Naturaln number", "must be >= 0") |> ValidationError |> Error
+        if i < 0 then ("Natural number", "must be >= 0") |> ValidationError |> Error
         else i |> NaturalNum |> Ok
 
     let parse (str: string) =
@@ -47,6 +47,12 @@ module NaturalNum =
         | (false, _) -> ("natural number", "input is not an int") |> ValidationError |> Error
 
     let createOrFail = raiseOnValidationError create
+
+    let zero = createOrFail 0
+
+    let map f (NaturalNum num) =
+        f num
+        |> create
         
     let value (NaturalNum i) = i
     
@@ -154,13 +160,44 @@ type Chicken =
       ImageUrl : ImageUrl option 
       Breed : String200 }
 
+type EggCount = EggCount of NaturalNum
+module EggCount =
+    let zero = NaturalNum.zero |> EggCount
+
+    let increase (EggCount num) =
+        num
+        |> NaturalNum.map ((+) 1)
+        |> Result.map EggCount
+
+    let decrease (EggCount num) =
+        if num.Value > 0 then 
+            num |> NaturalNum.map (fun value -> value - 1) |> Result.map EggCount
+        else 
+            NaturalNum.zero |> EggCount |> Ok
+
+    let value (EggCount (NaturalNum num)) = num
+
+    let toString (EggCount num) = num.Value.ToString()
+
 type Date = { Year: int; Month: int; Day: int }
 module Date =
     let create (date: DateTime) =
         { Year = date.Year
           Month = date.Month
           Day = date.Day }
+
+    let today = create DateTime.Today
     let toDateTime (date: Date) = DateTime(date.Year, date.Month, date.Day)
+
+    let addDays numDays date =
+        date
+        |> toDateTime
+        |> (fun dt -> dt.AddDays numDays)
+        |> create
+
+type Date with
+    member this.ToDateTime() =
+        Date.toDateTime this
 
 type Change =
     | Up

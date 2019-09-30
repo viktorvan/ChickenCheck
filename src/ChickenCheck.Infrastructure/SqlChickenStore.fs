@@ -54,8 +54,15 @@ type internal GetEggCountOnDateSql = SqlCommandProvider<"
 let getEggCountOnDate (ConnectionString conn) : GetEggCountOnDate =
     let toDomain (entity: GetEggCountOnDateSql.Record) =
         result {
-            let! chickenId = entity.ChickenId |> ChickenId.create |> Result.mapError toDatabaseError
-            let! eggsOrZero = Option.defaultValue 0 entity.EggCount |> NaturalNum.create |> Result.mapError toDatabaseError
+            let! chickenId = 
+                entity.ChickenId 
+                |> ChickenId.create 
+                |> Result.mapError toDatabaseError
+            let! eggsOrZero = 
+                Option.defaultValue 0 entity.EggCount 
+                |> NaturalNum.create 
+                |> Result.map EggCount
+                |> Result.mapError toDatabaseError
             return chickenId, eggsOrZero
         }
 
@@ -79,8 +86,16 @@ type internal GetTotalEggCountSql = SqlCommandProvider<"
 let getTotalEggCount (ConnectionString conn) : GetTotalEggCount =
     let toDomain (entity: GetTotalEggCountSql.Record) =
         result {
-            let! id = entity.ChickenId |> ChickenId.create |> Result.mapError toDatabaseError
-            let! count = entity.EggCount |> Option.defaultValue 0 |> NaturalNum.create |> Result.mapError toDatabaseError
+            let! id = 
+                entity.ChickenId 
+                |> ChickenId.create 
+                |> Result.mapError toDatabaseError
+            let! count = 
+                entity.EggCount 
+                |> Option.defaultValue 0 
+                |> NaturalNum.create 
+                |> Result.map EggCount 
+                |> Result.mapError toDatabaseError
             return id, count
         }
 

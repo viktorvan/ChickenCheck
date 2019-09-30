@@ -7,7 +7,6 @@ open ChickenCheck.Client
 open ChickenCheck.Domain
 open Elmish
 open ChickenCheck.Client.ApiHelpers
-open ChickenCheck.Client.Pages
 open Fulma
 open Fulma.Elmish
 open System

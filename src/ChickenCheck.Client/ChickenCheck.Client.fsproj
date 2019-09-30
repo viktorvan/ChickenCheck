@@ -5,14 +5,14 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
     <ItemGroup>
+        <Compile Include="Router.fs" />
         <Compile Include="Types.fs" />
         <Compile Include="ApiHelpers.fs" />
         <Compile Include="EventHelpers.fs" />
         <Compile Include="ViewComponents.fs" />
         <Compile Include="Session/Signin.fs" />
-        <Compile Include="Chicken/Index.fs" />
+        <Compile Include="Chickens/Chickens.fs" />
         <Compile Include="Messages.fs" />
-        <Compile Include="View.fs" />
         <Compile Include="Client.fs" />
     </ItemGroup>
     <ItemGroup>
