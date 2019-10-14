@@ -147,6 +147,7 @@ let update (chickenCheckApi: IChickenCheckApi) apiToken msg (model: Model) =
                            |> Cmd.batch
 
         | Chickens.Error msg ->
+            printfn "chickens error"
             { model with FetchChickensStatus = Failed msg }, Cmd.none
 
         | Chickens.ClearError ->
@@ -170,7 +171,8 @@ let update (chickenCheckApi: IChickenCheckApi) apiToken msg (model: Model) =
                 model, Cmd.none
 
         | EggCountOnDate.Error msg -> 
-            { model with FetchEggCountOnDateStatus = Failed msg }, Cmd.none
+            { model with FetchEggCountOnDateStatus = Failed msg },
+                Cmd.none
 
         | EggCountOnDate.ClearError ->
             { model with FetchEggCountOnDateStatus = NotStarted }, Cmd.none
@@ -190,7 +192,8 @@ let update (chickenCheckApi: IChickenCheckApi) apiToken msg (model: Model) =
                          TotalEggCount = countByChicken }, Cmd.none
 
         | TotalCount.Error msg -> 
-            { model with FetchTotalEggCountStatus = Failed msg }, Cmd.none
+            { model with FetchTotalEggCountStatus = Failed msg },
+                Cmd.none
 
         | TotalCount.ClearError ->
             { model with FetchTotalEggCountStatus = NotStarted }, Cmd.none
@@ -229,7 +232,8 @@ let update (chickenCheckApi: IChickenCheckApi) apiToken msg (model: Model) =
             | Result.Error _, _ | _, Result.Error _ -> model, AddEgg.Error "Could not add egg" |> AddEgg |> Cmd.ofMsg 
 
         | AddEgg.Error msg -> 
-            { model with AddEggStatus = Failed msg }, Cmd.none
+            { model with AddEggStatus = Failed msg },
+                Cmd.none
 
         | AddEgg.ClearError ->
             { model with AddEggStatus = NotStarted }, Cmd.none
@@ -279,7 +283,8 @@ let update (chickenCheckApi: IChickenCheckApi) apiToken msg (model: Model) =
                 model, Cmd.none
 
         | RemoveEgg.Error msg -> 
-            { model with RemoveEggStatus = Failed msg }, Cmd.none
+            { model with RemoveEggStatus = Failed msg },
+                Cmd.none
 
         | RemoveEgg.ClearError ->
             { model with RemoveEggStatus = NotStarted }, Cmd.none
@@ -427,7 +432,6 @@ module Statistics =
                 [ str "Hur mycket har de värpt totalt?" ] 
               allCounts model ]
 
-
 let view (model: Model) (dispatch: Msg -> unit) =
 
     if model.FetchChickensStatus = ApiCallStatus.NotStarted
@@ -450,9 +454,48 @@ let view (model: Model) (dispatch: Msg -> unit) =
             ] 
             [ str "Vem värpte idag?" ]
 
+    let errorView =
+        let items = 
+            [
+                model.FetchChickensStatus, (Chickens.ClearError |> Chickens)
+                model.FetchTotalEggCountStatus, (TotalCount.ClearError |> TotalCount)
+                model.FetchEggCountOnDateStatus, (EggCountOnDate.ClearError |> EggCountOnDate)
+                model.AddEggStatus, (AddEgg.ClearError |> AddEgg)
+                model.RemoveEggStatus, (RemoveEgg.ClearError |> RemoveEgg)
+            ]
+
+        let hasError (item) =
+            match item with | Failed _ -> true | _ -> false 
+
+        let hasErrors =
+            items 
+            |> List.exists (fun (item, _) -> hasError item)
+        
+        let getErrorMsg item =
+            match item with
+            | Failed msg -> msg
+            | _ -> ""
+
+        let errorFor (item, clearMsg) = 
+            if hasError item then
+                item
+                |> getErrorMsg
+                |> ViewComponents.apiErrorMsg (fun _ -> dispatch clearMsg) 
+                |> Some
+            else None
+
+        if hasErrors then 
+            Section.section 
+                [ ]
+                (items |> List.choose errorFor)
+        else span [] []
+        
+
+
     Section.section 
         [ ]
         [ 
+            errorView
             Section.section 
                 [ ]
                 [ 

@@ -2,25 +2,25 @@ module ChickenCheck.Client.ViewComponents
 
 open Fable.React.Props
 open Fable.React
-open Fable.Core.JsInterop
-open ChickenCheck.Client
-open ChickenCheck.Domain
-open Elmish
-open ChickenCheck.Client.ApiHelpers
 open Fulma
-open Fulma.Elmish
-open System
 
 let loading = str "loading"
 
-let apiErrorMsg clearAction status =
-    let (isOpen, msg) = 
-        match status with
-        | NotStarted | ApiCallStatus.Completed | Running -> false, ""
-        | Failed msg -> true, msg
-    div
-        [] 
-        [ str msg] 
+let apiErrorMsg clearError msg =
+    Notification.notification 
+        [
+            Notification.Color IsDanger
+        ]
+        [
+            Button.button 
+                [ 
+                    Button.OnClick clearError
+                    Button.Props [ Class "delete" ] 
+                ]
+                [] 
+            Heading.h6 [] [ str "Någonting gick fel" ]
+            Text.p [] [ str msg ]
+        ]
 
 let centered content =
     div []

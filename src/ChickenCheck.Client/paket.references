@@ -7,7 +7,6 @@ group Client
     Fable.Core
     Fable.Remoting.Client
     FsToolkit.Errorhandling
-    Thoth.Json
     Fulma
     Fable.FontAwesome.Free
     Fulma.Elmish
