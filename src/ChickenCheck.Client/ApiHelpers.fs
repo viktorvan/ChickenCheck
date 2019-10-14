@@ -15,7 +15,6 @@ let callSecureApi apiToken apiFunc arg successMsg errorMsg =
         | Result.Error (err:DomainError) -> 
             match err with
             | Authentication (UserTokenExpired) -> 
-                printfn "callSecureApi: session expired"
                 Session.expired.Trigger()
                 "Token expired" |> errorMsg
             | _ ->

@@ -127,7 +127,6 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
         | _ -> model, Cmd.none
 
     | Signout, _ ->
-        printfn "update: Signout"
         Session.delete()
         let signinModel = Signin.init()
         { model with
@@ -136,8 +135,6 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
         }, SessionRoute.Signout |> Session |> newUrl
 
     | msg, page -> 
-        printfn "***unknown msg: %A" msg
-        printfn "***unknown page: %A" page
         model, Cmd.none
         // { model with ActivePage = Page.NotFound }, Cmd.none
 
@@ -205,10 +202,8 @@ let view model dispatch =
 
 let handleExpiredToken _ =
     let sub dispatch =
-        printfn "setting up subscription"
         Session.expired.Publish.Add
             (fun _ -> 
-                printfn "in subscription: session expired"
                 Signout |> dispatch)
     Cmd.ofSub sub
 

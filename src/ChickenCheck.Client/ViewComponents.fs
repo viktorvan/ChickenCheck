@@ -3,9 +3,13 @@ module ChickenCheck.Client.ViewComponents
 open Fable.React.Props
 open Fable.React
 open Fulma
+open Fable.FontAwesome
 
-let loading = str "loading"
-
+let loading = 
+    span 
+        []
+        [ Icon.icon [ Icon.Modifiers [ Modifier.TextColor Color.IsWhite ] ] [ Fa.i [ Fa.Size Fa.Fa3x; Fa.Solid.Spinner; Fa.Spin ] [] ] ]
+    
 let apiErrorMsg clearError msg =
     Notification.notification 
         [

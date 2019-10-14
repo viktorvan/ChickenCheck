@@ -22,8 +22,8 @@ type Model =
       FetchChickensStatus : ApiCallStatus 
       FetchTotalEggCountStatus : ApiCallStatus 
       FetchEggCountOnDateStatus : ApiCallStatus 
-      AddEggStatus : ApiCallStatus
-      RemoveEggStatus : ApiCallStatus
+      AddEggStatus : ApiCallStatus * ChickenId list
+      RemoveEggStatus : ApiCallStatus * ChickenId list
       CurrentDate : Date }
 
 let init session route =
@@ -35,8 +35,8 @@ let init session route =
           FetchChickensStatus = NotStarted 
           FetchTotalEggCountStatus = NotStarted 
           FetchEggCountOnDateStatus = NotStarted 
-          AddEggStatus = NotStarted
-          RemoveEggStatus = NotStarted
+          AddEggStatus = NotStarted, []
+          RemoveEggStatus = NotStarted, []
           CurrentDate = Date.today }, Cmd.none
 
 
@@ -67,14 +67,14 @@ type EggCountOnDate =
 type AddEgg =
     | Request of ChickenId * Date
     | Result of ChickenId * Date
-    | Error of string
+    | Error of ChickenId * string
     | ClearError
 
 [<RequireQualifiedAccess>]
 type RemoveEgg =
     | Request of ChickenId * Date
     | Result of ChickenId * Date
-    | Error of string
+    | Error of ChickenId * string
     | ClearError
 
 type Msg = 
@@ -148,7 +148,6 @@ let update (chickenCheckApi: IChickenCheckApi) apiToken msg (model: Model) =
                            |> Cmd.batch
 
         | Chickens.Error msg ->
-            printfn "chickens error"
             { model with FetchChickensStatus = Failed msg }, Cmd.none
 
         | Chickens.ClearError ->
@@ -199,18 +198,24 @@ let update (chickenCheckApi: IChickenCheckApi) apiToken msg (model: Model) =
         | TotalCount.ClearError ->
             { model with FetchTotalEggCountStatus = NotStarted }, Cmd.none
 
+    let removeRunningId (chickenId: ChickenId) ids =
+        ids
+        |> List.filter (fun i -> i <> chickenId)
+
     let handleAddEgg = function
         | AddEgg.Request (chickenId, date) -> 
-            { model with AddEggStatus = Running }, 
+            let (_, runningIds) = model.AddEggStatus
+            { model with AddEggStatus = (Running, chickenId :: runningIds) }, 
             callSecureApi
                 apiToken
                 chickenCheckApi.AddEgg
                 { AddEgg.ChickenId = chickenId; Date = date }
                 ((fun _ -> AddEgg.Result (chickenId, date)) >> AddEgg) 
-                (AddEgg.Error >> AddEgg)
+                (fun msg -> AddEgg.Error (chickenId, msg) |> AddEgg)
 
         | AddEgg.Result (chickenId, date) -> 
-            let model = { model with AddEggStatus = Completed }
+            let (_, runningIds) = model.AddEggStatus
+            let model = { model with AddEggStatus = Completed, runningIds |> removeRunningId chickenId }
             let newTotal = 
                 model.TotalEggCount 
                 |> Map.tryFind chickenId 
@@ -230,27 +235,35 @@ let update (chickenCheckApi: IChickenCheckApi) apiToken msg (model: Model) =
             | Ok newTotal, Ok newOnDate ->
                 { model with TotalEggCount = model.TotalEggCount |> Map.add chickenId newTotal
                              EggCountOnDate = model.EggCountOnDate |> Map.add chickenId newOnDate }, Cmd.none
-            | Result.Error _, _ | _, Result.Error _ -> model, AddEgg.Error "Could not add egg" |> AddEgg |> Cmd.ofMsg 
+            | Result.Error _, _ | _, Result.Error _ -> 
+                model, 
+                AddEgg.Error (chickenId, "Could not add egg") 
+                |> AddEgg 
+                |> Cmd.ofMsg 
 
-        | AddEgg.Error msg -> 
-            { model with AddEggStatus = Failed msg },
+        | AddEgg.Error (chickenId, msg) -> 
+            let (_, runningIds) = model.AddEggStatus
+            { model with AddEggStatus = Failed msg, runningIds |> removeRunningId chickenId },
                 Cmd.none
 
         | AddEgg.ClearError ->
-            { model with AddEggStatus = NotStarted }, Cmd.none
+            let (_, runningIds) = model.AddEggStatus
+            { model with AddEggStatus = NotStarted, runningIds }, Cmd.none
 
     let handleRemoveEgg = function
         | RemoveEgg.Request (chickenId, date) -> 
-            { model with RemoveEggStatus = Running }, 
+            let (_, runningIds) = model.RemoveEggStatus
+            { model with RemoveEggStatus = Running, chickenId :: runningIds }, 
             callSecureApi
                 apiToken
                 chickenCheckApi.RemoveEgg
                 { RemoveEgg.ChickenId = chickenId; Date = date }
                 ((fun _ -> RemoveEgg.Result (chickenId, date)) >> RemoveEgg) 
-                (RemoveEgg.Error >> RemoveEgg)
+                (fun msg -> RemoveEgg.Error (chickenId, msg) |> RemoveEgg)
 
         | RemoveEgg.Result (chickenId, date) -> 
-            let model = { model with RemoveEggStatus = Completed }
+            let (_, runningIds) = model.RemoveEggStatus
+            let model = { model with RemoveEggStatus = Completed, runningIds |> removeRunningId chickenId }
             let hasEggsToRemove = 
                 model.EggCountOnDate 
                 |> Map.tryFind chickenId   
@@ -279,16 +292,18 @@ let update (chickenCheckApi: IChickenCheckApi) apiToken msg (model: Model) =
                     { model with TotalEggCount = model.TotalEggCount |> Map.add chickenId newTotal
                                  EggCountOnDate = model.EggCountOnDate |> Map.add chickenId newOnDate }, Cmd.none
                 | Result.Error _, _ | _, Result.Error _ -> 
-                    model, RemoveEgg.Error "Could not add egg" |> RemoveEgg |> Cmd.ofMsg 
+                    model, RemoveEgg.Error (chickenId, "Could not add egg") |> RemoveEgg |> Cmd.ofMsg 
             else
                 model, Cmd.none
 
-        | RemoveEgg.Error msg -> 
-            { model with RemoveEggStatus = Failed msg },
+        | RemoveEgg.Error (chickenId, msg) -> 
+            let (_, runningIds) = model.AddEggStatus
+            { model with RemoveEggStatus = Failed msg, runningIds },
                 Cmd.none
 
         | RemoveEgg.ClearError ->
-            { model with RemoveEggStatus = NotStarted }, Cmd.none
+            let (_, runningIds) = model.AddEggStatus
+            { model with RemoveEggStatus = NotStarted, runningIds }, Cmd.none
 
     match msg with
     | Chickens msg -> handleChickens msg
@@ -333,23 +348,26 @@ module internal ChickenList =
                     | Some (ImageUrl imageUrl) -> true, imageUrl
                     | None -> false, ""
 
-                let isEggButtonDisabled = 
-                    match model.AddEggStatus, model.RemoveEggStatus with 
-                    | (Running,_) | (_, Running) -> true 
-                    | _ -> false
-
                 let removeEggButton = 
                     Button.a
-                        [ Button.IsText
-                          Button.IsHovered false
-                          Button.Size Size.IsLarge
-                          Button.OnClick (fun ev -> 
-                            ev.cancelBubble <- true
-                            ev.stopPropagation()
-                            onRemoveEgg chicken.Id) 
-                          
-                          Button.Disabled isEggButtonDisabled ] 
-                        [ Icon.icon [ Icon.Modifiers [ Modifier.TextColor Color.IsWhite ] ] [ Fa.i [ Fa.Size Fa.Fa3x; Fa.Solid.Egg ] [] ] ]
+                        [ 
+                              Button.IsText
+                              Button.IsHovered false
+                              Button.Size Size.IsLarge
+                              Button.OnClick (fun ev -> 
+                                ev.cancelBubble <- true
+                                ev.stopPropagation()
+                                onRemoveEgg chicken.Id) 
+                        ] 
+                        [ 
+                            Icon.icon 
+                                [ 
+                                    Icon.Modifiers [ Modifier.TextColor Color.IsWhite ] 
+                                ] 
+                                [ 
+                                    Fa.i [ Fa.Size Fa.Fa3x; Fa.Solid.Egg ] [] 
+                                ] 
+                        ]
 
                 let eggButtons =
                     let eggCount = 
@@ -357,13 +375,34 @@ module internal ChickenList =
                         |> Map.tryFind chicken.Id
                         |> Option.defaultValue EggCount.zero
                         |> EggCount.value
-                    let currentEggs = [ for i in 1..eggCount do yield Column.column [ Column.Width (Screen.All, Column.Is3) ] [ removeEggButton ] ]  
-                    currentEggs 
-                    |> Columns.columns 
-                        [ Columns.IsCentered
-                          Columns.IsVCentered
-                          Columns.IsMobile
-                          Columns.Props [ Style [ Height 200 ] ] ] 
+
+                    let isRunning = 
+                        match model.FetchEggCountOnDateStatus, model.AddEggStatus, model.RemoveEggStatus with
+                        | Running, _, _  -> true
+                        | _, (Running, addIds), _ when addIds |> List.contains chicken.Id -> true
+                        | _, _, (Running, removeIds) when removeIds |> List.contains chicken.Id -> true
+                        | _ -> false
+                    let currentEggs = 
+                        if isRunning then [ ViewComponents.loading ]
+                        else
+                            [ for i in 1..eggCount do 
+                                yield 
+                                    Column.column 
+                                        [ 
+                                            Column.Width (Screen.All, Column.Is3) 
+                                        ] 
+                                        [ 
+                                            removeEggButton 
+                                        ] 
+                            ]  
+                    Columns.columns 
+                        [ 
+                            Columns.IsCentered
+                            Columns.IsVCentered
+                            Columns.IsMobile
+                            Columns.Props [ Style [ Height 200 ] ] 
+                        ] 
+                        currentEggs
 
                 let card =
                     let header =
@@ -474,7 +513,6 @@ let view (model: Model) (dispatch: Msg -> unit) =
 
 
     let isLoaded = 
-        printfn "isLoaded %A" model.FetchChickensStatus
         match model.FetchChickensStatus with
         | (Completed) -> true
         | NotStarted | Running | Failed _ -> false
@@ -484,8 +522,8 @@ let view (model: Model) (dispatch: Msg -> unit) =
             model.FetchChickensStatus, (Chickens.ClearError |> Chickens)
             model.FetchTotalEggCountStatus, (TotalCount.ClearError |> TotalCount)
             model.FetchEggCountOnDateStatus, (EggCountOnDate.ClearError |> EggCountOnDate)
-            model.AddEggStatus, (AddEgg.ClearError |> AddEgg)
-            model.RemoveEggStatus, (RemoveEgg.ClearError |> RemoveEgg)
+            model.AddEggStatus |> fst, (AddEgg.ClearError |> AddEgg)
+            model.RemoveEggStatus |> fst, (RemoveEgg.ClearError |> RemoveEgg)
         ]
 
     let hasErrors =
