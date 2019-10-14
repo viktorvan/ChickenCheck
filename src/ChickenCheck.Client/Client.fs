@@ -13,6 +13,7 @@ open Elmish.Navigation
 open Fulma
 open Fable.React
 open Fable.React.Props
+open ChickenCheck.Client.Router
 
 [<RequireQualifiedAccess>]
 type Page =
@@ -39,6 +40,7 @@ let private setRoute (result: Option<Router.Route>) (model : Model) =
         }, Cmd.none
 
     | Some route ->
+        Router.modifyLocation route
         match route with
         | Router.Chicken chickenRoute ->
             match model.Session with
@@ -52,14 +54,18 @@ let private setRoute (result: Option<Router.Route>) (model : Model) =
                 }, Cmd.map ChickenMsg chickenCmd
 
             | None ->
-                model, Router.Login |> Router.newUrl
+                model, SessionRoute.Signin |> Session |> Router.newUrl
 
-        | Router.Login ->
-            let signinModel = Signin.init ()
-            { model with
-                ActivePage =
-                    Page.Signin signinModel
-            }, Cmd.none
+        | Router.Session s ->
+            match s with
+            | SessionRoute.Signin ->
+                let signinModel = Signin.init()
+                { model with
+                    ActivePage =
+                        Page.Signin signinModel
+                }, Cmd.none
+            | SessionRoute.Signout -> 
+                model, Signout |> Cmd.ofMsg
 
 // defines the initial state and initial command (= side-effect) of the application
 let private init (optRoute : Router.Route option) =
@@ -78,7 +84,7 @@ let private init (optRoute : Router.Route option) =
             ActivePage = Page.Loading
             Session = None
         }
-        |> setRoute (Some Router.Login)
+        |> setRoute (SessionRoute.Signin |> Session |> Some)
 
 let chickenCheckApi : IChickenCheckApi =
     Remoting.createApi()
@@ -104,18 +110,26 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
 
     match msg, model.ActivePage with
     | SigninMsg msg, Page.Signin signinModel ->
-        let (pageModel, subMsg, extraMsg) = Signin.update chickenCheckApi msg signinModel
-        match extraMsg with
-        | Signin.NoOp ->
-            { model with ActivePage = pageModel |> Page.Signin }, Cmd.map SigninMsg subMsg
-        | Signin.SignedIn session -> 
-            Session.store session
-            { model with Session = Some session } 
-            |> setRoute (Router.ChickenRoute.Chickens |> Router.Chicken |> Some)
+            let (pageModel, subMsg, extraMsg) = Signin.update chickenCheckApi msg signinModel
+            match extraMsg with
+            | Signin.NoOp ->
+                { model with ActivePage = pageModel |> Page.Signin }, Cmd.map SigninMsg subMsg
+            | Signin.SignedIn session -> 
+                Session.store session
+                { model with Session = Some session } 
+                |> setRoute (Router.ChickenRoute.Chickens |> Router.Chicken |> Some)
 
     | ChickenMsg msg, Page.Chickens chickensPageModel -> 
         let (pageModel, subMsg) = Chickens.update chickenCheckApi (requestBuilder()) msg chickensPageModel
         { model with ActivePage = pageModel |> Page.Chickens }, Cmd.map ChickenMsg subMsg
+
+    | Signout, _ ->
+        Session.delete()
+        let signinModel = Signin.init()
+        { model with
+            Session = None
+            ActivePage = Page.Signin signinModel
+        }, Cmd.none
 
     | _ -> 
         { model with ActivePage = Page.NotFound }, Cmd.none
@@ -136,13 +150,45 @@ let view model dispatch =
         | Some session -> true, session.Name.Value
 
     let navbar =
-        Navbar.navbar [ Navbar.Color IsInfo ]
-            [ Navbar.Brand.div [ ]
-                [ Navbar.Item.a [ Navbar.Item.Props [ Href "#" ] ]
-                    [ img [ Style [ Width "2.5em" ] // Force svg display
-                            Src "https://chickencheck.z6.web.core.windows.net/Icons/android-chrome-192x192.png" ] ]  
-                  Navbar.Item.a [ Navbar.Item.Props [ Href "#" ] ]
-                    [ str "Mina hönor" ] ] ]
+        Navbar.navbar 
+            [ 
+                Navbar.Color IsInfo 
+            ]
+            [ 
+                Navbar.Brand.div [ ]
+                    [ 
+                        Navbar.Item.a []
+                            [ 
+                                img 
+                                    [ 
+                                        Style [ Width "2.5em" ] // Force svg display
+                                        Src "https://chickencheck.z6.web.core.windows.net/Icons/android-chrome-192x192.png" 
+                                    ] 
+                            ]  
+                        Navbar.Item.a []
+                            [ 
+                                str "Mina hönor" 
+                            ] 
+                    ] 
+                Navbar.End.div []
+                    [
+                        Navbar.Item.div
+                            [ 
+                                Navbar.Item.Props [] 
+                            ]
+                            [ 
+                                Button.a 
+                                    [ 
+                                        Button.IsOutlined
+                                        Button.OnClick (fun _ -> dispatch Signout)
+                                        Button.Props []
+                                    ] 
+                                    [ 
+                                        str "sign out" 
+                                    ]
+                            ]
+                    ]
+            ]
 
     div [] 
         [ if isLoggedIn then

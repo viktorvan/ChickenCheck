@@ -17,7 +17,7 @@ type Model =
         | _ -> false
     member __.IsInvalid = __.IsValid |> not
 
-let init () =
+let init() =
     { Email = StringInput.Empty
       Password = StringInput.Empty
       LoginStatus = NotStarted }

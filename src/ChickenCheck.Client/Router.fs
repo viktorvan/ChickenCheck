@@ -10,25 +10,35 @@ open Elmish.UrlParser
 type ChickenRoute =
     | Chickens
 
+[<RequireQualifiedAccess>]
+type SessionRoute =
+    | Signin
+    | Signout
+
 type Route =
     | Chicken of ChickenRoute
-    | Login
+    | Session of SessionRoute
 
 let pageParser: Parser<Route -> Route, Route> =
     oneOf
         [
             map (ChickenRoute.Chickens |> Chicken) top
-            map (Login) (s "login" )
+            map (SessionRoute.Signin |> Session) (s "session" </> s "signin")
+            map (SessionRoute.Signout |> Session) (s "session" </> s "signout")
         ]
 
 
-let signinPageUrl = "#signin"
+let signinPageUrl = "#session/signin"
+let signoutPageUrl = "#session/signout"
 let chickensPageUrl = "#"
 let notFoundUrl = "#notfound"
 
 let private toHash route =
     match route with
-    | Login -> signinPageUrl
+    | (Session s)-> 
+        match s with
+        | SessionRoute.Signin -> signinPageUrl
+        | SessionRoute.Signout -> signoutPageUrl
     | Chicken c -> chickensPageUrl
 
 let href route =
@@ -46,4 +56,5 @@ let newUrl route =
     |> Navigation.newUrl
 
 let modifyLocation route =
+    printfn "setting route %A"route
     window.location.href <- toHash route
