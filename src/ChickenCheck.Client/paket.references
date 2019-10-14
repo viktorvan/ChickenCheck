@@ -12,3 +12,4 @@ group Client
     Fulma.Elmish
     Fulma.Extensions.Wikiki.Calendar
     Fable.SimpleJson
+    Fulma.Extensions.Wikiki.PageLoader

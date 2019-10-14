@@ -58,6 +58,7 @@ group Client
     nuget Fulma
     nuget Fable.FontAwesome.Free
     nuget Fulma.Elmish
+    nuget Fulma.Extensions.Wikiki.PageLoader
 
 group Console
     source https://api.nuget.org/v3/index.json

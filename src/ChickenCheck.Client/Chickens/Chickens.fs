@@ -13,6 +13,7 @@ open Router
 open FsToolkit.ErrorHandling
 open ChickenCheck.Client
 open ChickenCheck.Client.ApiHelpers
+open Fulma.Extensions.Wikiki
 
 type Model =
     { Chickens : Chicken list
@@ -405,11 +406,7 @@ module internal ChickenList =
             |> List.map (fun batch -> Columns.columns [] (batch |> List.map chickenTile))
 
     let view model onAddEgg onRemoveEgg =
-        let fetchStatus = (model.FetchChickensStatus, model.FetchTotalEggCountStatus, model.FetchEggCountOnDateStatus) 
-
-        match fetchStatus with
-        | (Completed, _, _) -> chickenTiles model onAddEgg onRemoveEgg
-        | _ -> [ ViewComponents.loading ]
+        chickenTiles model onAddEgg onRemoveEgg
 
 module Statistics =
     let chickenEggCount (countMap: EggCountMap) (chicken: Chicken) =
@@ -454,22 +451,10 @@ let view (model: Model) (dispatch: Msg -> unit) =
             ] 
             [ str "Vem värpte idag?" ]
 
-    let errorView =
-        let items = 
-            [
-                model.FetchChickensStatus, (Chickens.ClearError |> Chickens)
-                model.FetchTotalEggCountStatus, (TotalCount.ClearError |> TotalCount)
-                model.FetchEggCountOnDateStatus, (EggCountOnDate.ClearError |> EggCountOnDate)
-                model.AddEggStatus, (AddEgg.ClearError |> AddEgg)
-                model.RemoveEggStatus, (RemoveEgg.ClearError |> RemoveEgg)
-            ]
+    let hasError (item) =
+        match item with | Failed _ -> true | _ -> false 
 
-        let hasError (item) =
-            match item with | Failed _ -> true | _ -> false 
-
-        let hasErrors =
-            items 
-            |> List.exists (fun (item, _) -> hasError item)
+    let errorView items =
         
         let getErrorMsg item =
             match item with
@@ -484,29 +469,57 @@ let view (model: Model) (dispatch: Msg -> unit) =
                 |> Some
             else None
 
-        if hasErrors then 
-            Section.section 
-                [ ]
-                (items |> List.choose errorFor)
-        else span [] []
+        (items |> List.choose errorFor)
         
 
 
-    Section.section 
-        [ ]
-        [ 
-            errorView
-            Section.section 
-                [ ]
+    let isLoaded = 
+        printfn "isLoaded %A" model.FetchChickensStatus
+        match model.FetchChickensStatus with
+        | (Completed) -> true
+        | NotStarted | Running | Failed _ -> false
+
+    let items = 
+        [
+            model.FetchChickensStatus, (Chickens.ClearError |> Chickens)
+            model.FetchTotalEggCountStatus, (TotalCount.ClearError |> TotalCount)
+            model.FetchEggCountOnDateStatus, (EggCountOnDate.ClearError |> EggCountOnDate)
+            model.AddEggStatus, (AddEgg.ClearError |> AddEgg)
+            model.RemoveEggStatus, (RemoveEgg.ClearError |> RemoveEgg)
+        ]
+
+    let hasErrors =
+        items 
+        |> List.exists (fun (item, _) -> hasError item)
+
+                
+    div []
+        [
+            yield PageLoader.pageLoader 
                 [ 
-                    Container.container 
+                    // PageLoader.Props [ Style [ ZIndex 1 ] ]
+                    PageLoader.Color IsInfo
+                    PageLoader.IsActive (not isLoaded)  
+                ] 
+                [ ] 
+            if hasErrors then yield Section.section [ ] ( errorView items )
+            if isLoaded then
+                yield 
+                    Section.section 
                         [ ]
                         [ 
-                            header
-                            datePickerView model.CurrentDate dispatch
-                            Container.container
-                                [ ] 
-                                (ChickenList.view model onAddEgg onRemoveEgg) ] ]
-            Section.section 
-                [ ]
-                [ Statistics.view model ] ]
+                            Section.section 
+                                [ ]
+                                [ 
+                                    Container.container 
+                                        [ ]
+                                        [ 
+                                            header
+                                            datePickerView model.CurrentDate dispatch
+                                            Container.container
+                                                [ ] 
+                                                (ChickenList.view model onAddEgg onRemoveEgg) ] ]
+                            Section.section 
+                                [ ]
+                                [ Statistics.view model ] ]
+        ]
