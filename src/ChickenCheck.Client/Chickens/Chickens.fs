@@ -12,6 +12,7 @@ open Fulma.Elmish
 open Router
 open FsToolkit.ErrorHandling
 open ChickenCheck.Client
+open ChickenCheck.Client.ApiHelpers
 
 type Model =
     { Chickens : Chicken list
@@ -127,18 +128,12 @@ let private getCountStr chickenId (countMap: EggCountMap) =
     |> Option.map EggCount.toString
     |> Option.defaultValue "-"
 
-let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBuilder) msg (model: Model) =
-    let callApi apiFunc arg successMsg errorMsg =
-        let ofSuccess = function
-            | Ok res -> res |> successMsg
-            | Result.Error (err:DomainError) -> err.ErrorMsg |> errorMsg
-        let ofError _ = "Serverfel" |> errorMsg
-        Cmd.OfAsync.either apiFunc (requestBuilder.Build arg) ofSuccess ofError
-
+let update (chickenCheckApi: IChickenCheckApi) apiToken msg (model: Model) =
     let handleChickens = function
         | Chickens.Request -> 
             { model with FetchChickensStatus = Running }, 
-            (callApi
+            (callSecureApi
+                apiToken
                 chickenCheckApi.GetChickens 
                 () 
                 (Chickens.Result >> Chickens) 
@@ -160,7 +155,8 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
     let handleEggCountOnDate = function
         | EggCountOnDate.Request date -> 
             { model with FetchEggCountOnDateStatus = Running }, 
-                callApi
+                callSecureApi
+                    apiToken
                     chickenCheckApi.GetEggCountOnDate 
                     date 
                     ((fun res -> EggCountOnDate.Result (date, res)) >> EggCountOnDate) 
@@ -182,7 +178,8 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
     let handleTotalCount = function
         | TotalCount.Request -> 
             { model with FetchTotalEggCountStatus = Running }, 
-            callApi
+            callSecureApi
+                apiToken
                 chickenCheckApi.GetTotalEggCount
                 ()
                 (TotalCount.Result >> TotalCount)
@@ -201,7 +198,8 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
     let handleAddEgg = function
         | AddEgg.Request (chickenId, date) -> 
             { model with AddEggStatus = Running }, 
-            callApi
+            callSecureApi
+                apiToken
                 chickenCheckApi.AddEgg
                 { AddEgg.ChickenId = chickenId; Date = date }
                 ((fun _ -> AddEgg.Result (chickenId, date)) >> AddEgg) 
@@ -239,7 +237,8 @@ let update (chickenCheckApi: IChickenCheckApi) (requestBuilder: SecureRequestBui
     let handleRemoveEgg = function
         | RemoveEgg.Request (chickenId, date) -> 
             { model with RemoveEggStatus = Running }, 
-            callApi
+            callSecureApi
+                apiToken
                 chickenCheckApi.RemoveEgg
                 { RemoveEgg.ChickenId = chickenId; Date = date }
                 ((fun _ -> RemoveEgg.Result (chickenId, date)) >> RemoveEgg) 

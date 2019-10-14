@@ -22,7 +22,11 @@ let private connectionString =
 let private tokenSecret =
     getEnvironmentVariableOrDefault "42be52e5a41d414d8855b6684aad48c2" "CHICKENCHECK_TOKEN_SECRET"
 
-let private validate<'T> = Authentication.validate<'T> tokenSecret >> Result.mapError Authentication
+let private validate<'T> = 
+    fun token ->
+        token 
+        |> Authentication.validate<'T> tokenSecret 
+        |> Result.mapError Authentication
 
 let appendEvents = SqlStore.appendEvents connectionString
 let appendEvent = List.singleton >> appendEvents

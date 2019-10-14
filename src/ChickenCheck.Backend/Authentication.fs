@@ -14,7 +14,7 @@ let generateToken : GenerateToken =
     fun tokenSecret username ->
         try
             let claims = [| Claim(JwtRegisteredClaimNames.Sub, username) |]
-            let expires = Nullable(DateTime.UtcNow.AddHours(1.0))
+            let expires = Nullable(DateTime.UtcNow.AddDays(7.0))
             let notBefore = Nullable(DateTime.UtcNow)
             let signingCredentials = SigningCredentials(key = securityKey tokenSecret, algorithm = SecurityAlgorithms.HmacSha256)
 
@@ -39,16 +39,22 @@ let private validateToken tokenSecret (SecurityToken token) =
         let validationParams = TokenValidationParameters()
         validationParams.ValidAudience <- "chickencheck"
         validationParams.ValidIssuer <- "chickencheck"
+        validationParams.RequireExpirationTime <- true
         validationParams.ValidateLifetime <- true
         validationParams.ValidateIssuerSigningKey <- true
+        validationParams.ClockSkew <- TimeSpan.FromSeconds(1.)
         validationParams.IssuerSigningKey <- securityKey tokenSecret
         validationParams
     try
         let handler = JwtSecurityTokenHandler()
         let _ = handler.ValidateToken(token, tokenValidationParameters, ref null)
+
         Ok ()
-    with
-        | _ -> TokenInvalid |> Error
+    with 
+        | :? SecurityTokenInvalidLifetimeException | :? SecurityTokenExpiredException -> 
+            UserTokenExpired |> Error
+        | exn ->
+            exn.Message |> TokenInvalid |> Error
 
 type Validate<'T> = SecureRequest<'T> -> Result<'T, AuthenticationError>
 let validate<'T> tokenSecret : Validate<'T> =

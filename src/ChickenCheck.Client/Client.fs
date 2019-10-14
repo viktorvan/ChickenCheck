@@ -94,6 +94,7 @@ let chickenCheckApi : IChickenCheckApi =
     #endif
     |> Remoting.buildProxy<IChickenCheckApi>
 
+
 let getToken model =
     match model.Session with
     | Some s -> s.Token
@@ -103,11 +104,6 @@ let getToken model =
 // It can also run side-effects (encoded as commands) like calling the server via Http.
 // these commands in turn, can dispatch messages to which the update function will react.
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
-    let requestBuilder() =  
-        match model.Session with
-        | Some session -> SecureRequestBuilder(session.Token)
-        | None -> failwith "Cannot request secure resource when not logged in"
-
     match msg, model.ActivePage with
     | SigninMsg msg, Page.Signin signinModel ->
             let (pageModel, subMsg, extraMsg) = Signin.update chickenCheckApi msg signinModel
@@ -119,20 +115,31 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
                 { model with Session = Some session } 
                 |> setRoute (Router.ChickenRoute.Chickens |> Router.Chicken |> Some)
 
-    | ChickenMsg msg, Page.Chickens chickensPageModel -> 
-        let (pageModel, subMsg) = Chickens.update chickenCheckApi (requestBuilder()) msg chickensPageModel
-        { model with ActivePage = pageModel |> Page.Chickens }, Cmd.map ChickenMsg subMsg
+    | ChickenMsg msg, page -> 
+        match page with
+        | Page.Chickens chickensPageModel ->
+            let apiToken =
+                match model.Session with
+                | Some session -> session.Token
+                | None -> failwith "Cannot request secure page without session"
+            let (pageModel, subMsg) = Chickens.update chickenCheckApi apiToken msg chickensPageModel
+            { model with ActivePage = pageModel |> Page.Chickens }, Cmd.map ChickenMsg subMsg
+        | _ -> model, Cmd.none
 
     | Signout, _ ->
+        printfn "update: Signout"
         Session.delete()
         let signinModel = Signin.init()
         { model with
             Session = None
             ActivePage = Page.Signin signinModel
-        }, Cmd.none
+        }, SessionRoute.Signout |> Session |> newUrl
 
-    | _ -> 
-        { model with ActivePage = Page.NotFound }, Cmd.none
+    | msg, page -> 
+        printfn "***unknown msg: %A" msg
+        printfn "***unknown page: %A" page
+        model, Cmd.none
+        // { model with ActivePage = Page.NotFound }, Cmd.none
 
 
 let view model dispatch =
@@ -195,13 +202,24 @@ let view model dispatch =
               yield navbar 
           yield div [] [ pageHtml model.ActivePage ] ] 
 
-#if DEBUG
 
+let handleExpiredToken _ =
+    let sub dispatch =
+        printfn "setting up subscription"
+        Session.expired.Publish.Add
+            (fun _ -> 
+                printfn "in subscription: session expired"
+                Signout |> dispatch)
+    Cmd.ofSub sub
+
+
+#if DEBUG
 open Elmish.Debug
 open Elmish.HMR
 #endif
 
 Program.mkProgram init update view
+|> Program.withSubscription handleExpiredToken
 |> Program.toNavigable (parseHash Router.pageParser) setRoute
 #if DEBUG
 |> Program.withConsoleTrace

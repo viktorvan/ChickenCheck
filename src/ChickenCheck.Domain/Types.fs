@@ -11,7 +11,7 @@ type LoginError =
     | PasswordIncorrect
 type AuthenticationError =
     | UserTokenExpired
-    | TokenInvalid
+    | TokenInvalid of string
     | UserDoesNotHaveAccess
     | TokenGenerationFailed of string
 type DomainError = 
@@ -99,9 +99,6 @@ type Email with
 type SecurityToken = SecurityToken of string
 type GenerateToken = string -> string -> Result<SecurityToken, AuthenticationError>
 type SecureRequest<'T> = { Token: SecurityToken; Content: 'T }
-type SecureRequestBuilder(token) =
-    member __.Build(content) = { Token = token; Content = content }
-
 type Password = Password of string
 
 module Password =

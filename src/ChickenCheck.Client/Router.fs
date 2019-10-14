@@ -56,5 +56,4 @@ let newUrl route =
     |> Navigation.newUrl
 
 let modifyLocation route =
-    printfn "setting route %A"route
     window.location.href <- toHash route
