@@ -13,6 +13,7 @@ type AuthenticationError =
     | UserTokenExpired
     | TokenInvalid
     | UserDoesNotHaveAccess
+    | TokenGenerationFailed of string
 type DomainError = 
     | Validation of ValidationError
     | Database of DatabaseError
@@ -96,6 +97,7 @@ type Email with
     member this.Value = Email.value this
 
 type SecurityToken = SecurityToken of string
+type GenerateToken = string -> string -> Result<SecurityToken, AuthenticationError>
 type SecureRequest<'T> = { Token: SecurityToken; Content: 'T }
 type SecureRequestBuilder(token) =
     member __.Build(content) = { Token = token; Content = content }
@@ -128,8 +130,9 @@ type UserId with
     member this.Value = UserId.value this
 type User = { Id : UserId; Name : String200; Email : Email; PasswordHash : PasswordHash }
 
-module Session = 
-    type Session = { Token : SecurityToken; UserId : UserId; Name : String200 }
+type Session = 
+    { Token : SecurityToken
+      UserId : UserId; Name : String200 }
 
 type ChickenId = ChickenId of Guid
 module ChickenId =

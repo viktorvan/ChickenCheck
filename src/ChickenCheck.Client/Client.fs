@@ -8,7 +8,6 @@ open ChickenCheck.Client
 open Messages
 open Fable.Remoting.Client
 open ChickenCheck.Domain
-open ChickenCheck.Domain.Session
 open Fable.Core
 open Elmish.Navigation
 open Fulma
@@ -62,10 +61,6 @@ let private setRoute (result: Option<Router.Route>) (model : Model) =
                     Page.Signin signinModel
             }, Cmd.none
 
-module Session =
-    let tryGet () =
-        None
-
 // defines the initial state and initial command (= side-effect) of the application
 let private init (optRoute : Router.Route option) =
     match Session.tryGet () with
@@ -114,6 +109,7 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
         | Signin.NoOp ->
             { model with ActivePage = pageModel |> Page.Signin }, Cmd.map SigninMsg subMsg
         | Signin.SignedIn session -> 
+            Session.store session
             { model with Session = Some session } 
             |> setRoute (Router.ChickenRoute.Chickens |> Router.Chicken |> Some)
 
@@ -121,7 +117,8 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
         let (pageModel, subMsg) = Chickens.update chickenCheckApi (requestBuilder()) msg chickensPageModel
         { model with ActivePage = pageModel |> Page.Chickens }, Cmd.map ChickenMsg subMsg
 
-    | _ -> notImplemented()
+    | _ -> 
+        { model with ActivePage = Page.NotFound }, Cmd.none
 
 
 let view model dispatch =
@@ -130,7 +127,7 @@ let view model dispatch =
         match page with
         | Page.Signin pageModel -> lazyView2 Signin.view pageModel (SigninMsg >> dispatch)
         | Page.Chickens pageModel -> lazyView2 Chickens.view pageModel (ChickenMsg >> dispatch)
-        | Page.NotFound -> failwith "Not Implemented"
+        | Page.NotFound -> lazyView NotFound.view model
         | Page.Loading -> failwith "Not Implemented"
 
     let isLoggedIn, loggedInUsername =

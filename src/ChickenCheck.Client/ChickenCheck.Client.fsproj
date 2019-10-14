@@ -5,6 +5,8 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
     <ItemGroup>
+        <Compile Include="NotFound.fs" />
+        <Compile Include="Logger.fs" />
         <Compile Include="Router.fs" />
         <Compile Include="Types.fs" />
         <Compile Include="ApiHelpers.fs" />

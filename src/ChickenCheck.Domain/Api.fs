@@ -1,6 +1,5 @@
 namespace ChickenCheck.Domain
 open ChickenCheck.Domain.Commands
-open Session
 
 type CreateSessionApi = CreateSession -> AsyncResult<Session, DomainError>
 type GetChickensApi = SecureRequest<unit> -> AsyncResult<Chicken list, DomainError>

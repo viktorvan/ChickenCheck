@@ -28,5 +28,8 @@ let hashPassword =
 
 let verifyPasswordHash =   
     fun (hash, pw:Password) ->
+        printfn "***verifying password"
         let actual = getHash hash.Salt pw.Value
-        actual = hash.Hash
+        let result = actual = hash.Hash
+        printfn "result: %b" result
+        result

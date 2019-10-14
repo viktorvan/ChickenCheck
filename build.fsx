@@ -38,6 +38,7 @@ module Config =
     let clientPath = Path.getFullName "./src/ChickenCheck.Client"
     let clientOutputPath = Path.combine clientPath "output"
     let backendPath = Path.getFullName "./src/ChickenCheck.Backend"
+    let localBackendPath = Path.getFullName "./src/ChickenCheck.Backend.Local"
     let backendProj = Path.combine backendPath "ChickenCheck.Backend.fsproj"
     let backendBinPath =
         match Environment.environVarOrDefault "CHICKENCHECK_CONFIGURATION" "debug" with
@@ -48,6 +49,7 @@ module Config =
     let backendDeployPath = Path.combine deployPath "ChickenCheck.Backend"
     let clientDeployPath = Path.combine deployPath "ChickenCheck.Client/output"
     let migrationsPath = "./src/ChickenCheck.Migrations"
+    let tokenSecret = Environment.environVarOrDefault "this isn't the secret you are looking for" "CHICKENCHECK_TOKEN_SECRET"
 
 module Tools =
     let run cmd args workingDir =
@@ -139,7 +141,20 @@ Target.create "SetupDevStorage" <| fun _ ->
     Azure.Functions.setLocalSettings Config.backendPath connectionString
 
 Target.create "Run" <| fun _ ->
-    let backend = async { Azure.Functions.start Config.backendBinPath }
+
+    // let localSettings = Path.combine Config.backendPath "local.settings.json" |> Seq.singleton
+    // Shell.copy Config.backendBinPath localSettings
+    // DotNet.build (fun p -> { p with Configuration = DotNet.BuildConfiguration.Debug }) Config.backendPath
+
+    // let backend = async { Azure.Functions.start Config.backendBinPath }
+    let backend = 
+        async { 
+            DotNet.exec 
+                (fun p -> 
+                    { p with WorkingDirectory = Config.localBackendPath }) 
+                "watch run" 
+                (sprintf "%s %s" Config.backendPath Config.backendBinPath) |> ignore 
+        }
     let client = async { 
         (sprintf "webpack-dev-server --config %s/webpack.config.js" Config.clientPath, id) 
         ||> Yarn.exec }
@@ -153,10 +168,6 @@ Target.create "Run" <| fun _ ->
             |> Proc.run
             |> ignore
         
-        let localSettings = Path.combine Config.backendPath "local.settings.json" |> Seq.singleton
-        Shell.copy Config.backendBinPath localSettings
-        DotNet.build (fun p -> { p with Configuration = DotNet.BuildConfiguration.Debug }) Config.backendPath
-
         async {
             do! Async.Sleep 15000
             openBrowser "http://localhost:8080"
@@ -256,7 +267,8 @@ Target.create "DeployFunctionsApp" <| fun _ ->
     let (storageConnectionString: Azure.ConnectionString) = getStorageConnectionStringVar()
     let (dbConnectionString: Azure.ConnectionString) = getChickenCheckDbConnectionStringVar()
     let (Azure.InstrumentationKey instrumentationKey) = getInstrumentationKeyVar()
-    let settings = [ "ChickenCheckDbConnectionString", dbConnectionString.Val 
+    let settings = [ "CHICKENCHECK_CONNECTIONSTRING", dbConnectionString.Val 
+                     "CHICKENCHECK_TOKEN_SECRET", Config.tokenSecret
                      "STORAGE_CONNECTION", storageConnectionString.Val
                      "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey ] |> Map.ofList
     Azure.Functions.setAppSettings AzureConfig.resourceGroup AzureConfig.functionsAppName settings

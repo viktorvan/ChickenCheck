@@ -2,7 +2,6 @@ module ChickenCheck.Client.Signin
 open Elmish
 open ChickenCheck.Client
 open ChickenCheck.Domain
-open ChickenCheck.Domain.Session
 open Fable.React
 open Fable.Core.JsInterop
 open ChickenCheck.Client.ApiHelpers

@@ -45,3 +45,5 @@ tdd.fsx
 release.sh
 infrastructure.sh
 local.settings.json
+
+tmp.fsx

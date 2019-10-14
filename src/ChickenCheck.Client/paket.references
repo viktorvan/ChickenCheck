@@ -12,3 +12,4 @@ group Client
     Fable.FontAwesome.Free
     Fulma.Elmish
     Fulma.Extensions.Wikiki.Calendar
+    Fable.SimpleJson
