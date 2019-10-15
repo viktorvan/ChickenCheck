@@ -145,13 +145,12 @@ let view model (dispatch: Dispatch<Msg>) =
                 | Running, _ | _, Running -> true
                 | _ -> false
 
-            // if isLoading then 
-            //     [ ViewComponents.loading ]
-            // else
-            match model.EggCount with
-            | None -> [ ViewComponents.loading ]
-            | Some eggCount ->
-                let eggs =
+            if isLoading then 
+                [ ViewComponents.loading ]
+            else
+                match model.EggCount with
+                | None -> [ ViewComponents.loading ]
+                | Some eggCount ->
                     [ for i in 1..eggCount.Value do
                         yield 
                             Column.column 
@@ -162,10 +161,6 @@ let view model (dispatch: Dispatch<Msg>) =
                                     eggIcon 
                                 ] 
                     ]
-                
-                if isLoading then
-                    eggs @ [ ViewComponents.loading ]
-                else eggs
 
         Columns.columns 
             [ 
