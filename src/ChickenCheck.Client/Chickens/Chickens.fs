@@ -19,25 +19,12 @@ type Model =
     { Chickens : Chicken list
       ChickenListModel : ChickenCardList.Model option
       Errors : string list
-      TotalEggCount : Map<ChickenId, EggCount>
-      EggCountOnDate : Map<ChickenId, EggCount>
+      TotalEggCount : Map<ChickenId, EggCount> option
+      EggCountOnDate : Map<ChickenId, EggCount> option
       FetchChickensStatus : ApiCallStatus 
       FetchTotalEggCountStatus : ApiCallStatus 
       FetchEggCountOnDateStatus : ApiCallStatus 
       CurrentDate : Date }
-
-let init route =
-    match route with
-    | ChickenRoute.Chickens ->
-        { Chickens = []
-          ChickenListModel = None
-          Errors = []
-          TotalEggCount = Map.empty
-          EggCountOnDate = Map.empty
-          FetchChickensStatus = NotStarted 
-          FetchTotalEggCountStatus = NotStarted 
-          FetchEggCountOnDateStatus = NotStarted 
-          CurrentDate = Date.today }, Cmd.none
 
 
 type EggCountMap = Map<ChickenId, EggCount>
@@ -67,8 +54,27 @@ type Msg =
     | EggCountOnDate of EggCountOnDate
     | ChangeDate of Date
     | ChickenListMsg of ChickenCardList.Msg
-    | TryBuildListModel
+    | UpdateListModel
     | ClearErrors
+
+let init =
+    let date = Date.today
+    let cmds =
+        [ Chickens.Request |> Chickens |> Cmd.ofMsg
+          TotalCount.Request |> TotalCount |> Cmd.ofMsg 
+          EggCountOnDate.Request date |> EggCountOnDate |> Cmd.ofMsg ]
+        |> Cmd.batch
+
+    { Chickens = []
+      ChickenListModel = None
+      Errors = []
+      TotalEggCount = None
+      EggCountOnDate = None
+      FetchChickensStatus = NotStarted 
+      FetchTotalEggCountStatus = NotStarted 
+      FetchEggCountOnDateStatus = NotStarted 
+      CurrentDate = date }, cmds
+
 
 let datePickerView date dispatch =
     let onDateSet date =
@@ -83,19 +89,35 @@ let datePickerView date dispatch =
         |> DateTime.Parse
         |> Date.create
 
+    let dateButton onClick icon =
+        Button.a 
+            [ 
+                Button.IsLink
+                Button.OnClick onClick
+                Button.Size IsLarge 
+            ] 
+            [ 
+                Icon.icon [] 
+                    [ Fa.i 
+                        [ 
+                            Fa.Size Fa.Fa3x
+                            icon
+                        ] 
+                        [] 
+                    ] 
+            ]
+
     Level.level [ Level.Level.IsMobile ]
         [ 
             Level.item []
                 [ 
-                    Button.a 
-                        [ Button.IsLink; Button.OnClick previousDate ] 
-                        [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.CaretLeft ] [] ] ] 
+                    dateButton previousDate Fa.Solid.CaretLeft
                 ]
             Level.item []
                 [ 
                     Field.div 
                         [ 
-                            Field.Props [ Data ("display-mode", "inline") ] 
+                            Field.Props [ Style [ Width "100%" ] ] 
                         ]
                         [ 
                             Input.date
@@ -106,7 +128,10 @@ let datePickerView date dispatch =
                         ] 
                 ]
             Level.item []
-              [ Button.a [ Button.IsLink; Button.OnClick nextDate ] [ Icon.icon [] [ Fa.i [ Fa.Size Fa.Fa2x; Fa.Solid.CaretRight ] [] ] ] ] ]
+                [ 
+                    dateButton nextDate Fa.Solid.CaretRight
+                ] 
+        ]
 
 let update (chickenApi: IChickenApi) apiToken msg (model: Model) =
     let handleChickens = function
@@ -123,14 +148,14 @@ let update (chickenApi: IChickenApi) apiToken msg (model: Model) =
             { model with 
                 FetchChickensStatus = ApiCallStatus.Completed
                 Chickens = chickens },
-                TryBuildListModel |> Cmd.ofMsg
+                UpdateListModel |> Cmd.ofMsg
 
         | Chickens.Error msg ->
             { model with FetchChickensStatus = Failed msg }, Cmd.none
 
     let handleEggCountOnDate = function
         | EggCountOnDate.Request date -> 
-            { model with FetchEggCountOnDateStatus = Running }, 
+            let callApi =
                 callSecureApi
                     apiToken
                     chickenApi.GetEggCountOnDate 
@@ -138,11 +163,23 @@ let update (chickenApi: IChickenApi) apiToken msg (model: Model) =
                     ((fun res -> EggCountOnDate.Result (date, res)) >> EggCountOnDate) 
                     (EggCountOnDate.Error >> EggCountOnDate)
 
+            let cmds =
+                [ UpdateListModel |> Cmd.ofMsg
+                  callApi ]
+                |> Cmd.batch
+
+            { model with 
+                FetchEggCountOnDateStatus = Running 
+                EggCountOnDate = None }, cmds
+
         | EggCountOnDate.Result (date, countByChicken) -> 
+            let model = { model with FetchEggCountOnDateStatus = Completed }
             if model.CurrentDate = date then
-                { model with FetchEggCountOnDateStatus = Completed
-                             EggCountOnDate = countByChicken }, 
-                TryBuildListModel |> Cmd.ofMsg
+                if countByChicken |> Map.isEmpty then
+                    model, "Count by date map was empty" |> EggCountOnDate.Error |> EggCountOnDate |> Cmd.ofMsg
+                else
+                    { model with EggCountOnDate = Some countByChicken }, 
+                        UpdateListModel |> Cmd.ofMsg
             else
                 model, Cmd.none
 
@@ -152,7 +189,9 @@ let update (chickenApi: IChickenApi) apiToken msg (model: Model) =
 
     let handleTotalCount = function
         | TotalCount.Request -> 
-            { model with FetchTotalEggCountStatus = Running }, 
+            { model with 
+                FetchTotalEggCountStatus = Running 
+                TotalEggCount = None }, 
             callSecureApi
                 apiToken
                 chickenApi.GetTotalEggCount
@@ -160,10 +199,13 @@ let update (chickenApi: IChickenApi) apiToken msg (model: Model) =
                 (TotalCount.Result >> TotalCount)
                 (TotalCount.Error >> TotalCount)
 
-        | TotalCount.Result countByChicken -> 
-            { model with FetchTotalEggCountStatus = Completed
-                         TotalEggCount = countByChicken },
-            TryBuildListModel |> Cmd.ofMsg
+        | TotalCount.Result totalCount -> 
+            let model = { model with FetchTotalEggCountStatus = Completed }
+            if totalCount |> Map.isEmpty then
+                model, "TotalCount map was empty" |> TotalCount.Error |> TotalCount |> Cmd.ofMsg
+            else
+                { model with TotalEggCount = Some totalCount },
+                UpdateListModel |> Cmd.ofMsg
 
         | TotalCount.Error msg -> 
             { model with FetchTotalEggCountStatus = Failed msg },
@@ -173,12 +215,10 @@ let update (chickenApi: IChickenApi) apiToken msg (model: Model) =
     | Chickens msg -> handleChickens msg
     | EggCountOnDate msg -> handleEggCountOnDate msg
     | TotalCount msg -> handleTotalCount msg
-    | TryBuildListModel ->
+    | UpdateListModel ->
         match (model.Chickens, model.EggCountOnDate) with
-        | [], _  -> 
+        | [], _ -> 
             { model with ChickenListModel = None }, Cmd.none
-
-        | _, map when Map.isEmpty map -> { model with ChickenListModel = None }, Cmd.none
 
         | chickens, eggCount ->
             let listModel = ChickenCardList.init model.CurrentDate eggCount chickens
@@ -198,15 +238,21 @@ let update (chickenApi: IChickenApi) apiToken msg (model: Model) =
 
                 | ChickenCardList.External msg -> 
                     let handleCountChange chickenId handler =   
-                        let newTotal = 
-                            model.TotalEggCount.[chickenId] 
-                            |> handler
-                        match newTotal with
-                        | Ok count ->
-                            { model with TotalEggCount = model.TotalEggCount |> Map.add chickenId count }, Cmd.none
-                        | Result.Error (ValidationError (param, msg)) ->
-                            let errorMsg = sprintf "%s : %s" param msg
-                            { model with Errors = errorMsg :: model.Errors }, Cmd.none
+                        match model.TotalEggCount with
+                        | Some totalEggCount ->
+                            let newTotal = 
+                                totalEggCount.[chickenId] 
+                                |> handler
+                            match newTotal with
+                            | Ok count ->
+                                { model with TotalEggCount = totalEggCount |> Map.add chickenId count |> Some }, 
+                                Cmd.none
+                            | Result.Error (ValidationError (param, msg)) ->
+                                let errorMsg = sprintf "%s : %s" param msg
+                                { model with Errors = errorMsg :: model.Errors }, 
+                                Cmd.none
+                        | None ->
+                            model, Cmd.none
 
                     match msg with
                     | ChickenCard.ExternalMsg.AddedEgg chickenId -> 
@@ -226,22 +272,26 @@ let update (chickenApi: IChickenApi) apiToken msg (model: Model) =
         { model with CurrentDate = date }, EggCountOnDate.Request date |> EggCountOnDate |> Cmd.ofMsg
 
 module Statistics =
-    let chickenEggCount (countMap: EggCountMap) (chicken: Chicken) =
+    let chickenEggCount (countMap: EggCountMap option) (chicken: Chicken) =
 
-        let getCountStr chickenId (countMap: EggCountMap) =
-            countMap
-            |> Map.tryFind chickenId
-            |> Option.map EggCount.toString
-            |> Option.defaultValue "-"
+        match countMap with
+        | Some countMap ->
+            let getCountStr chickenId (countMap: EggCountMap) =
+                countMap
+                |> Map.tryFind chickenId
+                |> Option.map EggCount.toString
+                |> Option.defaultValue "-"
 
-        let totalCount = getCountStr chicken.Id countMap
-        Level.item []
-            [ div []
-                [ Level.heading [] [ chicken.Name.Value |> str ] 
-                  Level.title [] [ str totalCount ] ] ]
+            let totalCount = getCountStr chicken.Id countMap
+            Level.item []
+                [ div []
+                    [ Level.heading [] [ chicken.Name.Value |> str ] 
+                      Level.title [] [ str totalCount ] ] ]
+            |> Some
+        | None -> None
 
     let allCounts model =
-        model.Chickens |> List.map (chickenEggCount model.TotalEggCount)
+        model.Chickens |> List.choose (chickenEggCount model.TotalEggCount)
         |> Level.level []
 
     let view model =
@@ -254,16 +304,6 @@ module Statistics =
               allCounts model ]
 
 let view (model: Model) (dispatch: Msg -> unit) =
-
-    match (model.FetchChickensStatus, model.FetchTotalEggCountStatus, model.FetchEggCountOnDateStatus) with
-    | NotStarted, _, _ | _, NotStarted, _ | _, _, NotStarted -> 
-        [ Chickens.Request |> Chickens
-          TotalCount.Request |> TotalCount
-          EggCountOnDate.Request model.CurrentDate |> EggCountOnDate ]
-        |> List.iter dispatch
-    | _ -> ()
-
-    let clearAction msg = fun _ -> msg |> dispatch
 
     let header =
         Text.p 

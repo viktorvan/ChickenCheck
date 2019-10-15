@@ -46,7 +46,7 @@ let private setRoute (result: Option<Router.Route>) (model : Model) =
         | Router.Chicken chickenRoute ->
             match model.Session with
             | Some session ->
-                let (chickenModel, chickenCmd) = Chickens.init chickenRoute
+                let (chickenModel, chickenCmd) = Chickens.init
 
                 { model with
                     ActivePage =

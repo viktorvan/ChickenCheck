@@ -18,7 +18,7 @@ open Fulma.Extensions.Wikiki
 type Model =
     { Chickens : Map<ChickenId, ChickenCard.Model> }
 
-let init date (eggCountMap: Map<_,_>) chickens =
+let init date (eggCountMap: Map<ChickenId,EggCount> option) chickens =
     let toCardModel chicken eggCount date =
         ChickenCard.init chicken eggCount date
 
@@ -26,7 +26,10 @@ let init date (eggCountMap: Map<_,_>) chickens =
         chickens
         |> List.map
             (fun chicken ->
-                chicken.Id, ChickenCard.init chicken eggCountMap.[chicken.Id] date)
+                let eggCount =
+                    eggCountMap
+                    |> Option.map (fun map -> map |> Map.find chicken.Id)
+                chicken.Id, ChickenCard.init chicken eggCount date)
         |> Map.ofList
 
     { Chickens = cardModels }

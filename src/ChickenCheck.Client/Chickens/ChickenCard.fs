@@ -5,20 +5,15 @@ open Fable.React
 open ChickenCheck.Domain
 open ChickenCheck.Domain.Commands
 open Elmish
-open System
 open Fulma
 open Fable.FontAwesome
-open Fulma.Elmish
-open Router
-open FsToolkit.ErrorHandling
 open ChickenCheck.Client
 open ChickenCheck.Client.ApiHelpers
-open Fulma.Extensions.Wikiki
 
 
 type Model =
     { Chicken : Chicken
-      EggCount : EggCount 
+      EggCount : EggCount option
       AddEggStatus : ApiCallStatus 
       RemoveEggStatus : ApiCallStatus 
       CurrentDate : Date }
@@ -62,21 +57,24 @@ let update (chickenApi: IChickenApi) token (msg:Msg) (model: Model) : Model * Co
 
     | AddedEgg -> 
         let model = { model with AddEggStatus = Completed }
-        let newEggCount = 
-            model.EggCount
-            |> EggCount.increase
+        match model.EggCount with
+        | None -> model, Cmd.none |> Internal
+        | Some eggCount ->
+            let newEggCount = 
+                eggCount
+                |> EggCount.increase
 
-        match (newEggCount) with
-        | Ok newEggCount ->
-            { model with EggCount = newEggCount }, 
-            ExternalMsg.AddedEgg model.Chicken.Id
-            |> External
-        | Result.Error (ValidationError (param, msg)) -> 
-            model,
-            sprintf "could not add egg: %s:%s" param msg
-            |> AddEggFailed
-            |> Cmd.ofMsg
-            |> Internal
+            match (newEggCount) with
+            | Ok newEggCount ->
+                { model with EggCount = Some newEggCount }, 
+                ExternalMsg.AddedEgg model.Chicken.Id
+                |> External
+            | Result.Error (ValidationError (param, msg)) -> 
+                model,
+                sprintf "could not add egg: %s:%s" param msg
+                |> AddEggFailed
+                |> Cmd.ofMsg
+                |> Internal
 
     | AddEggFailed msg -> 
         { model with AddEggStatus = Failed msg },
@@ -95,88 +93,92 @@ let update (chickenApi: IChickenApi) token (msg:Msg) (model: Model) : Model * Co
 
     | RemovedEgg -> 
         let model = { model with RemoveEggStatus = Completed }
-        let newEggCount = 
-            model.EggCount
-            |> EggCount.decrease
+        match model.EggCount with 
+        | None -> model, Cmd.none |> Internal
+        | Some eggCount ->
+            let newEggCount = 
+                eggCount
+                |> EggCount.decrease
 
-        match (newEggCount) with
-        | Ok newEggCount ->
-            { model with EggCount = newEggCount }, 
-            ExternalMsg.RemovedEgg model.Chicken.Id
-            |> External
-        | Result.Error (ValidationError (param, msg)) -> 
-            model,
-            sprintf "could not remove egg: %s:%s" param msg
-            |> RemoveEggFailed
-            |> Cmd.ofMsg
-            |> Internal
+            match (newEggCount) with
+            | Ok newEggCount ->
+                { model with EggCount = Some newEggCount }, 
+                ExternalMsg.RemovedEgg model.Chicken.Id
+                |> External
+            | Result.Error (ValidationError (param, msg)) -> 
+                model,
+                sprintf "could not remove egg: %s:%s" param msg
+                |> RemoveEggFailed
+                |> Cmd.ofMsg
+                |> Internal
 
     | RemoveEggFailed msg -> 
         { model with RemoveEggStatus = Failed msg },
         ExternalMsg.Error msg
         |> External
-
-
 let view model (dispatch: Dispatch<Msg>) =
-    let hasImage, imageUrl = 
+    let imageUrlStr = 
         match model.Chicken.ImageUrl with
-        | Some (ImageUrl imageUrl) -> true, imageUrl
-        | None -> false, ""
+        | Some (ImageUrl imageUrl) -> imageUrl
+        | None -> ""
 
-    let removeEggButton = 
-        Button.a
+    let eggIcon = 
+        Icon.icon 
             [ 
-                  Button.IsText
-                  Button.IsHovered false
-                  Button.Size Size.IsLarge
-                  Button.OnClick (fun ev -> 
-                    ev.cancelBubble <- true
-                    ev.stopPropagation()
-                    dispatch RemoveEgg) 
+                Icon.Size IsLarge
+                Icon.Modifiers [ Modifier.TextColor Color.IsWhite ] 
+                Icon.Props 
+                    [ OnClick 
+                        (fun ev ->
+                            ev.cancelBubble <- true
+                            ev.stopPropagation()
+                            dispatch RemoveEgg)]
             ] 
             [ 
-                Icon.icon 
-                    [ 
-                        Icon.Modifiers [ Modifier.TextColor Color.IsWhite ] 
-                    ] 
-                    [ 
-                        Fa.i [ Fa.Size Fa.Fa3x; Fa.Solid.Egg ] [] 
-                    ] 
-            ]
+                Fa.i [ Fa.Size Fa.Fa5x; Fa.Solid.Egg ] [] 
+            ] 
 
-    let eggButtons =
+    let eggIcons =
         let addedEggs = 
-            let isRunning = 
+            let isLoading = 
                 match model.AddEggStatus, model.RemoveEggStatus with
                 | Running, _ | _, Running -> true
                 | _ -> false
 
-            if isRunning then 
-                [ ViewComponents.loading ]
-            else
-                [ for i in 1..model.EggCount.Value do
-                    yield 
-                        Column.column 
-                            [ 
-                                Column.Width (Screen.All, Column.Is3) 
-                            ] 
-                            [ 
-                                removeEggButton 
-                            ] 
-                ]  
+            // if isLoading then 
+            //     [ ViewComponents.loading ]
+            // else
+            match model.EggCount with
+            | None -> [ ViewComponents.loading ]
+            | Some eggCount ->
+                let eggs =
+                    [ for i in 1..eggCount.Value do
+                        yield 
+                            Column.column 
+                                [ 
+                                    Column.Width (Screen.All, Column.Is3) 
+                                ] 
+                                [ 
+                                    eggIcon 
+                                ] 
+                    ]
+                
+                if isLoading then
+                    eggs @ [ ViewComponents.loading ]
+                else eggs
 
         Columns.columns 
             [ 
                 Columns.IsCentered
                 Columns.IsVCentered
                 Columns.IsMobile
-                Columns.Props [ Style [ Height 200 ] ] 
+                Columns.Props [ Style [ Height 200 ] ]
             ] 
             addedEggs
 
     let card =
         let header =
-            span 
+            div 
                 [ ] 
                 [ 
                     Heading.h4 
@@ -184,7 +186,11 @@ let view model (dispatch: Dispatch<Msg>) =
                         [ str model.Chicken.Name.Value ]
                     Heading.h6 
                         [ Heading.IsSubtitle;  Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ]
-                        [ str model.Chicken.Breed.Value ] ]
+                        [ str model.Chicken.Breed.Value ] 
+                ]
+
+
+
 
         Card.card 
             [ 
@@ -193,15 +199,18 @@ let view model (dispatch: Dispatch<Msg>) =
                         OnClick (fun _ -> dispatch AddEgg)
                         Style 
                             [ 
-                                sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrl |> box |> BackgroundImage 
+                                sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrlStr 
+                                |> box 
+                                |> BackgroundImage 
                                 BackgroundRepeat "no-repeat"
                                 BackgroundSize "cover" 
                             ] 
+                        
                     ] 
             ]
             [ 
                 Card.header [] [ header ] 
-                Card.content [] [ eggButtons ] 
+                Card.content [] [ eggIcons ] 
             ]
 
     Column.column
