@@ -105,7 +105,7 @@ module Chicken =
 
 
 
-let chickenCheckApi : IChickenCheckApi = {
+let chickenApi : IChickenApi = {
     GetStatus = fun () -> async { return getStatus() }
     CreateSession = User.createSession 
     GetChickens = Chicken.getChickens 

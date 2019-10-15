@@ -35,7 +35,7 @@ type Msg =
     | ClearLoginError
     | Submit
 
-let update (chickenCheckApi: IChickenCheckApi) msg (model: Model) =
+let update (chickenApi: IChickenApi) msg (model: Model) =
     match msg with
     | ChangeEmail msg ->
         let newEmail =  
@@ -76,7 +76,7 @@ let update (chickenCheckApi: IChickenCheckApi) msg (model: Model) =
         | (StringInput.Valid email, StringInput.Valid password) ->
             { model with LoginStatus = Running }, 
             Cmd.OfAsync.either 
-                chickenCheckApi.CreateSession 
+                chickenApi.CreateSession 
                 { Email = email
                   Password = password } 
                 ofSuccess 

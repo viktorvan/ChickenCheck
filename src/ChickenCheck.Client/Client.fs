@@ -46,7 +46,7 @@ let private setRoute (result: Option<Router.Route>) (model : Model) =
         | Router.Chicken chickenRoute ->
             match model.Session with
             | Some session ->
-                let (chickenModel, chickenCmd) = Chickens.init session chickenRoute
+                let (chickenModel, chickenCmd) = Chickens.init chickenRoute
 
                 { model with
                     ActivePage =
@@ -84,13 +84,13 @@ let private init (optRoute : Router.Route option) =
     | None ->
         setRoute (SessionRoute.Signin |> Session |> Some) model
 
-let chickenCheckApi : IChickenCheckApi =
+let chickenApi : IChickenApi =
     Remoting.createApi()
     |> Remoting.withRouteBuilder Api.routeBuilder
     #if !DEBUG
     |> Remoting.withBaseUrl "https://chickencheck-functions.azurewebsites.net"
     #endif
-    |> Remoting.buildProxy<IChickenCheckApi>
+    |> Remoting.buildProxy<IChickenApi>
 
 
 let getToken model =
@@ -104,7 +104,7 @@ let getToken model =
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     match msg, model.ActivePage with
     | SigninMsg msg, Page.Signin signinModel ->
-            let (pageModel, subMsg, extraMsg) = Signin.update chickenCheckApi msg signinModel
+            let (pageModel, subMsg, extraMsg) = Signin.update chickenApi msg signinModel
             match extraMsg with
             | Signin.NoOp ->
                 { model with ActivePage = pageModel |> Page.Signin }, Cmd.map SigninMsg subMsg
@@ -120,7 +120,7 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
                 match model.Session with
                 | Some session -> session.Token
                 | None -> failwith "Cannot request secure page without session"
-            let (pageModel, subMsg) = Chickens.update chickenCheckApi apiToken msg chickensPageModel
+            let (pageModel, subMsg) = Chickens.update chickenApi apiToken msg chickensPageModel
             { model with ActivePage = pageModel |> Page.Chickens }, Cmd.map ChickenMsg subMsg
         | _ -> model, Cmd.none
 

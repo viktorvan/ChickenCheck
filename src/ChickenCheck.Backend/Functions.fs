@@ -16,7 +16,7 @@ open Microsoft.Extensions.Logging
 let webApp : HttpHandler =
     let commandApi =
         Remoting.createApi()
-        |> Remoting.fromValue chickenCheckApi
+        |> Remoting.fromValue chickenApi
         |> Remoting.withRouteBuilder Api.routeBuilder
         #if DEBUG
         |> Remoting.withDiagnosticsLogger (printfn "%s")

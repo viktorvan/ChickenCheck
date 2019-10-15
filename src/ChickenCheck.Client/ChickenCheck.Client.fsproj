@@ -13,6 +13,8 @@
         <Compile Include="EventHelpers.fs" />
         <Compile Include="ViewComponents.fs" />
         <Compile Include="Session/Signin.fs" />
+        <Compile Include="Chickens/ChickenCard.fs" />
+        <Compile Include="Chickens/ChickenCardList.fs" />
         <Compile Include="Chickens/Chickens.fs" />
         <Compile Include="Navbar.fs" />
         <Compile Include="Messages.fs" />

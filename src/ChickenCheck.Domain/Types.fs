@@ -178,6 +178,8 @@ module EggCount =
     let value (EggCount (NaturalNum num)) = num
 
     let toString (EggCount num) = num.Value.ToString()
+type EggCount with
+    member this.Value = this |> EggCount.value
 
 type Date = { Year: int; Month: int; Day: int }
 module Date =
