@@ -74,7 +74,15 @@ let update (chickenCheckApi: IChickenCheckApi) msg (model: Model) =
 
         match model.Email, model.Password with
         | (StringInput.Valid email, StringInput.Valid password) ->
-            { model with LoginStatus = Running }, Cmd.OfAsync.either chickenCheckApi.CreateSession { Email = email; Password = password } ofSuccess (handleApiError LoginFailed), NoOp
+            { model with LoginStatus = Running }, 
+            Cmd.OfAsync.either 
+                chickenCheckApi.CreateSession 
+                { Email = email
+                  Password = password } 
+                ofSuccess 
+                (handleApiError LoginFailed), 
+            NoOp
+
         | _ -> failwith "Tried to submit invalid form"
 
 open Fable.React.Props

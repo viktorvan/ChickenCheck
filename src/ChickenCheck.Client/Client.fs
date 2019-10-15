@@ -25,6 +25,7 @@ type Page =
 type Model =
     { CurrentRoute: Router.Route option
       Session: Session option
+      Navbar: Navbar.Model
       ActivePage: Page }
 
 let private setRoute (result: Option<Router.Route>) (model : Model) =
@@ -69,22 +70,19 @@ let private setRoute (result: Option<Router.Route>) (model : Model) =
 
 // defines the initial state and initial command (= side-effect) of the application
 let private init (optRoute : Router.Route option) =
-    match Session.tryGet () with
-    | Some session ->
-        {
-            CurrentRoute = None
-            ActivePage = Page.Loading
-            Session = Some session
+    let session = Session.tryGet()
+    let model = 
+        { CurrentRoute = None
+          ActivePage = Page.Loading
+          Navbar = Navbar.init()
+          Session = session
         }
-        |> setRoute optRoute
 
+    match session with
+    | Some _ ->
+        setRoute optRoute model
     | None ->
-        {
-            CurrentRoute = None
-            ActivePage = Page.Loading
-            Session = None
-        }
-        |> setRoute (SessionRoute.Signin |> Session |> Some)
+        setRoute (SessionRoute.Signin |> Session |> Some) model
 
 let chickenCheckApi : IChickenCheckApi =
     Remoting.createApi()
@@ -134,9 +132,17 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
             ActivePage = Page.Signin signinModel
         }, SessionRoute.Signout |> Session |> newUrl
 
+    | NavbarMsg msg, _ ->
+        let (navbarModel, extMsg) = Navbar.update msg model.Navbar
+        let model = { model with Navbar = navbarModel }
+        match extMsg with
+        | Navbar.ExternalMsg.NoOp ->
+            model, Cmd.none
+        | Navbar.ExternalMsg.Signout ->
+            model, Signout |> Cmd.ofMsg
+
     | msg, page -> 
-        model, Cmd.none
-        // { model with ActivePage = Page.NotFound }, Cmd.none
+        { model with ActivePage = Page.NotFound }, Cmd.none
 
 
 let view model dispatch =
@@ -153,50 +159,9 @@ let view model dispatch =
         | None -> false, ""
         | Some session -> true, session.Name.Value
 
-    let navbar =
-        Navbar.navbar 
-            [ 
-                Navbar.Color IsInfo 
-            ]
-            [ 
-                Navbar.Brand.div [ ]
-                    [ 
-                        Navbar.Item.a []
-                            [ 
-                                img 
-                                    [ 
-                                        Style [ Width "2.5em" ] // Force svg display
-                                        Src "https://chickencheck.z6.web.core.windows.net/Icons/android-chrome-192x192.png" 
-                                    ] 
-                            ]  
-                        Navbar.Item.a []
-                            [ 
-                                str "Mina hönor" 
-                            ] 
-                    ] 
-                Navbar.End.div []
-                    [
-                        Navbar.Item.div
-                            [ 
-                                Navbar.Item.Props [] 
-                            ]
-                            [ 
-                                Button.a 
-                                    [ 
-                                        Button.IsOutlined
-                                        Button.OnClick (fun _ -> dispatch Signout)
-                                        Button.Props []
-                                    ] 
-                                    [ 
-                                        str "sign out" 
-                                    ]
-                            ]
-                    ]
-            ]
-
     div [] 
         [ if isLoggedIn then
-              yield navbar 
+              yield Navbar.view model.Navbar (NavbarMsg >> dispatch)
           yield div [] [ pageHtml model.ActivePage ] ] 
 
 

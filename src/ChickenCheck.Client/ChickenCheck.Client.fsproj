@@ -14,6 +14,7 @@
         <Compile Include="ViewComponents.fs" />
         <Compile Include="Session/Signin.fs" />
         <Compile Include="Chickens/Chickens.fs" />
+        <Compile Include="Navbar.fs" />
         <Compile Include="Messages.fs" />
         <Compile Include="Client.fs" />
     </ItemGroup>
