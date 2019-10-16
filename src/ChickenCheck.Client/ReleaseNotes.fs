@@ -2,9 +2,13 @@
 
 module internal ReleaseNotes
 
-let version = "1.0.3"
+let version = "1.0.4"
 
 let notes = """
+### 1.0.4 - Build fixes
+* Better release tagging in build.fsx
+* Upgrade FakeUtils.
+
 ### 1.0.3 - Fixes
 * Add missing auto-generated ReleaseNotes.fs file
 * Update build script to correctly handle relase tagging
