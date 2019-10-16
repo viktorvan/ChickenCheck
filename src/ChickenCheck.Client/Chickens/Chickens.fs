@@ -283,7 +283,7 @@ module Statistics =
                 |> Option.defaultValue "-"
 
             let totalCount = getCountStr chicken.Id countMap
-            Level.item []
+            Level.item [ Level.Item.HasTextCentered ]
                 [ div []
                     [ Level.heading [] [ chicken.Name.Value |> str ] 
                       Level.title [] [ str totalCount ] ] ]
