@@ -3,7 +3,7 @@ group Domain
     framework: netcoreapp2.2
     storage: none
 
-    nuget FSharp.Core 4.6.2
+    nuget FSharp.Core 4.7.0
     nuget FsToolkit.ErrorHandling
 
 group Backend
@@ -11,7 +11,7 @@ group Backend
     framework: netcoreapp2.2
     storage: none
 
-    nuget FSharp.Core 4.6.2
+    nuget FSharp.Core 4.7.0
     nuget FsToolkit.ErrorHandling
     nuget Microsoft.Azure.WebJobs.Extensions.Storage 3.0.4
     nuget Microsoft.NET.Sdk.Functions 1.0.26
@@ -36,7 +36,7 @@ group Infrastructure
     framework: netcoreapp2.2
     storage: none
 
-    nuget FSharp.Core 4.6.2
+    nuget FSharp.Core 4.7.0
     nuget FsToolkit.ErrorHandling
     nuget FSharp.Data.SqlClient
 
@@ -65,7 +65,7 @@ group Console
     framework: netcoreapp2.2
     storage: none
 
-    nuget FSharp.Core 4.6.2
+    nuget FSharp.Core 4.7.0
     nuget FsToolkit.ErrorHandling
     nuget System.IdentityModel.Tokens.Jwt
     nuget Microsoft.AspNetCore.Cryptography.KeyDerivation
@@ -79,3 +79,13 @@ group Migrations
     nuget Argu
     nuget Simple.Migrations
     nuget System.Data.SqlClient
+
+group Tests
+    source https://www.nuget.org/api/v2
+    framework: netcoreapp2.2
+    storage: none
+
+    nuget FSharp.Core 4.7.0
+    nuget Expecto
+    nuget Unquote
+    nuget Fable.Elmish ~> 3

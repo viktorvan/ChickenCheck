@@ -39,8 +39,8 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | SigninMsg msg, Page.Signin signinModel ->
         Signin.handle msg model signinModel
 
-    | ChickenMsg msg, page -> 
-        Chickens.handle msg model page
+    | ChickenMsg msg, _ -> 
+        Chickens.handle msg model 
 
     | Signout, _ ->
         Signout.handle model

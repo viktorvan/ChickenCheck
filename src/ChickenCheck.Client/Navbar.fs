@@ -46,7 +46,7 @@ let view (model: Model) dispatch =
                         ]  
                     Navbar.Item.a []
                         [ 
-                            str "Mina hönor" 
+                            sprintf "v%s" ReleaseNotes.version |> str
                         ] 
                     Navbar.burger 
                         [ 

@@ -28,8 +28,6 @@ open Fake.DotNet
 open Fake.IO
 open Fake.IO.Globbing.Operators
 open Fake.JavaScript
-open FSharp.Data
-open FSharp.Data.JsonExtensions
 open ViktorVan.Fake
 
 let tee f x =
@@ -285,25 +283,38 @@ Target.create "SetupInfrastructure" ignore
 
 Target.create "Deploy" ignore
 
+let releaseNotes = System.IO.File.ReadAllLines "RELEASE_NOTES.md"
+
+let release =
+    releaseNotes
+    |> ReleaseNotes.parse
+
 Target.create "TagRelease" <| fun _ ->
     // Read additional information from the release notes document
-    let releaseNotes = System.IO.File.ReadAllLines "RELEASE_NOTES.md"
 
-    let releaseNotesData =
-        releaseNotes
-        |> ReleaseNotes.parse
-
-    let tagName = string releaseNotesData.NugetVersion
+    let tagName = string release.NugetVersion
     printfn "%s" tagName
+    Fake.Tools.Git.Branches.deleteTag "" tagName
     Fake.Tools.Git.Branches.tag "" tagName
     Fake.Tools.Git.Branches.pushTag "" "origin" tagName
+
+Target.create "SetReleaseNotes" <| fun _ ->
+    let lines = [
+        "// auto-generated from RELEASE_NOTES.md"
+        ""
+        "module internal ReleaseNotes"
+        ""
+        (sprintf "let version = \"%s\"" release.NugetVersion)
+        ""
+        "let notes = \"\"\""] @ Array.toList releaseNotes @ [ "\"\"\"" ]
+    System.IO.File.WriteAllLines(Config.clientPath + "/ReleaseNotes.fs", lines)
 
 // Dependency order
 "SetupResourceGroup"
     ==> "SetupDevStorage"
 
 "RestoreBackend" ==> "BuildBackend"
-"InstallClient" ==> "CompileFable"
+"InstallClient" ==> "SetReleaseNotes" ==> "CompileFable"
 
 "BuildBackend" <=> "CompileFable"
     ==> "FullBuild"

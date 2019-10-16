@@ -160,8 +160,8 @@ module Signin =
             { model with ActivePage = pageModel |> Page.Signin }, Cmd.map SigninMsg msg
 
 module Chickens =
-    let handle msg model page =
-        match page with
+    let handle msg model =
+        match model.ActivePage with
         | Page.Chickens chickensPageModel ->
             let chickensApi = chickensApi model.Session
             let chickenCardApi = chickenCardApi model.Session

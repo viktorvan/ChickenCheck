@@ -69,6 +69,8 @@ module String200 =
             (name, "must be less than 200 characters") |> ValidationError |> Error
         else str |> String200 |> Ok
     let value (String200 str) = str
+    let createOrFail name = raiseOnValidationError (create name) 
+
 type String200 with
     member this.Value = String200.value this
 
