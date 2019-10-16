@@ -20,7 +20,7 @@
         <Compile Include="Chickens/DatePicker.fs" />
         <Compile Include="Chickens/Chickens.fs" />
         <Compile Include="Navbar.fs" />
-        <Compile Include="Messages.fs" />
+        <Compile Include="Domain.fs" />
         <Compile Include="CompositionRoot.fs" />
         <Compile Include="Client.fs" />
     </ItemGroup>
