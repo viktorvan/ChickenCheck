@@ -1,3 +1,8 @@
+### 1.0.3 - Fixes
+* Add missing auto-generated ReleaseNotes.fs file
+* Update build script to correctly handle relase tagging
+* Update build script with FakeUtils 1.0.5
+
 ### 1.0.2 - Show release version in navbar
 * Parse release notes and show version in navbar
 * Update FSharp.Core to 4.7.0
