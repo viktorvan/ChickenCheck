@@ -294,9 +294,8 @@ Target.create "TagRelease" <| fun _ ->
     let (newReleaseFile, _, _) = Fake.Tools.Git.Staging.stageFile "" Config.releaseNotesFile
     let (newReleaseFileMD, _, _) = Fake.Tools.Git.Staging.stageFile "" "RELEASE_NOTES.md"
 
-    if newReleaseFile || newReleaseFileMD then  
-        Fake.Tools.Git.Commit.exec "" (sprintf "Bumping version to %s" release.NugetVersion)
-        Fake.Tools.Git.Branches.pushBranch "" "origin" "master"
+    Fake.Tools.Git.Commit.exec "" (sprintf "Bumping version to %s" release.NugetVersion)
+    Fake.Tools.Git.Branches.pushBranch "" "origin" "master"
 
     let tagName = string release.NugetVersion
     let tagExists = sprintf "git tag -l %s" tagName |> Fake.Tools.Git.CommandHelper.runSimpleGitCommand "" = tagName
