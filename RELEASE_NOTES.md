@@ -1,3 +1,7 @@
+### 1.0.5 - Build fixes
+* revert FakeUtils
+* cleanup build.fsx
+
 ### 1.0.4 - Build fixes
 * Better release tagging in build.fsx
 * Upgrade FakeUtils.
