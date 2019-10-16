@@ -720,7 +720,7 @@ NUGET
       System.Xml.XmlDocument (>= 4.3)
       System.Xml.XPath (>= 4.3)
   remote: /Users/viktora/developer/my-nugets
-    FakeUtils (1.0.4)
+    FakeUtils (1.0.5)
       Fake.Core.Target (>= 5.15.4)
       FSharp.Core (>= 4.5.4)
       FSharp.Data (>= 3.1.1)

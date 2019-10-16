@@ -11,7 +11,7 @@ nuget Fake.Tools.Git
 nuget FSharp.Data
 nuget Newtonsoft.Json
 nuget Fake.Javascript.Yarn 
-nuget FakeUtils //"
+nuget FakeUtils 1.0.5 //"
 #load "./.fake/build.fsx/intellisense.fsx"
 #if !FAKE
 #r "netstandard"
@@ -50,6 +50,7 @@ module Config =
     let clientDeployPath = Path.combine deployPath "ChickenCheck.Client/output"
     let migrationsPath = "./src/ChickenCheck.Migrations"
     let tokenSecret = Environment.environVarOrDefault "this isn't the secret you are looking for" "CHICKENCHECK_TOKEN_SECRET"
+    let releaseNotesFile = clientPath + "/ReleaseNotes.fs"
 
 module Tools =
     let run cmd args workingDir =
@@ -290,7 +291,17 @@ let release =
     |> ReleaseNotes.parse
 
 Target.create "TagRelease" <| fun _ ->
-    // Read additional information from the release notes document
+
+    Fake.Tools.Git.Branches.checkout "" false "master"
+    Fake.Tools.Git.CommandHelper.directRunGitCommand "" "fetch origin" |> ignore
+    Fake.Tools.Git.CommandHelper.directRunGitCommand "" "fetch origin --tags" |> ignore
+
+    let (result1, _, _) = Fake.Tools.Git.Staging.stageFile "" Config.releaseNotesFile
+    let (result2, _, _) = Fake.Tools.Git.Staging.stageFile "" "RELEASE_NOTES.md"
+    if not result1 && result2 then failwithf "Failed to stage %s" Config.releaseNotesFile
+
+    Fake.Tools.Git.Commit.exec "" (sprintf "Bumping version to %s" release.NugetVersion)
+    Fake.Tools.Git.Branches.pushBranch "" "origin" "master"
 
     let tagName = string release.NugetVersion
     let tagExists = sprintf "git tag -l %s" tagName |> Fake.Tools.Git.CommandHelper.runSimpleGitCommand "" = tagName
@@ -307,7 +318,7 @@ Target.create "SetReleaseNotes" <| fun _ ->
         (sprintf "let version = \"%s\"" release.NugetVersion)
         ""
         "let notes = \"\"\""] @ Array.toList releaseNotes @ [ "\"\"\"" ]
-    System.IO.File.WriteAllLines(Config.clientPath + "/ReleaseNotes.fs", lines)
+    System.IO.File.WriteAllLines(Config.releaseNotesFile, lines)
 
 // Dependency order
 "SetupResourceGroup"
