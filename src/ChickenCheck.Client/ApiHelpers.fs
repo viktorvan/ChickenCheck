@@ -6,7 +6,6 @@ open Elmish
 let GeneralErrorMsg = "Någonting gick fel"
 let handleApiError msgAction (exn:exn) = exn.ToString() |> sprintf "Exception: %s" |> msgAction
 
-
 let callSecureApi apiToken apiFunc arg successMsg errorMsg =
     let request = { Content = arg; Token = apiToken }
 

@@ -5,6 +5,7 @@
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     </PropertyGroup>
     <ItemGroup>
+        <Compile Include="ListExtensions.fs" />
         <Compile Include="NotFound.fs" />
         <Compile Include="Logger.fs" />
         <Compile Include="Router.fs" />
@@ -13,11 +14,14 @@
         <Compile Include="EventHelpers.fs" />
         <Compile Include="ViewComponents.fs" />
         <Compile Include="Session/Signin.fs" />
+        <Compile Include="Chickens/Statistics.fs" />
         <Compile Include="Chickens/ChickenCard.fs" />
         <Compile Include="Chickens/ChickenCardList.fs" />
+        <Compile Include="Chickens/DatePicker.fs" />
         <Compile Include="Chickens/Chickens.fs" />
         <Compile Include="Navbar.fs" />
         <Compile Include="Messages.fs" />
+        <Compile Include="CompositionRoot.fs" />
         <Compile Include="Client.fs" />
     </ItemGroup>
     <ItemGroup>

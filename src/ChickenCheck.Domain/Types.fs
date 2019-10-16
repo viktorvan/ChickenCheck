@@ -181,6 +181,8 @@ module EggCount =
 type EggCount with
     member this.Value = this |> EggCount.value
 
+type EggCountMap = Map<ChickenId, EggCount>
+
 type Date = { Year: int; Month: int; Day: int }
 module Date =
     let create (date: DateTime) =

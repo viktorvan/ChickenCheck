@@ -36,6 +36,10 @@ type ComponentMsg =
     | External of ExternalMsg
     | Internal of Cmd<Msg>
 
+type Api =
+    { AddEgg : Commands.AddEgg -> Cmd<Msg>
+      RemoveEgg : Commands.RemoveEgg -> Cmd<Msg> }
+
 let init chicken eggCount date =
     { Chicken = chicken
       EggCount = eggCount
@@ -43,16 +47,12 @@ let init chicken eggCount date =
       RemoveEggStatus = ApiCallStatus.NotStarted 
       CurrentDate = date }
 
-let update (chickenApi: IChickenApi) token (msg:Msg) (model: Model) : Model * ComponentMsg =
+let update (eggApi: Api) (msg:Msg) (model: Model) : Model * ComponentMsg =
     match msg with
     | AddEgg -> 
         { model with AddEggStatus = Running }, 
-        callSecureApi
-            token
-            chickenApi.AddEgg
+        eggApi.AddEgg
             { AddEgg.ChickenId = model.Chicken.Id; Date = model.CurrentDate }
-            (fun _ -> AddedEgg)
-            AddEggFailed
         |> Internal
 
     | AddedEgg -> 
@@ -83,12 +83,8 @@ let update (chickenApi: IChickenApi) token (msg:Msg) (model: Model) : Model * Co
 
     | RemoveEgg -> 
         { model with RemoveEggStatus = Running }, 
-        callSecureApi
-            token
-            chickenApi.RemoveEgg
+        eggApi.RemoveEgg
             { RemoveEgg.ChickenId = model.Chicken.Id; Date = model.CurrentDate }
-            (fun _ -> RemovedEgg)
-            RemoveEggFailed
             |> Internal
 
     | RemovedEgg -> 
@@ -117,50 +113,43 @@ let update (chickenApi: IChickenApi) token (msg:Msg) (model: Model) : Model * Co
         ExternalMsg.Error msg
         |> External
 let view model (dispatch: Dispatch<Msg>) =
-    let imageUrlStr = 
-        match model.Chicken.ImageUrl with
-        | Some (ImageUrl imageUrl) -> imageUrl
-        | None -> ""
-
-    let eggIcon = 
-        Icon.icon 
-            [ 
-                Icon.Size IsLarge
-                Icon.Modifiers [ Modifier.TextColor Color.IsWhite ] 
-                Icon.Props 
-                    [ OnClick 
-                        (fun ev ->
-                            ev.cancelBubble <- true
-                            ev.stopPropagation()
-                            dispatch RemoveEgg)]
-            ] 
-            [ 
-                Fa.i [ Fa.Size Fa.Fa5x; Fa.Solid.Egg ] [] 
-            ] 
 
     let eggIcons =
+        let eggIcon = 
+            Icon.icon 
+                [ 
+                    Icon.Size IsLarge
+                    Icon.Modifiers [ Modifier.TextColor Color.IsWhite ] 
+                    Icon.Props 
+                        [ OnClick 
+                            (fun ev ->
+                                ev.cancelBubble <- true
+                                ev.stopPropagation()
+                                dispatch RemoveEgg)]
+                ] 
+                [ 
+                    Fa.i [ Fa.Size Fa.Fa5x; Fa.Solid.Egg ] [] 
+                ] 
+
         let addedEggs = 
             let isLoading = 
-                match model.AddEggStatus, model.RemoveEggStatus with
-                | Running, _ | _, Running -> true
+                match model.AddEggStatus, model.RemoveEggStatus, model.EggCount with
+                | Running, _, _ | _, Running, _ | _, _, None -> true
                 | _ -> false
 
             if isLoading then 
                 [ ViewComponents.loading ]
             else
-                match model.EggCount with
-                | None -> [ ViewComponents.loading ]
-                | Some eggCount ->
-                    [ for i in 1..eggCount.Value do
-                        yield 
-                            Column.column 
-                                [ 
-                                    Column.Width (Screen.All, Column.Is3) 
-                                ] 
-                                [ 
-                                    eggIcon 
-                                ] 
-                    ]
+                [ for _ in 1..model.EggCount.Value.Value do
+                    yield 
+                        Column.column 
+                            [ 
+                                Column.Width (Screen.All, Column.Is3) 
+                            ] 
+                            [ 
+                                eggIcon 
+                            ] 
+                ]
 
         Columns.columns 
             [ 
@@ -171,46 +160,50 @@ let view model (dispatch: Dispatch<Msg>) =
             ] 
             addedEggs
 
-    let card =
-        let header =
-            div 
-                [ ] 
-                [ 
-                    Heading.h4 
-                        [ Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ] 
-                        [ str model.Chicken.Name.Value ]
-                    Heading.h6 
-                        [ Heading.IsSubtitle;  Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ]
-                        [ str model.Chicken.Breed.Value ] 
-                ]
-
-
-
-
-        Card.card 
+    let header =
+        div 
+            [ ] 
             [ 
-                Props 
-                    [ 
-                        OnClick (fun _ -> dispatch AddEgg)
-                        Style 
-                            [ 
-                                sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrlStr 
-                                |> box 
-                                |> BackgroundImage 
-                                BackgroundRepeat "no-repeat"
-                                BackgroundSize "cover" 
-                            ] 
-                        
-                    ] 
+                Heading.h4 
+                    [ Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ] 
+                    [ str model.Chicken.Name.Value ]
+                Heading.h6 
+                    [ Heading.IsSubtitle;  Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ]
+                    [ str model.Chicken.Breed.Value ] 
             ]
+
+    let cardBackgroundStyle =
+
+        let imageUrlStr = 
+            match model.Chicken.ImageUrl with
+            | Some (ImageUrl imageUrl) -> imageUrl
+            | None -> ""
+
+        Style 
             [ 
-                Card.header [] [ header ] 
-                Card.content [] [ eggIcons ] 
-            ]
+                sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrlStr 
+                |> box 
+                |> BackgroundImage 
+                BackgroundRepeat "no-repeat"
+                BackgroundSize "cover" 
+            ] 
 
     Column.column
         [ 
             Column.Width (Screen.Desktop, Column.Is4)
             Column.Width (Screen.Mobile, Column.Is12)
         ]
-        [ card ]   
+        [
+            Card.card 
+                [ 
+                    Props 
+                        [ 
+                            OnClick (fun _ -> dispatch AddEgg)
+                            cardBackgroundStyle
+                        ] 
+                ]
+                [ 
+                    Card.header [] [ header ] 
+                    Card.content [] [ eggIcons ] 
+                ]
+        ]   

@@ -6,14 +6,12 @@ open Elmish.Navigation
 open Elmish.UrlParser
 open ChickenCheck.Client
 open Messages
-open Fable.Remoting.Client
 open ChickenCheck.Domain
 open Fable.Core
-open Elmish.Navigation
 open Fulma
 open Fable.React
-open Fable.React.Props
 open ChickenCheck.Client.Router
+module CR = CompositionRoot
 
 [<RequireQualifiedAccess>]
 type Page =
@@ -84,34 +82,20 @@ let private init (optRoute : Router.Route option) =
     | None ->
         setRoute (SessionRoute.Signin |> Session |> Some) model
 
-let chickenApi : IChickenApi =
-    Remoting.createApi()
-    |> Remoting.withRouteBuilder Api.routeBuilder
-    #if !DEBUG
-    |> Remoting.withBaseUrl "https://chickencheck-functions.azurewebsites.net"
-    #endif
-    |> Remoting.buildProxy<IChickenApi>
-
-
-let getToken model =
-    match model.Session with
-    | Some s -> s.Token
-    | None -> failwith "this action requires an authenticated user"
-
 // The update function computes the next state of the application based on the current state and the incoming events/messages
 // It can also run side-effects (encoded as commands) like calling the server via Http.
 // these commands in turn, can dispatch messages to which the update function will react.
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     match msg, model.ActivePage with
     | SigninMsg msg, Page.Signin signinModel ->
-            let (pageModel, subMsg, extraMsg) = Signin.update chickenApi msg signinModel
-            match extraMsg with
-            | Signin.NoOp ->
-                { model with ActivePage = pageModel |> Page.Signin }, Cmd.map SigninMsg subMsg
-            | Signin.SignedIn session -> 
+            let (pageModel, result) = Signin.update CR.signinApi msg signinModel
+            match result with
+            | Signin.External (Signin.ExternalMsg.SignedIn session) ->
                 Session.store session
                 { model with Session = Some session } 
                 |> setRoute (Router.ChickenRoute.Chickens |> Router.Chicken |> Some)
+            | Signin.Internal msg ->
+                { model with ActivePage = pageModel |> Page.Signin }, Cmd.map SigninMsg msg
 
     | ChickenMsg msg, page -> 
         match page with
@@ -120,7 +104,7 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
                 match model.Session with
                 | Some session -> session.Token
                 | None -> failwith "Cannot request secure page without session"
-            let (pageModel, subMsg) = Chickens.update chickenApi apiToken msg chickensPageModel
+            let (pageModel, subMsg) = Chickens.update (CR.chickensApi apiToken) (CR.chickenCardApi apiToken) msg chickensPageModel
             { model with ActivePage = pageModel |> Page.Chickens }, Cmd.map ChickenMsg subMsg
         | _ -> model, Cmd.none
 
@@ -143,7 +127,6 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
 
     | msg, page -> 
         { model with ActivePage = Page.NotFound }, Cmd.none
-
 
 let view model dispatch =
 

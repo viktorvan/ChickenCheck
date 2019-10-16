@@ -22,9 +22,8 @@ let init() =
       Password = StringInput.Empty
       LoginStatus = NotStarted }
 
-
+[<RequireQualifiedAccess>]
 type ExternalMsg =
-    | NoOp
     | SignedIn of Session
 
 type Msg =
@@ -35,54 +34,48 @@ type Msg =
     | ClearLoginError
     | Submit
 
-let update (chickenApi: IChickenApi) msg (model: Model) =
+type ComponentMsg =
+    | External of ExternalMsg
+    | Internal of Cmd<Msg>
+
+type Api =
+    { CreateSession : Commands.CreateSession -> Cmd<Msg> }
+
+let update api msg (model: Model) =
     match msg with
     | ChangeEmail msg ->
         let newEmail =  
             match Email.create msg with
             | Ok e -> StringInput.Valid e
             | Error _ -> StringInput.Invalid msg
-        { model with Email = newEmail }, Cmd.none, NoOp
+        { model with Email = newEmail }, Cmd.none |> Internal
 
     | ChangePassword msg ->
         let newPassword =
             match Password.create msg with
             | Ok pw -> StringInput.Valid pw
             | Error _ -> StringInput.Invalid msg
-        { model with Password = newPassword }, Cmd.none, NoOp
+        { model with Password = newPassword }, Cmd.none |> Internal
 
-    | LoginCompleted session -> { model with LoginStatus = ApiCallStatus.Completed }, Cmd.none, SignedIn session
+    | LoginCompleted session -> 
+        { model with LoginStatus = ApiCallStatus.Completed }, 
+        ExternalMsg.SignedIn session |> External
 
-    | LoginFailed err -> { model with LoginStatus = Failed err }, Cmd.none, NoOp
+    | LoginFailed err -> { model with LoginStatus = Failed err }, Cmd.none |> Internal
 
-    | ClearLoginError -> { model with LoginStatus = NotStarted }, Cmd.none, NoOp
+    | ClearLoginError -> { model with LoginStatus = NotStarted }, Cmd.none |> Internal
 
     | Submit ->
-        let ofSuccess result =
-            match result with
-            | Ok session -> LoginCompleted session
-            | Error err ->
-                let msg =
-                    match err with
-                    | Login l ->
-                        match l with
-                        | UserDoesNotExist -> "Användaren saknas"
-                        | PasswordIncorrect -> "Fel lösenord"
-                    | _ -> GeneralErrorMsg
-                msg |> LoginFailed
 
 
         match model.Email, model.Password with
         | (StringInput.Valid email, StringInput.Valid password) ->
             { model with LoginStatus = Running }, 
-            Cmd.OfAsync.either 
-                chickenApi.CreateSession 
+            api.CreateSession 
                 { Email = email
-                  Password = password } 
-                ofSuccess 
-                (handleApiError LoginFailed), 
-            NoOp
-
+                  Password = password }
+            |> Internal
+            
         | _ -> failwith "Tried to submit invalid form"
 
 open Fable.React.Props
