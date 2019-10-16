@@ -11,11 +11,11 @@ open Fulma.Extensions.Wikiki
 
 type Model =
     { Chickens : Chicken list
-      ChickenListModel : ChickenCardList.Model option
-      Errors : string list
       TotalEggCount : EggCountMap option
       EggCountOnDate : EggCountMap option
-      CurrentDate : Date }
+      CurrentDate : Date 
+      ChickenListModel : ChickenCardList.Model option
+      Errors : string list }
 
 type Msg = 
     | FetchChickens 
@@ -49,7 +49,6 @@ let init =
       TotalEggCount = None
       EggCountOnDate = None
       CurrentDate = date }, cmds
-
 
 
 let update (api: Api) chickenCardApi msg (model: Model) =

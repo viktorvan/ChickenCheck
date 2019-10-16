@@ -35,7 +35,6 @@ let private init (optRoute : Router.Route option) =
 // It can also run side-effects (encoded as commands) like calling the server via Http.
 // these commands in turn, can dispatch messages to which the update function will react.
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
-
     match msg, model.ActivePage with
     | SigninMsg msg, Page.Signin signinModel ->
         Signin.handle msg model signinModel
@@ -53,7 +52,6 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
         { model with ActivePage = Page.NotFound }, Cmd.none
 
 let view model dispatch =
-
     let loadingPage =             
         PageLoader.pageLoader 
             [ 

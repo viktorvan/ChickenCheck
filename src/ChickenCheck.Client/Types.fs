@@ -1,7 +1,5 @@
 namespace ChickenCheck.Client
 open ChickenCheck.Domain
-open System
-open System.Collections.Generic
 open ChickenCheck.Client
 
 [<AutoOpen>]
