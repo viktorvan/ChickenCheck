@@ -3,9 +3,11 @@ source https://api.nuget.org/v3/index.json
 source /Users/viktora/developer/my-nugets
 nuget FSharp.Core 4.5.4
 nuget Fake.Core.Target
+nuget Fake.Core.ReleaseNotes
 nuget Fake.DotNet.Cli
 nuget Fake.Dotnet.Testing.Expecto
 nuget Fake.IO.FileSystem
+nuget Fake.Tools.Git
 nuget FSharp.Data
 nuget Newtonsoft.Json
 nuget Fake.Javascript.Yarn 
@@ -283,6 +285,19 @@ Target.create "SetupInfrastructure" ignore
 
 Target.create "Deploy" ignore
 
+Target.create "TagRelease" <| fun _ ->
+    // Read additional information from the release notes document
+    let releaseNotes = System.IO.File.ReadAllLines "RELEASE_NOTES.md"
+
+    let releaseNotesData =
+        releaseNotes
+        |> ReleaseNotes.parse
+
+    let tagName = string releaseNotesData.NugetVersion
+    printfn "%s" tagName
+    Fake.Tools.Git.Branches.tag "" tagName
+    Fake.Tools.Git.Branches.pushTag "" "origin" tagName
+
 // Dependency order
 "SetupResourceGroup"
     ==> "SetupDevStorage"
@@ -343,12 +358,15 @@ Target.create "Deploy" ignore
     ==> "RunMigrations"
 
 "UploadWebsite" 
-   ==> "Deploy"
+   ==> "TagRelease"
 
 "DeployFunctionsApp" 
-    ==> "Deploy"
+    ==> "TagRelease"
 
 "RunMigrations"
+    ==> "TagRelease"
+
+"TagRelease"
     ==> "Deploy"
 
 let ctx = Target.WithContext.runOrDefaultWithArguments "FullBuild"
