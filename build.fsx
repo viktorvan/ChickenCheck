@@ -293,8 +293,8 @@ Target.create "TagRelease" <| fun _ ->
     // Read additional information from the release notes document
 
     let tagName = string release.NugetVersion
-    printfn "%s" tagName
-    Fake.Tools.Git.Branches.deleteTag "" tagName
+    let tagExists = sprintf "git tag -l %s" tagName |> Fake.Tools.Git.CommandHelper.runSimpleGitCommand "" = tagName
+    if tagExists then Fake.Tools.Git.Branches.deleteTag "" tagName
     Fake.Tools.Git.Branches.tag "" tagName
     Fake.Tools.Git.Branches.pushTag "" "origin" tagName
 
@@ -369,13 +369,13 @@ Target.create "SetReleaseNotes" <| fun _ ->
     ==> "RunMigrations"
 
 "UploadWebsite" 
-   ==> "TagRelease"
+   ==> "Deploy"
 
 "DeployFunctionsApp" 
-    ==> "TagRelease"
+    ==> "Deploy"
 
 "RunMigrations"
-    ==> "TagRelease"
+    ==> "Deploy"
 
 "TagRelease"
     ==> "Deploy"
