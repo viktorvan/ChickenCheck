@@ -49,7 +49,7 @@ let signinApi : Signin.Api =
                     | UserDoesNotExist -> "Användaren saknas"
                     | PasswordIncorrect -> "Fel lösenord"
                 | _ -> GeneralErrorMsg
-            msg |> Signin.Msg.LoginFailed
+            msg |> Signin.Msg.AddError
 
     let createSession =
         fun cmd ->
@@ -57,7 +57,7 @@ let signinApi : Signin.Api =
                 chickenApi.CreateSession
                 cmd
                 ofSuccess
-                (handleApiError Signin.Msg.LoginFailed)
+                (handleApiError Signin.Msg.AddError)
 
     { CreateSession = createSession }
 
@@ -70,7 +70,7 @@ let chickensApi token : Chickens.Api =
                 chickenApi.GetChickens 
                 () 
                 Chickens.FetchedChickens 
-                Chickens.FetchChickensError
+                Chickens.AddError 
 
     let getTotalCount =
         fun () -> 
@@ -79,7 +79,7 @@ let chickensApi token : Chickens.Api =
                 chickenApi.GetTotalEggCount
                 ()
                 Chickens.FetchedTotalCount
-                Chickens.FetchTotalCountError
+                Chickens.AddError 
 
     let getCountOnDate =
         fun date -> 
@@ -88,7 +88,7 @@ let chickensApi token : Chickens.Api =
                 chickenApi.GetEggCountOnDate 
                 date 
                 (fun res -> Chickens.FetchedEggCountOnDate (date, res)) 
-                Chickens.FetchEggCountOnDateError
+                Chickens.AddError 
     
 
     { GetChickens = getChickens 

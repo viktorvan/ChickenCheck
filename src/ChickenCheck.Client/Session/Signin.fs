@@ -1,16 +1,16 @@
 module ChickenCheck.Client.Signin
+
 open Elmish
 open ChickenCheck.Client
 open ChickenCheck.Domain
 open Fable.React
-open Fable.Core.JsInterop
-open ChickenCheck.Client.ApiHelpers
 open Fable.FontAwesome
 
 type Model =
     { Email : StringInput<Email>
       Password : StringInput<Password>
-      LoginStatus : ApiCallStatus } with
+      LoginStatus : ApiCallStatus 
+      Errors : string list } with
     member __.IsValid =
         match __.Email, __.Password with
         | StringInput.Valid _, StringInput.Valid _ -> true
@@ -20,7 +20,8 @@ type Model =
 let init() =
     { Email = StringInput.Empty
       Password = StringInput.Empty
-      LoginStatus = NotStarted }
+      LoginStatus = NotStarted 
+      Errors = [] }
 
 [<RequireQualifiedAccess>]
 type ExternalMsg =
@@ -30,8 +31,8 @@ type Msg =
     | ChangeEmail of string
     | ChangePassword of string
     | LoginCompleted of Session
-    | LoginFailed of string
-    | ClearLoginError
+    | AddError of string
+    | ClearErrors
     | Submit
 
 type ComponentMsg =
@@ -61,13 +62,16 @@ let update api msg (model: Model) =
         { model with LoginStatus = ApiCallStatus.Completed }, 
         ExternalMsg.SignedIn session |> External
 
-    | LoginFailed err -> { model with LoginStatus = Failed err }, Cmd.none |> Internal
+    | AddError msg -> 
+        { model with 
+            LoginStatus = ApiCallStatus.Completed
+            Errors = msg :: model.Errors }, 
+        Cmd.none |> Internal
 
-    | ClearLoginError -> { model with LoginStatus = NotStarted }, Cmd.none |> Internal
+    | ClearErrors -> 
+        { model with Errors = [] }, Cmd.none |> Internal
 
     | Submit ->
-
-
         match model.Email, model.Password with
         | (StringInput.Valid email, StringInput.Valid password) ->
             { model with LoginStatus = Running }, 
@@ -122,19 +126,35 @@ let view (model : Model) (dispatch : Msg -> unit) =
               Button.Disabled (model.IsInvalid || running) ] 
             [ str text ]
 
+    let errorView =
+        let errorFor item = 
+            item
+            |> ViewComponents.apiErrorMsg (fun _ -> dispatch ClearErrors) 
+
+        model.Errors |> List.map errorFor
+
+    let hasErrors = model.Errors |> List.isEmpty |> not
+
     Hero.hero
         [ Hero.IsFullHeight
           Hero.CustomClass "login-img" ] 
         [ Hero.body []
             [ Container.container
                 []
-                [ Column.column [ Column.Width (Screen.All, Column.Is6); Column.Offset (Screen.All, Column.Is6)]
-                    [ form [ ] 
-                        [ Box.box' [] 
-                            [ Field.div [] 
-                                [ emailInput 
-                                  passwordInput
-                                  submitButton "Logga in" ] ] ] ] ] 
-                    ]
+                [ 
+                    yield Column.column 
+                        [ Column.Width (Screen.All, Column.Is6); Column.Offset (Screen.All, Column.Is6)]
+                        [ 
+                            form [] 
+                                [ Box.box' [] 
+                                    [ Field.div [] 
+                                        [ emailInput 
+                                          passwordInput
+                                          submitButton "Logga in" ] ] ] 
+                        ] 
+                    if hasErrors then yield Section.section [] errorView
+                ] 
+
+        ]
                 ]
         

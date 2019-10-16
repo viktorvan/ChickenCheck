@@ -77,7 +77,7 @@ let update (eggApi: Api) (msg:Msg) (model: Model) : Model * ComponentMsg =
                 |> Internal
 
     | AddEggFailed msg -> 
-        { model with AddEggStatus = Failed msg },
+        model,
         ExternalMsg.Error msg
         |> External
 
@@ -109,7 +109,7 @@ let update (eggApi: Api) (msg:Msg) (model: Model) : Model * ComponentMsg =
                 |> Internal
 
     | RemoveEggFailed msg -> 
-        { model with RemoveEggStatus = Failed msg },
+        model,
         ExternalMsg.Error msg
         |> External
 let view model (dispatch: Dispatch<Msg>) =

@@ -66,7 +66,6 @@ type ApiCallStatus =
     | NotStarted
     | Running
     | Completed
-    | Failed of string
 
 module Session =
     let expired = new Event<unit>()

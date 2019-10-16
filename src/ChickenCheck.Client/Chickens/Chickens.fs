@@ -15,24 +15,19 @@ type Model =
       Errors : string list
       TotalEggCount : EggCountMap option
       EggCountOnDate : EggCountMap option
-      FetchChickensStatus : ApiCallStatus 
-      FetchTotalEggCountStatus : ApiCallStatus 
-      FetchEggCountOnDateStatus : ApiCallStatus 
       CurrentDate : Date }
 
 type Msg = 
     | FetchChickens 
     | FetchedChickens of Chicken list
-    | FetchChickensError of string
     | FetchTotalCount 
     | FetchedTotalCount of EggCountMap
-    | FetchTotalCountError of string
     | FetchEggCountOnDate of Date
     | FetchedEggCountOnDate of Date * EggCountMap
-    | FetchEggCountOnDateError of string
     | ChangeDate of Date
     | ChickenListMsg of ChickenCardList.Msg
     | UpdateListModel
+    | AddError  of string
     | ClearErrors
 
 type Api =
@@ -53,9 +48,6 @@ let init =
       Errors = []
       TotalEggCount = None
       EggCountOnDate = None
-      FetchChickensStatus = NotStarted 
-      FetchTotalEggCountStatus = NotStarted 
-      FetchEggCountOnDateStatus = NotStarted 
       CurrentDate = date }, cmds
 
 
@@ -63,17 +55,17 @@ let init =
 let update (api: Api) chickenCardApi msg (model: Model) =
     match msg with
     | FetchChickens -> 
-        { model with FetchChickensStatus = Running }, 
+        model,
         api.GetChickens()
 
     | FetchedChickens chickens -> 
         { model with 
-            FetchChickensStatus = ApiCallStatus.Completed
             Chickens = chickens },
             UpdateListModel |> Cmd.ofMsg
 
-    | FetchChickensError msg ->
-        { model with FetchChickensStatus = Failed msg }, Cmd.none
+    | AddError  msg ->
+        { model with Errors = msg :: model.Errors }, Cmd.none
+
     | FetchEggCountOnDate date -> 
         let callApi =
             api.GetCountOnDate date
@@ -84,41 +76,29 @@ let update (api: Api) chickenCardApi msg (model: Model) =
             |> Cmd.batch
 
         { model with 
-            FetchEggCountOnDateStatus = Running 
             EggCountOnDate = None }, cmds
 
     | FetchedEggCountOnDate (date, countByChicken) -> 
-        let model = { model with FetchEggCountOnDateStatus = Completed }
         if model.CurrentDate = date then
             if countByChicken |> Map.isEmpty then
-                model, "Count by date map was empty" |> FetchEggCountOnDateError |> Cmd.ofMsg
+                model, "Count by date map was empty" |> AddError  |> Cmd.ofMsg
             else
                 { model with EggCountOnDate = Some countByChicken }, 
                     UpdateListModel |> Cmd.ofMsg
         else
             model, Cmd.none
 
-    | FetchEggCountOnDateError msg -> 
-        { model with FetchEggCountOnDateStatus = Failed msg },
-            Cmd.none
-
     | FetchTotalCount -> 
         { model with 
-            FetchTotalEggCountStatus = Running 
             TotalEggCount = None }, 
         api.GetTotalCount()
 
     | FetchedTotalCount totalCount -> 
-        let model = { model with FetchTotalEggCountStatus = Completed }
         if totalCount |> Map.isEmpty then
-            model, "TotalCount map was empty" |> FetchTotalCountError |> Cmd.ofMsg
+            model, "TotalCount map was empty" |> AddError  |> Cmd.ofMsg
         else
             { model with TotalEggCount = Some totalCount },
             UpdateListModel |> Cmd.ofMsg
-
-    | FetchTotalCountError msg -> 
-        { model with FetchTotalEggCountStatus = Failed msg },
-            Cmd.none
 
     | UpdateListModel ->
         match (model.Chickens, model.EggCountOnDate) with
