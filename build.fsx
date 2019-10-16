@@ -11,7 +11,7 @@ nuget Fake.Tools.Git
 nuget FSharp.Data
 nuget Newtonsoft.Json
 nuget Fake.Javascript.Yarn 
-nuget FakeUtils 1.0.5 //"
+nuget FakeUtils //"
 #load "./.fake/build.fsx/intellisense.fsx"
 #if !FAKE
 #r "netstandard"
@@ -291,17 +291,12 @@ let release =
     |> ReleaseNotes.parse
 
 Target.create "TagRelease" <| fun _ ->
+    let (newReleaseFile, _, _) = Fake.Tools.Git.Staging.stageFile "" Config.releaseNotesFile
+    let (newReleaseFileMD, _, _) = Fake.Tools.Git.Staging.stageFile "" "RELEASE_NOTES.md"
 
-    Fake.Tools.Git.Branches.checkout "" false "master"
-    Fake.Tools.Git.CommandHelper.directRunGitCommand "" "fetch origin" |> ignore
-    Fake.Tools.Git.CommandHelper.directRunGitCommand "" "fetch origin --tags" |> ignore
-
-    let (result1, _, _) = Fake.Tools.Git.Staging.stageFile "" Config.releaseNotesFile
-    let (result2, _, _) = Fake.Tools.Git.Staging.stageFile "" "RELEASE_NOTES.md"
-    if not result1 && result2 then failwithf "Failed to stage %s" Config.releaseNotesFile
-
-    Fake.Tools.Git.Commit.exec "" (sprintf "Bumping version to %s" release.NugetVersion)
-    Fake.Tools.Git.Branches.pushBranch "" "origin" "master"
+    if newReleaseFile || newReleaseFileMD then  
+        Fake.Tools.Git.Commit.exec "" (sprintf "Bumping version to %s" release.NugetVersion)
+        Fake.Tools.Git.Branches.pushBranch "" "origin" "master"
 
     let tagName = string release.NugetVersion
     let tagExists = sprintf "git tag -l %s" tagName |> Fake.Tools.Git.CommandHelper.runSimpleGitCommand "" = tagName
@@ -380,13 +375,13 @@ Target.create "SetReleaseNotes" <| fun _ ->
     ==> "RunMigrations"
 
 "UploadWebsite" 
-   ==> "Deploy"
+   ==> "TagRelease"
 
 "DeployFunctionsApp" 
-    ==> "Deploy"
+    ==> "TagRelease"
 
 "RunMigrations"
-    ==> "Deploy"
+    ==> "TagRelease"
 
 "TagRelease"
     ==> "Deploy"
