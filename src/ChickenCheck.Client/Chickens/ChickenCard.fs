@@ -8,7 +8,6 @@ open Elmish
 open Fulma
 open Fable.FontAwesome
 open ChickenCheck.Client
-open ChickenCheck.Client.ApiHelpers
 
 
 type Model =

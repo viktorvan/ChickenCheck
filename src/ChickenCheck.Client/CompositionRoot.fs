@@ -180,13 +180,17 @@ module Signout =
 
 module Navbar =
     let handle msg model =
-        let (navbarModel, extMsg) = Navbar.update msg model.Navbar
+        let (navbarModel, result) = Navbar.update msg model.Navbar
         let model = { model with Navbar = navbarModel }
-        match extMsg with
-        | Navbar.ExternalMsg.NoOp ->
-            model, Cmd.none
-        | Navbar.ExternalMsg.Signout ->
-            model, Signout |> Cmd.ofMsg
+        match result with
+        | Navbar.External extMsg ->
+            match extMsg with
+            | Navbar.ExternalMsg.Signout ->
+                model, Signout |> Cmd.ofMsg
+            | Navbar.ExternalMsg.ToggleReleaseNotes ->
+                { model with ShowReleaseNotes = not model.ShowReleaseNotes }, Cmd.none 
+        | Navbar.Internal cmd ->
+            model, cmd |> Cmd.map NavbarMsg
 
 module Authentication =
     let handleExpiredToken _ =

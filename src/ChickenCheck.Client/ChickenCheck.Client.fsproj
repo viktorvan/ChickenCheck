@@ -6,6 +6,7 @@
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="ReleaseNotes.fs" />
+        <Compile Include="ReleaseNotesView.fs" />
         <Compile Include="ListExtensions.fs" />
         <Compile Include="NotFound.fs" />
         <Compile Include="Logger.fs" />

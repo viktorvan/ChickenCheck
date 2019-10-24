@@ -13,3 +13,4 @@ group Client
     Fulma.Extensions.Wikiki.Calendar
     Fable.SimpleJson
     Fulma.Extensions.Wikiki.PageLoader
+    Fulma.Extensions.Wikiki.Quickview

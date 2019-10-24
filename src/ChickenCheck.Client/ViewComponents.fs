@@ -29,3 +29,5 @@ let apiErrorMsg clearError msg =
 let centered content =
     div []
         content
+
+let elmishView name render = FunctionComponent.Of(render, name, equalsButFunctions)

@@ -8,6 +8,7 @@ type Msg =
     | Signout
     | NavbarMsg of Navbar.Msg
     | ChickenMsg of Chickens.Msg
+    | ToggleReleaseNotes
 
 [<RequireQualifiedAccess>]
 type Page =
@@ -20,6 +21,7 @@ type Model =
     { CurrentRoute: Router.Route option
       Session: Session option
       Navbar: Navbar.Model
-      ActivePage: Page }
+      ActivePage: Page 
+      ShowReleaseNotes: bool }
 
     

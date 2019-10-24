@@ -1,7 +1,6 @@
 module ChickenCheck.Domain.ChickenCommandHandler
 
 open ChickenCheck.Domain
-open System
 
 
 type AddEgg = Commands.AddEgg -> Events.ChickenEvent

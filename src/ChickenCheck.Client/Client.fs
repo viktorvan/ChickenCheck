@@ -22,6 +22,7 @@ let private init (optRoute : Router.Route option) =
           ActivePage = Page.Loading
           Navbar = Navbar.init()
           Session = session
+          ShowReleaseNotes = false
         }
 
     match session with
@@ -48,6 +49,9 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     | NavbarMsg msg, _ ->
         Navbar.handle msg model
 
+    | ToggleReleaseNotes, _ ->
+        { model with ShowReleaseNotes = not model.ShowReleaseNotes }, Cmd.none
+
     | msg, page -> 
         { model with ActivePage = Page.NotFound }, Cmd.none
 
@@ -72,8 +76,10 @@ let view model dispatch =
         | None -> false, ""
         | Some session -> true, session.Name.Value
 
+    let toggleReleaseNotes _ = dispatch ToggleReleaseNotes
     div [] 
-        [ if isLoggedIn then
+        [ yield ReleaseNotesView.view { IsActive = model.ShowReleaseNotes; ToggleReleaseNotes = toggleReleaseNotes }
+          if isLoggedIn then
               yield Navbar.view model.Navbar (NavbarMsg >> dispatch)
           yield div [] [ pageHtml model.ActivePage ] ] 
 
