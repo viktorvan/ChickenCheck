@@ -1,3 +1,7 @@
+### 1.1.0 - Add Release notes
+* Add view for release notes
+* Reference ViktorVan.Fake.AzureCLI as single file 
+
 ### 1.0.5 - Build fixes
 * revert FakeUtils
 * cleanup build.fsx
