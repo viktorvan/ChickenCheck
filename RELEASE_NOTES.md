@@ -1,3 +1,6 @@
+### 1.1.1 - Build cleanup
+* Remove local nuget source in build script.
+
 ### 1.1.0 - Add Release notes
 * Add view for release notes
 * Reference ViktorVan.Fake.AzureCLI as single file 
