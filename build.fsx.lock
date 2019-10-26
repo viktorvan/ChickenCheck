@@ -721,7 +721,7 @@ NUGET
       System.Xml.XPath (>= 4.3)
 GITHUB
   remote: viktorvan/ViktorVan.Fake.AzureCLI
-    Azure.fsx (670a8a587bb0b9b88c167ffcf74d7166c5a71821) //
+    Azure.fsx (064a6537f8478ba3b7e34d89004eff57d778adb0) //
       Fake.Core.Target
       FSharp.Core (4.5.4)
       FSharp.Data
