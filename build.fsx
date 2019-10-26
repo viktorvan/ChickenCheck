@@ -1,6 +1,5 @@
 #r "paket:
 source https://api.nuget.org/v3/index.json
-source /Users/viktora/developer/my-nugets
 nuget FSharp.Core 4.5.4
 nuget Fake.Core.Target
 nuget Fake.Core.ReleaseNotes
@@ -11,7 +10,7 @@ nuget Fake.Tools.Git
 nuget FSharp.Data
 nuget Newtonsoft.Json
 nuget Fake.Javascript.Yarn 
-nuget FakeUtils //"
+github viktorvan/ViktorVan.Fake.AzureCLI Azure.fsx //"
 #load "./.fake/build.fsx/intellisense.fsx"
 #if !FAKE
 #r "netstandard"
@@ -21,6 +20,7 @@ nuget FakeUtils //"
 
 #nowarn "52"
 
+#load "./.fake/build.fsx/paket-files/viktorvan/ViktorVan.Fake.AzureCLI/Azure.fsx"
 open System
 open Fake.Core
 open Fake.Core.TargetOperators
