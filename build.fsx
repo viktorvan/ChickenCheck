@@ -294,9 +294,9 @@ let private addGitTag() =
     let tagName = release.NugetVersion
 
     let addGitTag tag =
-        printfn "Creating git tag %s" tagName
+        Trace.tracef "Creating git tag %s" tagName
         Fake.Tools.Git.Branches.tag "" tag
-        printfn "Pushing git tag"
+        Trace.tracef "Pushing git tag"
         Fake.Tools.Git.Branches.pushTag "" "origin" tag
 
     let deleteGitTag tag =
@@ -304,7 +304,7 @@ let private addGitTag() =
         sprintf "push origin :refs/tags/%s" tag 
         |> Fake.Tools.Git.CommandHelper.runGitCommand ""
         |> function
-        | (true, _, _) -> printfn "deleted remote tag %s" tag
+        | (true, _, _) -> Trace.tracef "deleted remote tag %s" tag
         | (false, _, _) -> failwithf "failed delete remote tag %s" tag
 
     let gitTagExists = 
@@ -312,12 +312,12 @@ let private addGitTag() =
         Fake.Tools.Git.CommandHelper.runGitCommand "" gitCommand
         |> function
         | (true, existing , _) -> 
-            printfn "found existing git tags %A" existing
+            Trace.tracef "found existing git tags %A" existing
             existing |> List.contains tagName
         | (false, _, _ ) -> sprintf "git command '%s' failed" gitCommand |> failwith
 
     if gitTagExists then 
-        printfn "git tag %s already exists, deleting..." tagName
+        Trace.tracef "git tag %s already exists, deleting..." tagName
         deleteGitTag tagName
     addGitTag tagName
 
