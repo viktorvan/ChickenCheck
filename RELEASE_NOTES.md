@@ -1,3 +1,6 @@
+### 1.1.2 - Bugfix
+* Handle moving tag, when re-releasing an existing version.
+
 ### 1.1.1 - Build cleanup
 * Remove local nuget source in build script.
 
