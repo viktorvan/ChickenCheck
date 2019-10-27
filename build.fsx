@@ -290,18 +290,46 @@ let release =
     releaseNotes
     |> ReleaseNotes.parse
 
-Target.create "TagRelease" <| fun _ ->
-    let (newReleaseFile, _, _) = Fake.Tools.Git.Staging.stageFile "" Config.releaseNotesFile
-    let (newReleaseFileMD, _, _) = Fake.Tools.Git.Staging.stageFile "" "RELEASE_NOTES.md"
+let private addGitTag() =
+    let tagName = release.NugetVersion
 
+    let addGitTag tag =
+        printfn "Creating git tag %s" tagName
+        Fake.Tools.Git.Branches.tag "" tag
+        printfn "Pushing git tag"
+        Fake.Tools.Git.Branches.pushTag "" "origin" tag
+
+    let deleteGitTag tag =
+        Fake.Tools.Git.Branches.deleteTag "" tag
+        sprintf "push origin :refs/tags/%s" tag 
+        |> Fake.Tools.Git.CommandHelper.runGitCommand ""
+        |> function
+        | (true, _, _) -> printfn "deleted remote tag %s" tag
+        | (false, _, _) -> failwithf "failed delete remote tag %s" tag
+
+    let gitTagExists = 
+        let gitCommand = sprintf "tag -l %s" tagName 
+        Fake.Tools.Git.CommandHelper.runGitCommand "" gitCommand
+        |> function
+        | (true, existing , _) -> 
+            printfn "found existing git tags %A" existing
+            existing |> List.contains tagName
+        | (false, _, _ ) -> sprintf "git command '%s' failed" gitCommand |> failwith
+
+    if gitTagExists then 
+        printfn "git tag %s already exists, deleting..." tagName
+        deleteGitTag tagName
+    addGitTag tagName
+
+let private commitReleaseNoteFiles() =
+    Fake.Tools.Git.Staging.stageFile "" Config.releaseNotesFile |> ignore
+    Fake.Tools.Git.Staging.stageFile "" "RELEASE_NOTES.md" |> ignore
     Fake.Tools.Git.Commit.exec "" (sprintf "Bumping version to %s" release.NugetVersion)
     Fake.Tools.Git.Branches.pushBranch "" "origin" "master"
 
-    let tagName = string release.NugetVersion
-    let tagExists = sprintf "git tag -l %s" tagName |> Fake.Tools.Git.CommandHelper.runSimpleGitCommand "" = tagName
-    if tagExists then Fake.Tools.Git.Branches.deleteTag "" tagName
-    Fake.Tools.Git.Branches.tag "" tagName
-    Fake.Tools.Git.Branches.pushTag "" "origin" tagName
+Target.create "TagRelease" <| fun _ ->
+    commitReleaseNoteFiles()
+    addGitTag()
 
 Target.create "SetReleaseNotes" <| fun _ ->
     let lines = [
