@@ -2,17 +2,13 @@ module ChickenCheck.Domain.ChickenCommandHandler
 
 open ChickenCheck.Domain
 
-
-type AddEgg = Commands.AddEgg -> Events.ChickenEvent
-type RemoveEgg = Commands.RemoveEgg -> Events.ChickenEvent
-
-let addEgg : AddEgg =
+let handleAddEgg : Commands.AddEgg -> Events.ChickenEvent =
     fun cmd ->
         Events.EggAdded
             { ChickenId = cmd.ChickenId
               Date = cmd.Date }
 
-let removeEgg : RemoveEgg =
+let handleRemoveEgg : Commands.RemoveEgg -> Events.ChickenEvent =
     fun cmd ->
         Events.EggRemoved
             { ChickenId = cmd.ChickenId

@@ -1,0 +1,5 @@
+group Tests
+FSharp.Core
+Expecto
+Unquote
+Fable.Elmish 

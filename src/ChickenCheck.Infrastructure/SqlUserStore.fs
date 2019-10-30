@@ -18,7 +18,7 @@ let getUserByEmail (ConnectionString conn) : GetUserByEmail =
             let salt = entity.Salt |> PasswordHash.toByteArray
             let! email = entity.Email |> Email.create |> Result.mapError toDatabaseError
             let! name = entity.Name |> String200.create "name" |> Result.mapError toDatabaseError
-            let id = entity.Id |> UserId
+            let! id = entity.Id |> UserId.create |> Result.mapError toDatabaseError
             return 
                 { User.Id = id
                   Name = name

@@ -1,6 +1,8 @@
 ﻿module ChickenCheck.Backend.CompositionRoot
 
 open ChickenCheck.Domain
+open ChickenCheck.Domain.Commands
+open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
 open ChickenCheck.Infrastructure
 open System
@@ -38,78 +40,70 @@ let getStatus() =
 module User =
     let getUserByEmail = SqlUserStore.getUserByEmail connectionString
 
-    let createSession : CreateSessionApi = 
-        fun command ->
-            asyncResult {
-                let! user = command.Email |> getUserByEmail |> AsyncResult.mapError Database
-                match user with
-                | None -> return! UserDoesNotExist |> Login |> Error
-                | Some user ->
-                    if ChickenCheck.PasswordHasher.verifyPasswordHash (user.PasswordHash, command.Password) then
-                        let! token = 
-                            Authentication.generateToken tokenSecret user.Name.Value 
-                            |> Result.mapError Authentication
-                        return {
-                            Session.Token = token
-                            Session.UserId = user.Id
-                            Session.Name = user.Name
-                        }
-                    else return! PasswordIncorrect |> Login |> Error
-            }
+    let createSession command = 
+        asyncResult {
+            let! user = command.Email |> getUserByEmail |> AsyncResult.mapError Database
+            match user with
+            | None -> return! UserDoesNotExist |> Login |> Error
+            | Some user ->
+                if ChickenCheck.PasswordHasher.verifyPasswordHash (user.PasswordHash, command.Password) then
+                    let! token = 
+                        Authentication.generateToken tokenSecret user.Name.Value 
+                        |> Result.mapError Authentication
+                    return {
+                        Session.Token = token
+                        Session.UserId = user.Id
+                        Session.Name = user.Name
+                    }
+                else return! PasswordIncorrect |> Login |> Error
+        }
 
 module Chicken =
-    let getChickens : GetChickensApi = 
-        fun request ->
-            asyncResult {
-                let! _ = request |> validate
-                return!
-                    SqlChickenStore.getChickens connectionString ()
-                    |> AsyncResult.mapError Database
-            }
+    let getChickens request = 
+        asyncResult {
+            let! _ = request |> validate
+            return!
+                SqlChickenStore.getChickens connectionString ()
+                |> AsyncResult.mapError Database
+        }
 
-    let getEggsOnDate : GetEggCountOnDateApi =
-        fun request ->
-            asyncResult {
-                let! onDate = request |> validate
-                return!
-                    SqlChickenStore.getEggCountOnDate connectionString onDate
-                    |> AsyncResult.mapError Database
-            }
+    let getEggsOnDate request =
+        asyncResult {
+            let! onDate = request |> validate
+            return!
+                SqlChickenStore.getEggCountOnDate connectionString onDate
+                |> AsyncResult.mapError Database
+        }
 
-    let getTotalEggCount : GetTotalEggCountApi =
-        fun request ->
-            asyncResult {
-                let! _ = request |> validate
-                return!
-                    SqlChickenStore.getTotalEggCount connectionString ()
-                    |> AsyncResult.mapError Database
-            }
+    let getTotalEggCount request =
+        asyncResult {
+            let! _ = request |> validate
+            return!
+                SqlChickenStore.getTotalEggCount connectionString ()
+                |> AsyncResult.mapError Database
+        }
 
-    let addEgg : AddEggApi =
-        fun request ->
-            asyncResult {
-                let! cmd = request |> validate
-                let event = cmd |> ChickenCommandHandler.addEgg |> Events.ChickenEvent
-                let! _ = event |> (appendEvent >> AsyncResult.mapError Database)
-                return ()
-            }
+    let addEgg request =
+        asyncResult {
+            let! cmd = request |> validate
+            let event = cmd |> ChickenCommandHandler.handleAddEgg |> Events.ChickenEvent
+            let! _ = event |> (appendEvent >> AsyncResult.mapError Database)
+            return ()
+        }
 
-    let removeEgg : RemoveEggApi =
-        fun request ->
-            asyncResult {
-                let! cmd = request |> validate
-                let event = cmd |> ChickenCommandHandler.removeEgg |> Events.ChickenEvent
-                let! _ = event |> (appendEvent >> AsyncResult.mapError Database)
-                return ()
-            }
+    let removeEgg request =
+        asyncResult {
+            let! cmd = request |> validate
+            let event = cmd |> ChickenCommandHandler.handleRemoveEgg |> Events.ChickenEvent
+            let! _ = event |> (appendEvent >> AsyncResult.mapError Database)
+            return ()
+        }
 
-
-
-let chickenApi : IChickenApi = {
-    GetStatus = fun () -> async { return getStatus() }
-    CreateSession = User.createSession 
-    GetChickens = Chicken.getChickens 
-    GetEggCountOnDate = Chicken.getEggsOnDate 
-    GetTotalEggCount = Chicken.getTotalEggCount
-    AddEgg = Chicken.addEgg 
-    RemoveEgg = Chicken.removeEgg }
+let chickenApi : IChickenApi = 
+    { GetStatus = fun () -> async { return getStatus() }
+      CreateSession = User.createSession 
+      GetChickens = Chicken.getChickens 
+      GetEggCountOnDate = Chicken.getEggsOnDate 
+      GetTotalEggCount = Chicken.getTotalEggCount
+      AddEgg = Chicken.addEgg 
+      RemoveEgg = Chicken.removeEgg }

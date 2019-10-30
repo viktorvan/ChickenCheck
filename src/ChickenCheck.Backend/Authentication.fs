@@ -26,9 +26,9 @@ let generateToken : GenerateToken =
                     expires = expires,
                     notBefore = notBefore,
                     signingCredentials = signingCredentials)
-            JwtSecurityTokenHandler().WriteToken(token) 
-            |> ChickenCheck.Domain.SecurityToken 
-            |> Ok
+            JwtSecurityTokenHandler().WriteToken(token)
+            |> String1000.create "security token" |> Result.mapError (fun _ -> TokenGenerationFailed "invalid token length")
+            |> Result.map ChickenCheck.Domain.SecurityToken 
         with exn -> 
             exn.Message
             |> TokenGenerationFailed
@@ -47,7 +47,7 @@ let private validateToken tokenSecret (SecurityToken token) =
         validationParams
     try
         let handler = JwtSecurityTokenHandler()
-        let _ = handler.ValidateToken(token, tokenValidationParameters, ref null)
+        let _ = handler.ValidateToken(token.Value, tokenValidationParameters, ref null)
 
         Ok ()
     with 

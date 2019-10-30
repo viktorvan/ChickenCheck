@@ -1,6 +1,84 @@
 namespace ChickenCheck.Client
 open ChickenCheck.Domain
-open ChickenCheck.Client
+
+
+type StringInput<'a> =
+    | Valid of 'a
+    | Invalid of string
+    | Empty
+type NumberInput<'a> =
+    | Valid of 'a
+    | Invalid of string
+    | Empty
+type ApiCallStatus =
+    | NotStarted
+    | Running
+    | Completed
+    
+type SessionModel =
+    { Email : StringInput<Email>
+      Password : StringInput<Password>
+      LoginStatus : ApiCallStatus 
+      Errors : string list }
+type SessionMsg =
+    | ChangeEmail of string
+    | ChangePassword of string
+    | LoginCompleted of Session
+    | AddError of string
+    | ClearErrors
+    | Submit
+      
+type ChickenDetails =
+    { Id: ChickenId
+      Name : String200 
+      ImageUrl : ImageUrl option 
+      Breed : String200
+      TotalEggCount : EggCount
+      EggCountOnDate : EggCount }
+type ChickensModel =
+    { Chickens : Map<ChickenId, ChickenDetails>
+      AddEggStatus : Map<ChickenId, ApiCallStatus>
+      RemoveEggStatus : Map<ChickenId, ApiCallStatus>
+      CurrentDate : Date
+      Errors : string list }
+type ChickenMsg =
+    | FetchChickens 
+    | FetchedChickens of Chicken list
+    | FetchTotalCount 
+    | FetchedTotalCount of Map<ChickenId, EggCount>
+    | FetchEggCountOnDate of Date
+    | FetchedEggCountOnDate of Date * Map<ChickenId, EggCount>
+    | ChangeDate of Date
+    | AddEgg of ChickenId * Date
+    | AddedEgg of ChickenId * Date
+    | AddEggFailed of ChickenId * string
+    | RemoveEgg of ChickenId * Date
+    | RemovedEgg of ChickenId * Date
+    | RemoveEggFailed of ChickenId * string
+    | AddError of string
+    | ClearErrors 
+
+[<RequireQualifiedAccess>]
+type Page =
+    | Signin of SessionModel
+    | Chickens of ChickensModel
+    | Loading
+    | NotFound
+
+type Model =
+    { CurrentRoute: Router.Route option
+      Session: Session option
+      IsMenuExpanded: bool
+      ActivePage: Page 
+      ShowReleaseNotes: bool }
+      
+type Msg =
+    | ToggleMenu
+    | ToggleReleaseNotes
+    | SessionMsg of SessionMsg
+    | ChickenMsg of ChickenMsg
+    | SignedIn of Session
+    | Signout
 
 [<AutoOpen>]
 module DomainError =
@@ -11,21 +89,16 @@ module DomainError =
         | Authentication _ | Login _ -> "Autentiseringsfel"
     type DomainError with
         member this.ErrorMsg = getClientErrorMsg this
-
-type StringInput<'a> =
-    | Valid of 'a
-    | Invalid of string
-    | Empty
-
+    
 module StringInput = 
     let inline tryValid input =
         match input with
-        | Valid a ->
+        | StringInput.Valid a ->
             let value = (^a : (member Value : string) a)
             true, value
-        | Invalid value -> 
+        | StringInput.Invalid value -> 
             false, value
-        | Empty -> 
+        | StringInput.Empty -> 
             false, ""
 
     let inline isValid input = input |> tryValid |> fst
@@ -33,61 +106,25 @@ module StringInput =
 module OptionalStringInput =
     let inline tryValid input = 
         match input with
-        | Valid a ->
+        | StringInput.Valid a ->
             let value = (^a : (member Value : string) a)
             true, value
-        | Invalid value -> 
+        | StringInput.Invalid value -> 
             false, value
-        | Empty -> 
+        | StringInput.Empty -> 
             true, ""
 
     let inline isValid input = input |> tryValid |> fst
 
-type NumberInput<'a> =
-    | Valid of 'a
-    | Invalid of string
-    | Empty
-
 module NumberInput = 
     let inline tryValid input =
         match input with
-        | Valid (NaturalNum value) ->
-            true, (value |> string)
-        | Invalid value -> 
+        | NumberInput.Valid (num : NaturalNum) ->
+            true, (num.Value |> string)
+        | NumberInput.Invalid value -> 
             false, value
-        | Empty -> 
+        | NumberInput.Empty -> 
             false, ""
 
     let inline isValid input = input |> tryValid |> fst
 
-type ApiCallStatus =
-    | NotStarted
-    | Running
-    | Completed
-
-module Session =
-    let expired = new Event<unit>()
-
-    open Fable.SimpleJson
-    let store (session : Session) =
-        let json = Json.stringify session
-        Browser.WebStorage.localStorage.setItem("session", json)
-
-    let delete() =
-        Browser.WebStorage.localStorage.removeItem("session")
-
-    let tryGet() : Session option =
-        match Browser.WebStorage.localStorage.getItem("session") with
-        | null ->
-            None
-
-        | session ->
-            match Json.tryParseAs session with
-            | Ok session ->
-                Some session
-            | Error msg ->
-                Logger.warning "Error when decoding the stored session"
-                Logger.warning msg
-                Logger.warning "Cleaning, stored session..."
-                Browser.WebStorage.localStorage.removeItem("session")
-                None

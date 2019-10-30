@@ -1,9 +1,10 @@
 ﻿namespace ChickenCheck.Domain
 
 open System
+open FsToolkit.ErrorHandling
+
 
 type AsyncResult<'TResult, 'TError> = Async<Result<'TResult, 'TError>> 
-
 type ValidationError = ValidationError of Param : string * Message : string
 type DatabaseError = DatabaseError of Message : string
 type LoginError =
@@ -22,7 +23,74 @@ type DomainError =
     | Duplicate
     | NotFound
     | ConfigMissing of Key: string
+type NaturalNum = NaturalNum of int
+type String200 = String200 of string
+type String1000 = String1000 of string
+type Email = Email of string
+type SecurityToken = SecurityToken of String1000
+type GenerateToken = string -> string -> Result<SecurityToken, AuthenticationError>
+type SecureRequest<'T> = { Token: SecurityToken; Content: 'T }
+type Password = Password of string
+type PasswordHash = 
+    { Hash: byte[]
+      Salt: byte[] }
+type UserId = UserId of Guid
+type User = 
+    { Id : UserId
+      Name : String200
+      Email : Email
+      PasswordHash : PasswordHash }
+type Session = 
+    { Token : SecurityToken
+      UserId : UserId; Name : String200 }
+type ChickenId = ChickenId of Guid
+type ImageUrl = ImageUrl of string
+type Chicken = 
+    { Id: ChickenId
+      Name : String200 
+      ImageUrl : ImageUrl option 
+      Breed : String200 }
+type EggCount = EggCount of NaturalNum
+type Date = { _Year: int; _Month: int; _Day: int }
 
+module Commands =
+    type CreateSession =
+        { Email: Email 
+          Password: Password }
+    type AddEgg =
+        { ChickenId : ChickenId
+          Date : Date }
+    type RemoveEgg =
+        { ChickenId : ChickenId
+          Date : Date }
+      
+module Events =
+    type EggAdded =
+        { ChickenId : ChickenId
+          Date: Date }
+    type EggRemoved =
+        { ChickenId : ChickenId
+          Date: Date }
+    type ChickenEvent =
+        | EggAdded of EggAdded
+        | EggRemoved of EggRemoved
+    type DomainEvent =
+        | ChickenEvent of ChickenEvent
+    
+type ConnectionString = ConnectionString of string
+type AppendEvents = Events.DomainEvent list -> AsyncResult<unit list, DatabaseError>
+
+module Store =
+    module User =
+        type GetUserByEmail = Email -> AsyncResult<User option, DatabaseError>
+    module Chicken =
+        type GetChickens = unit -> AsyncResult<Chicken list, DatabaseError>
+        type GetTotalEggCount = unit -> AsyncResult<Map<ChickenId, EggCount>, DatabaseError>
+        type GetEggCountOnDate = Date -> AsyncResult<Map<ChickenId, EggCount>, DatabaseError>
+        type AddEgg = ChickenId * Date -> AsyncResult<unit, DatabaseError>
+        type RemoveEgg = ChickenId * Date -> AsyncResult<unit, DatabaseError>
+        type GetEggData = unit -> AsyncResult<Map<ChickenId, EggCount> * Map<Date, NaturalNum>, DatabaseError>
+    
 [<AutoOpen>]
 module Helpers =
     let notImplemented() = raise <| System.NotImplementedException "Not implemented"
@@ -34,8 +102,6 @@ module Helpers =
         >> function
         | Ok v -> v
         | Error (ValidationError (param, msg)) -> invalidArg param msg
-
-type NaturalNum = NaturalNum of int
 
 module NaturalNum =
     let create i =
@@ -60,7 +126,6 @@ module NaturalNum =
 type NaturalNum with
    member this.Value = this |> NaturalNum.value 
 
-type String200 = String200 of string
 module String200 = 
     let create (name: string) (str: string) =
         if System.String.IsNullOrWhiteSpace str then 
@@ -74,7 +139,6 @@ module String200 =
 type String200 with
     member this.Value = String200.value this
 
-type String1000 = String1000 of string
 module String1000 = 
     let create (name: string) (str: string) =
         if System.String.IsNullOrWhiteSpace str then 
@@ -85,8 +149,7 @@ module String1000 =
     let value (String1000 str) = str
 type String1000 with
     member this.Value = String1000.value this
-
-type Email = Email of string
+    
 module Email =
     let create (str: string) =
         if System.String.IsNullOrWhiteSpace str then
@@ -98,11 +161,6 @@ module Email =
 type Email with
     member this.Value = Email.value this
 
-type SecurityToken = SecurityToken of string
-type GenerateToken = string -> string -> Result<SecurityToken, AuthenticationError>
-type SecureRequest<'T> = { Token: SecurityToken; Content: 'T }
-type Password = Password of string
-
 module Password =
     let create str =
         if String.IsNullOrWhiteSpace str then ("Password", "Cannot be empty") |> ValidationError |> Error
@@ -113,27 +171,18 @@ module Password =
 type Password with
     member this.Value = Password.value this
 
-type PasswordHash = {
-    Hash: byte[]
-    Salt: byte[]
-}
-
 module PasswordHash =   
     let toByteArray = Convert.FromBase64String
     let toBase64String = System.Convert.ToBase64String
-
-type UserId = UserId of Guid
+    
 module UserId =
+    let create guid =
+        if guid = Guid.Empty then ("UserId", "empty guid") |> ValidationError |> Error
+        else UserId guid |> Ok
     let value (UserId guid) = guid
 type UserId with
     member this.Value = UserId.value this
-type User = { Id : UserId; Name : String200; Email : Email; PasswordHash : PasswordHash }
-
-type Session = 
-    { Token : SecurityToken
-      UserId : UserId; Name : String200 }
-
-type ChickenId = ChickenId of Guid
+    
 module ChickenId =
     let create guid =
         if guid = Guid.Empty then ("ChickenId", "empty guid") |> ValidationError |> Error
@@ -142,7 +191,6 @@ module ChickenId =
 type ChickenId with
     member this.Value = this |> ChickenId.value
 
-type ImageUrl = ImageUrl of string
 module ImageUrl =
     let create (str: string) = 
         if String.IsNullOrWhiteSpace(str) then 
@@ -156,13 +204,6 @@ module ImageUrl =
 type ImageUrl with
     member this.Value = ImageUrl.value this
 
-type Chicken = 
-    { Id: ChickenId
-      Name : String200 
-      ImageUrl : ImageUrl option 
-      Breed : String200 }
-
-type EggCount = EggCount of NaturalNum
 module EggCount =
     let zero = NaturalNum.zero |> EggCount
 
@@ -180,20 +221,20 @@ module EggCount =
     let value (EggCount (NaturalNum num)) = num
 
     let toString (EggCount num) = num.Value.ToString()
+    
 type EggCount with
     member this.Value = this |> EggCount.value
+    member this.Increase() = this |> EggCount.increase
+    member this.Decrease() = this |> EggCount.decrease
 
-type EggCountMap = Map<ChickenId, EggCount>
-
-type Date = { Year: int; Month: int; Day: int }
 module Date =
     let create (date: DateTime) =
-        { Year = date.Year
-          Month = date.Month
-          Day = date.Day }
+        { _Year = date.Year
+          _Month = date.Month
+          _Day = date.Day }
 
     let today = create DateTime.Today
-    let toDateTime (date: Date) = DateTime(date.Year, date.Month, date.Day)
+    let toDateTime (date: Date) = DateTime(date._Year, date._Month, date._Day)
 
     let addDays numDays date =
         date
@@ -204,10 +245,8 @@ module Date =
 type Date with
     member this.ToDateTime() =
         Date.toDateTime this
-
-type Change =
-    | Up
-    | Down
-    | NoChange
-
-type EggData = Map<Date, NaturalNum>
+        
+    member this.Year = this._Year
+    member this.Month = this._Month
+    member this.Day = this._Day
+    

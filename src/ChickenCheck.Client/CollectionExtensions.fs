@@ -21,3 +21,7 @@ module List =
                 // Take one element from the input and add it to the current batch
                 loop xs (num + 1) (x::batch) acc
         loop input 0 [] []
+        
+module Map =
+    let values map = map |> Map.toList |> List.map snd
+    

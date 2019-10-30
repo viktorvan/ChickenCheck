@@ -5,7 +5,6 @@ open Elmish.React
 open Elmish.Navigation
 open Elmish.UrlParser
 open ChickenCheck.Client
-open ChickenCheck.Client.Domain
 open ChickenCheck.Domain
 open Fulma
 open Fable.React
@@ -13,14 +12,13 @@ open ChickenCheck.Client.Router
 open CompositionRoot
 open Fulma.Extensions.Wikiki
 
-
 // defines the initial state and initial command (= side-effect) of the application
 let private init (optRoute : Router.Route option) =
-    let session = Session.tryGet()
+    let session = SessionHandler.tryGet()
     let model = 
         { CurrentRoute = None
           ActivePage = Page.Loading
-          Navbar = Navbar.init()
+          IsMenuExpanded = false
           Session = session
           ShowReleaseNotes = false
         }
@@ -36,24 +34,32 @@ let private init (optRoute : Router.Route option) =
 // It can also run side-effects (encoded as commands) like calling the server via Http.
 // these commands in turn, can dispatch messages to which the update function will react.
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
-    match msg, model.ActivePage with
-    | SigninMsg msg, Page.Signin signinModel ->
-        Signin.handle msg model signinModel
+    match msg with
+    | SessionMsg msg ->
+        Session.handle msg model 
 
-    | ChickenMsg msg, _ -> 
+    | ChickenMsg msg -> 
         Chickens.handle msg model 
 
-    | Signout, _ ->
-        Signout.handle model
-
-    | NavbarMsg msg, _ ->
-        Navbar.handle msg model
-
-    | ToggleReleaseNotes, _ ->
+    | ToggleReleaseNotes ->
         { model with ShowReleaseNotes = not model.ShowReleaseNotes }, Cmd.none
+        
+    | ToggleMenu ->
+        { model with IsMenuExpanded = not model.IsMenuExpanded }, Cmd.none
+        
+    | SignedIn session ->
+        SessionHandler.store session
+        { model with 
+            Session = Some session
+            ActivePage = Session.init() |> Page.Signin }
+        |> Routing.setRoute (Router.ChickenRoute.Chickens |> Router.Chicken |> Some) 
 
-    | msg, page -> 
-        { model with ActivePage = Page.NotFound }, Cmd.none
+    | Signout ->
+        SessionHandler.delete()
+        { model with
+            Session = None
+            ActivePage = Session.init() |> Page.Signin }, 
+        Router.SessionRoute.Signout |> Router.Session |> Router.newUrl
 
 let view model dispatch =
     let loadingPage =             
@@ -66,8 +72,8 @@ let view model dispatch =
 
     let pageHtml (page : Page) =
         match page with
-        | Page.Signin pageModel -> lazyView2 Signin.view pageModel (SigninMsg >> dispatch)
-        | Page.Chickens pageModel -> lazyView2 Chickens.view pageModel (ChickenMsg >> dispatch)
+        | Page.Signin pageModel -> Session.view { Model = pageModel; Dispatch = dispatch }
+        | Page.Chickens pageModel -> Chickens.view { Model = pageModel; Dispatch = dispatch }
         | Page.NotFound -> lazyView NotFound.view model
         | Page.Loading -> loadingPage
 
@@ -80,7 +86,7 @@ let view model dispatch =
     div [] 
         [ yield ReleaseNotesView.view { IsActive = model.ShowReleaseNotes; ToggleReleaseNotes = toggleReleaseNotes }
           if isLoggedIn then
-              yield Navbar.view model.Navbar (NavbarMsg >> dispatch)
+              yield Navbar.view { Model = model; Dispatch = dispatch }
           yield div [] [ pageHtml model.ActivePage ] ] 
 
 

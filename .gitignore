@@ -36,6 +36,9 @@ app_data
 .vscode
 .ionide
 
+#rider
+.idea
+
 #build
 **/output
 

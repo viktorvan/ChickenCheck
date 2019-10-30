@@ -15,7 +15,7 @@ type internal GetChickensSql = SqlCommandProvider<"
 let getChickens (ConnectionString conn) : GetChickens =
     let toDomain (entity:GetChickensSql.Record) =
         result {
-            let id = entity.Id |> ChickenId
+            let! id = entity.Id |> ChickenId.create |> Result.mapError toDatabaseError
             let! name = 
                 entity.Name 
                 |> String200.create "name" 

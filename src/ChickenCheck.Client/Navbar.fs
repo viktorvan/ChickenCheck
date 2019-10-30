@@ -1,42 +1,18 @@
 module ChickenCheck.Client.Navbar
 
+open ChickenCheck.Client.Utils
 open Elmish
 open Fulma
 open Fable.React
 open Fable.React.Props
-open Fulma.Extensions.Wikiki
 
-type Model =
-    { IsMenuExpanded : bool }
+type NavbarProps =
+    { Model: Model
+      Dispatch: Dispatch<Msg> }
 
-type Msg =
-    | ToggleMenu
-    | Signout
-    | ToggleReleaseNotes
-
-[<RequireQualifiedAccess>]
-type ExternalMsg =
-    | Signout
-    | ToggleReleaseNotes
-
-type ComponentMsg =
-    | External of ExternalMsg
-    | Internal of Cmd<Msg>
-
-let init() =
-    { IsMenuExpanded = false }
-
-let update (msg: Msg) (model: Model) : Model * ComponentMsg =
-    match msg with
-    | ToggleMenu -> 
-        { model with IsMenuExpanded = not model.IsMenuExpanded }, Cmd.none |> Internal
-    | Signout ->
-        model, ExternalMsg.Signout |> External
-    | ToggleReleaseNotes ->
-        model, ExternalMsg.ToggleReleaseNotes |> External
-
-
-let view (model: Model) dispatch =
+let view = elmishView "Navbar" (fun (props: NavbarProps) ->
+    let dispatch = props.Dispatch
+    let model = props.Model
     let toggleReleaseNotes _ = dispatch ToggleReleaseNotes 
     Navbar.navbar 
         [ 
@@ -78,11 +54,11 @@ let view (model: Model) dispatch =
                                 ] 
                             Navbar.Item.a 
                                 [
-                                    Navbar.Item.Props [ OnClick (fun _ -> dispatch Signout) ]
+                                    Navbar.Item.Props [ OnClick (fun _ -> Signout |> dispatch) ]
                                 ]
                                 [
                                     str "sign out" 
                                 ]
                         ]
                 ]
-        ]
+        ] )

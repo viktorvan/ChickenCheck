@@ -3,7 +3,6 @@
 open Giraffe
 open Fable.Remoting.Server
 open Fable.Remoting.Giraffe
-open ChickenCheck.Domain
 open Microsoft.Azure.WebJobs
 open Microsoft.AspNetCore.Builder
 open Microsoft.Extensions.DependencyInjection

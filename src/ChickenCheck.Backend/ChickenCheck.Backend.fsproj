@@ -4,8 +4,11 @@
     <TargetFramework>netcoreapp2.2</TargetFramework>
     <AzureFunctionsVersion></AzureFunctionsVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DisableAutoSetFscCompilerPath>true</DisableAutoSetFscCompilerPath>
+    <DotnetFscCompilerPath></DotnetFscCompilerPath>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Api.fs" />
     <Compile Include="Authentication.fs" />
     <Compile Include="CompositionRoot.fs" />
     <Compile Include="Functions.fs" />

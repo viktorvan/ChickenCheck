@@ -1,5 +1,6 @@
 module ChickenCheck.Client.DatePicker
 
+open ChickenCheck.Client
 open ChickenCheck.Domain
 open Fulma
 open Fable.React
@@ -7,11 +8,14 @@ open Fable.React.Props
 open Fable.FontAwesome
 open System
 
-let view date onChangeDate =
+type DatePickerProps =
+    { CurrentDate : Date
+      OnChangeDate : Date -> unit }
+let view = Utils.elmishView "DatePicker" (fun (props : DatePickerProps) ->
     let onDateSet date =
-        onChangeDate date
+        props.OnChangeDate date
     let onDateChange delta =    
-        onDateSet (Date.addDays delta date)
+        onDateSet (Date.addDays delta props.CurrentDate)
     let previousDate _ = onDateChange -1.
     let nextDate _ = onDateChange 1.
 
@@ -54,7 +58,7 @@ let view date onChangeDate =
                             Input.date
                                 [ 
                                     Input.OnChange (parseDate >> onDateSet) 
-                                    date.ToDateTime().ToString("yyyy-MM-dd") |> Input.Value
+                                    props.CurrentDate.ToDateTime().ToString("yyyy-MM-dd") |> Input.Value
                                 ] 
                         ] 
                 ]
@@ -63,3 +67,4 @@ let view date onChangeDate =
                     dateButton nextDate Fa.Solid.CaretRight
                 ] 
         ]
+    )

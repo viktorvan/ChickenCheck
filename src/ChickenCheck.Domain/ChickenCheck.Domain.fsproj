@@ -3,14 +3,12 @@
   <PropertyGroup>
     <TargetFramework>netcoreapp2.2</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <DisableAutoSetFscCompilerPath>true</DisableAutoSetFscCompilerPath>
+    <DotnetFscCompilerPath></DotnetFscCompilerPath>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Types.fs" />
-    <Compile Include="Commands.fs" />
-    <Compile Include="Events.fs" />
     <Compile Include="ChickenCommandHandler.fs" />
-    <Compile Include="Api.fs" />
-    <Compile Include="Store.fs" />
   </ItemGroup>
   <Import Project="../../fsc.props" />
   <Import Project="..\..\.paket\Paket.Restore.targets" />

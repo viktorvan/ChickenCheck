@@ -2,12 +2,12 @@ module ChickenCheck.Client.CompositionRoot
 
 open ChickenCheck.Client
 open ChickenCheck.Domain
+open ChickenCheck.Backend
 open Fable.Remoting.Client
 open Elmish
 open ChickenCheck.Client.ApiHelpers
 open Fable.Core
 open ChickenCheck.Client.Router
-open ChickenCheck.Client.Domain
 
 
 let private getToken session =
@@ -23,34 +23,10 @@ let private chickenApi : IChickenApi =
     #endif
     |> Remoting.buildProxy<IChickenApi>
 
-let private chickenCardApi session : ChickenCard.Api =
-    let token = getToken session
-    
-    let addEgg =
-        fun cmd ->
-            callSecureApi
-                token
-                chickenApi.AddEgg
-                cmd
-                (fun _ -> ChickenCard.Msg.AddedEgg)
-                ChickenCard.AddEggFailed
-
-    let removeEgg =
-        fun cmd ->
-            callSecureApi
-                token
-                chickenApi.RemoveEgg
-                cmd
-                (fun _ -> ChickenCard.Msg.RemovedEgg)
-                ChickenCard.RemoveEggFailed
-
-    { AddEgg = addEgg
-      RemoveEgg = removeEgg }
-
-let private signinApi : Signin.Api =
+let private signinApi : Session.Api =
     let ofSuccess result =
         match result with
-        | Ok session -> Signin.Msg.LoginCompleted session
+        | Ok session -> SessionMsg.LoginCompleted session |> SessionMsg
         | Error err ->
             let msg =
                 match err with
@@ -59,7 +35,7 @@ let private signinApi : Signin.Api =
                     | UserDoesNotExist -> "Användaren saknas"
                     | PasswordIncorrect -> "Fel lösenord"
                 | _ -> GeneralErrorMsg
-            msg |> Signin.Msg.AddError
+            msg |> SessionMsg.AddError |> SessionMsg
 
     let createSession =
         fun cmd ->
@@ -67,7 +43,7 @@ let private signinApi : Signin.Api =
                 chickenApi.CreateSession
                 cmd
                 ofSuccess
-                (handleApiError Signin.Msg.AddError)
+                (handleApiError (SessionMsg.AddError >> SessionMsg))
 
     { CreateSession = createSession }
 
@@ -80,8 +56,8 @@ let private chickensApi session : Chickens.Api =
                 token
                 chickenApi.GetChickens 
                 () 
-                Chickens.FetchedChickens 
-                Chickens.AddError 
+                (FetchedChickens >> ChickenMsg)
+                (AddError >> ChickenMsg)
 
     let getTotalCount =
         fun () -> 
@@ -89,8 +65,8 @@ let private chickensApi session : Chickens.Api =
                 token
                 chickenApi.GetTotalEggCount
                 ()
-                Chickens.FetchedTotalCount
-                Chickens.AddError 
+                (FetchedTotalCount >> ChickenMsg)
+                (AddError >> ChickenMsg) 
 
     let getCountOnDate =
         fun date -> 
@@ -98,13 +74,32 @@ let private chickensApi session : Chickens.Api =
                 token
                 chickenApi.GetEggCountOnDate 
                 date 
-                (fun res -> Chickens.FetchedEggCountOnDate (date, res)) 
-                Chickens.AddError 
+                (fun res -> FetchedEggCountOnDate (date, res) |> ChickenMsg) 
+                (AddError >> ChickenMsg) 
     
+    let addEgg =
+        fun cmd ->
+            callSecureApi
+                token
+                chickenApi.AddEgg
+                cmd
+                (fun _ -> (cmd.ChickenId, cmd.Date) |> AddedEgg |> ChickenMsg)
+                (fun err -> (cmd.ChickenId, err) |> AddEggFailed |> ChickenMsg)
+
+    let removeEgg =
+        fun cmd ->
+            callSecureApi
+                token
+                chickenApi.RemoveEgg
+                cmd
+                (fun _ -> (cmd.ChickenId, cmd.Date) |> RemovedEgg |> ChickenMsg)
+                (fun err -> (cmd.ChickenId, err) |> RemoveEggFailed |> ChickenMsg)
 
     { GetChickens = getChickens 
       GetTotalCount = getTotalCount
-      GetCountOnDate = getCountOnDate }
+      GetCountOnDate = getCountOnDate 
+      AddEgg = addEgg
+      RemoveEgg = removeEgg }
 
 
 module Routing =
@@ -132,7 +127,7 @@ module Routing =
                         ActivePage =
                             chickenModel
                             |> Page.Chickens
-                    }, Cmd.map ChickenMsg chickenCmd
+                    }, chickenCmd
 
                 | None ->
                     model, SessionRoute.Signin |> Session |> Router.newUrl
@@ -140,7 +135,7 @@ module Routing =
             | Router.Session s ->
                 match s with
                 | SessionRoute.Signin ->
-                    let signinModel = Signin.init()
+                    let signinModel = Session.init()
                     { model with
                         ActivePage =
                             Page.Signin signinModel
@@ -148,56 +143,28 @@ module Routing =
                 | SessionRoute.Signout -> 
                     model, Signout |> Cmd.ofMsg
 
-module Signin =
-    let handle msg (model: Model) signinModel =
-        let (pageModel, result) = Signin.update signinApi msg signinModel
-        match result with
-        | Signin.External (Signin.ExternalMsg.SignedIn session) ->
-            Session.store session
-            { model with Session = Some session } 
-            |> Routing.setRoute (Router.ChickenRoute.Chickens |> Router.Chicken |> Some)
-        | Signin.Internal msg ->
-            { model with ActivePage = pageModel |> Page.Signin }, Cmd.map SigninMsg msg
+module Session =
+    let handle msg (model: Model) =
+        match model.ActivePage with
+        | (Page.Signin sessionModel) ->
+            let (pageModel, msg) = Session.update signinApi msg sessionModel
+            { model with ActivePage = pageModel |> Page.Signin }, msg
+        | _ -> model, Cmd.none
 
 module Chickens =
-    let handle msg model =
+    let handle (msg: ChickenMsg) model =
         match model.ActivePage with
         | Page.Chickens chickensPageModel ->
             let chickensApi = chickensApi model.Session
-            let chickenCardApi = chickenCardApi model.Session
-            let (pageModel, subMsg) = Chickens.update chickensApi chickenCardApi msg chickensPageModel
-            { model with ActivePage = pageModel |> Page.Chickens }, Cmd.map ChickenMsg subMsg
+            let (pageModel, msg) = Chickens.update chickensApi msg chickensPageModel
+            { model with ActivePage = pageModel |> Page.Chickens }, msg
         | _ -> model, Cmd.none
-
-module Signout =
-    let handle model =
-        Session.delete()
-        let signinModel = Signin.init()
-        { model with
-            Session = None
-            ActivePage = Page.Signin signinModel
-        }, SessionRoute.Signout |> Session |> newUrl
-
-module Navbar =
-    let handle msg model =
-        let (navbarModel, result) = Navbar.update msg model.Navbar
-        let model = { model with Navbar = navbarModel }
-        match result with
-        | Navbar.External extMsg ->
-            match extMsg with
-            | Navbar.ExternalMsg.Signout ->
-                model, Signout |> Cmd.ofMsg
-            | Navbar.ExternalMsg.ToggleReleaseNotes ->
-                { model with ShowReleaseNotes = not model.ShowReleaseNotes }, Cmd.none 
-        | Navbar.Internal cmd ->
-            model, cmd |> Cmd.map NavbarMsg
 
 module Authentication =
     let handleExpiredToken _ =
         let sub dispatch =
-            Session.expired.Publish.Add
-                (fun _ -> 
-                    Signout |> dispatch)
+            SessionHandler.expired.Publish.Add
+                (fun _ -> Signout |> dispatch)
         Cmd.ofSub sub
 
 
