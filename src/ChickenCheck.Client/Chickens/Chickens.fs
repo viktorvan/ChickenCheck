@@ -11,28 +11,21 @@ open Fulma.Extensions.Wikiki
 open ChickenCheck.Client.Utils
 open ChickenCheck.Domain.Commands
 open ChickenCheck.Client.ChickenCard
+open ChickenCheck.Domain
 
-type Api =
-    { GetChickens: unit -> Cmd<Msg> 
-      GetTotalCount: unit -> Cmd<Msg>
-      GetCountOnDate: Date -> Cmd<Msg> 
-      AddEgg : Commands.AddEgg -> Cmd<Msg>
-      RemoveEgg : Commands.RemoveEgg -> Cmd<Msg> }
-
-let private ofMsg (msg: ChickenMsg) = msg |> ChickenMsg |> Cmd.ofMsg
 
 let init =
     { Chickens = Map.empty
       AddEggStatus = Map.empty
       RemoveEggStatus = Map.empty
       Errors = []
-      CurrentDate = Date.today }, FetchChickens |> ofMsg
+      CurrentDate = Date.today }, [ Queries.AllChickens |> ApiQuery ]
 
-let update (api: Api) (msg: ChickenMsg) (model: ChickensModel) =
+let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * ChickenCmdMsg list =
     match msg with
-    | FetchChickens -> 
-        model,
-        api.GetChickens()
+//    | ChickenMsg.FetchChickens -> 
+//        model,
+//        [ ChickenCmdMsg.FetchChickens ]
 
     | FetchedChickens chickens ->
         let buildModel (c: Chicken) =
@@ -44,26 +37,28 @@ let update (api: Api) (msg: ChickenMsg) (model: ChickensModel) =
               EggCountOnDate  = EggCount.zero }
             
         let cmds =
-            [ FetchTotalCount 
-              FetchEggCountOnDate Date.today ]
-            |> List.map ofMsg
-            |> Cmd.batch
+            [ Queries.EggCountOnDate Date.today |> ApiQuery
+              Queries.TotalEggCount |> ApiQuery ]
               
         { model with 
             Chickens = chickens |> List.map (fun c -> c.Id, buildModel c) |> Map.ofList },
             cmds
-
+            
     | AddError msg ->
-        { model with Errors = msg :: model.Errors }, Cmd.none
-
-    | FetchEggCountOnDate date -> 
-        let callApi = api.GetCountOnDate date
-        model, callApi
+        { model with Errors = msg :: model.Errors }, 
+        [ ChickenCmdMsg.NoCmdMsg ]
+        
+//    | FetchEggCountOnDate date -> 
+//        let callApi = api.GetCountOnDate date
+//        model, 
+////        callApi
+//        ChickenCmdMsg.NoCmdMsg
         
     | FetchedEggCountOnDate (date, countByChicken) -> 
         if model.CurrentDate = date then
             if countByChicken |> Map.isEmpty then
-                model, "Count by date map was empty" |> AddError |> ofMsg
+                model, 
+                [ "Count by date map was empty" |> AddError |> ChickenCmdMsg.Msg ]
             else
                 let updateEggCount id (model:ChickenDetails) =
                     match countByChicken |> Map.tryFind id with
@@ -71,16 +66,23 @@ let update (api: Api) (msg: ChickenMsg) (model: ChickensModel) =
                         { model with EggCountOnDate = newCount }
                     | None -> model
                     
-                { model with Chickens = model.Chickens |> Map.map updateEggCount }, Cmd.none
+                { model with Chickens = model.Chickens |> Map.map updateEggCount }, 
+//                Cmd.none
+                [ ChickenCmdMsg.NoCmdMsg ]
         else
-            model, Cmd.none
+            model, 
+            [ ChickenCmdMsg.NoCmdMsg ]
 
-    | FetchTotalCount -> 
-        model, api.GetTotalCount()
-
+//    | FetchTotalCount -> 
+//        model, 
+////        api.GetTotalCount()
+//            ChickenCmdMsg.NoCmdMsg
+        
+    
     | FetchedTotalCount totalCount -> 
         if totalCount |> Map.isEmpty then
-            model, "TotalCount map was empty" |> AddError  |> ofMsg
+            model, 
+            [ "TotalCount map was empty" |> AddError  |> ChickenCmdMsg.Msg ]
         else
             let updateEggCount id (model:ChickenDetails) =
                 match totalCount |> Map.tryFind id with
@@ -88,24 +90,30 @@ let update (api: Api) (msg: ChickenMsg) (model: ChickensModel) =
                     { model with TotalEggCount = newCount }
                 | None -> model
                 
-            { model with Chickens = model.Chickens |> Map.map updateEggCount }, Cmd.none
+            { model with Chickens = model.Chickens |> Map.map updateEggCount }, 
+            [ ChickenCmdMsg.NoCmdMsg ]
 
     | ClearErrors -> 
-        { model with Errors = [] }, Cmd.none
+        { model with Errors = [] }, 
+        [ ChickenCmdMsg.NoCmdMsg ]
     | ChangeDate date -> 
-        { model with CurrentDate = date }, FetchEggCountOnDate date |> ofMsg
+        { model with CurrentDate = date }, 
+        [ Queries.EggCountOnDate date |> ApiQuery ]
         
-    | AddEgg ((id: ChickenId), date) ->
+    | ChickenMsg.AddEgg ((id: ChickenId), date) ->
         let isRunning = model.AddEggStatus |> Map.add id Running
-        { model with AddEggStatus = isRunning }, 
-        api.AddEgg { AddEgg.ChickenId = id; Date = date }
+        let apiCommand = AddEgg { AddEgg.ChickenId = id; Date = date } |> ApiCommand
+        { model with AddEggStatus = isRunning }, [ apiCommand ]
 
     | AddedEgg (id, date) ->
         let isCompleted = model.AddEggStatus |> Map.add id Completed
         let model = { model with AddEggStatus = isCompleted }
         
         match Map.tryFind id model.Chickens with
-        | None -> model, Cmd.none
+        | None -> 
+            model, 
+            [ ChickenCmdMsg.NoCmdMsg ]
+    
         | Some chicken ->
             let newEggCount = chicken.EggCountOnDate.Increase()
             let newTotal = chicken.TotalEggCount.Increase()
@@ -116,29 +124,35 @@ let update (api: Api) (msg: ChickenMsg) (model: ChickensModel) =
                     { chicken with 
                         EggCountOnDate = newEggCount
                         TotalEggCount = newTotal }
-                { model with Chickens = model.Chickens |> Map.add chicken.Id updatedChicken }, Cmd.none
+                { model with Chickens = model.Chickens |> Map.add chicken.Id updatedChicken }, 
+                [ ChickenCmdMsg.NoCmdMsg ]
+                
                 
             | Error (ValidationError (param, msg)), _ | _, Error (ValidationError (param, msg)) ->
-                let cmd =
+                let newMsg =
                     let errorMsg = sprintf "could not add egg: %s:%s" param msg
-                    AddEggFailed (id, errorMsg) |> ofMsg
+                    AddEggFailed (id, errorMsg) 
                 
-                model, cmd
+                model, [ newMsg |> ChickenCmdMsg.Msg ]
+
                 
     | AddEggFailed (id, msg) ->
         let isCompleted = model.AddEggStatus |> Map.add id Completed
         { model with AddEggStatus = isCompleted }, 
-        AddError msg |> ofMsg
+        [ AddError msg |> ChickenCmdMsg.Msg ]
         
-    | RemoveEgg ((id: ChickenId), date) -> 
-        { model with RemoveEggStatus = model.RemoveEggStatus |> Map.add id Running }, 
-        api.RemoveEgg { RemoveEgg.ChickenId = id; Date = date }
+    | ChickenMsg.RemoveEgg ((id: ChickenId), date) -> 
+        let isRunning = model.RemoveEggStatus |> Map.add id Running
+        let apiCommand = RemoveEgg { RemoveEgg.ChickenId = id; Date = date } |> ApiCommand 
+        { model with RemoveEggStatus = isRunning }, [ apiCommand ]
 
     | RemovedEgg (id, date) ->
         let isCompleted = model.RemoveEggStatus |> Map.add id Completed 
         let model = { model with RemoveEggStatus = isCompleted }
         match Map.tryFind id model.Chickens with
-        | None -> model, Cmd.none
+        | None -> 
+            model, 
+            [ ChickenCmdMsg.NoCmdMsg ]
         | Some chicken ->
             let newEggCount = chicken.EggCountOnDate.Decrease()
             let newTotal = chicken.TotalEggCount.Decrease()
@@ -149,17 +163,20 @@ let update (api: Api) (msg: ChickenMsg) (model: ChickensModel) =
                     { chicken with
                         EggCountOnDate = newEggCount
                         TotalEggCount = newTotal }
-                { model with Chickens = model.Chickens |> Map.add id updatedChicken }, Cmd.none
+                { model with Chickens = model.Chickens |> Map.add id updatedChicken }, 
+                [ ChickenCmdMsg.NoCmdMsg ]
+
             | Error (ValidationError (param, msg)), _ | _, Error (ValidationError (param, msg)) ->
-                let cmd =
+                let newMsg =
                     let errorMsg = sprintf "could not add egg: %s:%s" param msg
-                    RemoveEggFailed (id, errorMsg) |> ofMsg
+                    RemoveEggFailed (id, errorMsg)
                 
-                model, cmd
+                model, 
+                [ newMsg |> ChickenCmdMsg.Msg ]
                 
     | RemoveEggFailed (id, msg) ->
         { model with RemoveEggStatus = model.RemoveEggStatus |> Map.add id ApiCallStatus.Completed }, 
-        AddError msg |> ofMsg
+        [ AddError msg |> ChickenCmdMsg.Msg ]
 
 type ChickensProps =
     { Model: ChickensModel; Dispatch: Dispatch<Msg> }
@@ -207,8 +224,8 @@ let view = elmishView "Chickens" (fun (props:ChickensProps) ->
                             let props =
                                 { Model = props.Model
                                   Id = chickenId
-                                  AddEgg = (AddEgg >> ChickenMsg >> props.Dispatch)
-                                  RemoveEgg = (RemoveEgg >> ChickenMsg >> props.Dispatch) }
+                                  AddEgg = (ChickenMsg.AddEgg >> ChickenMsg >> props.Dispatch)
+                                  RemoveEgg = (ChickenMsg.RemoveEgg >> ChickenMsg >> props.Dispatch) }
                             ChickenCard.view props))
 
         batchedCardViews
@@ -216,7 +233,6 @@ let view = elmishView "Chickens" (fun (props:ChickensProps) ->
         |> Container.container []
     
     let chickenEggView =
-        let chickenListProps = { Model = model; Dispatch = dispatch }
         Section.section 
             [ ]
             [ 

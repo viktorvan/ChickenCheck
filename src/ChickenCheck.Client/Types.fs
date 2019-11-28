@@ -42,11 +42,8 @@ type ChickensModel =
       CurrentDate : Date
       Errors : string list }
 type ChickenMsg =
-    | FetchChickens 
     | FetchedChickens of Chicken list
-    | FetchTotalCount 
     | FetchedTotalCount of Map<ChickenId, EggCount>
-    | FetchEggCountOnDate of Date
     | FetchedEggCountOnDate of Date * Map<ChickenId, EggCount>
     | ChangeDate of Date
     | AddEgg of ChickenId * Date
@@ -56,7 +53,12 @@ type ChickenMsg =
     | RemovedEgg of ChickenId * Date
     | RemoveEggFailed of ChickenId * string
     | AddError of string
-    | ClearErrors 
+    | ClearErrors
+type ChickenCmdMsg =
+    | Msg of ChickenMsg
+    | ApiCommand of Commands.DomainCommand
+    | ApiQuery of Queries.DomainQuery
+    | NoCmdMsg
 
 [<RequireQualifiedAccess>]
 type Page =

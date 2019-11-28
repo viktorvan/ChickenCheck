@@ -67,13 +67,13 @@ let getEggCountOnDate (ConnectionString conn) : GetEggCountOnDate =
         }
 
     fun date ->
-        let date = System.DateTime(date.Year, date.Month, date.Day)
+        let dateTime = System.DateTime(date.Year, date.Month, date.Day)
         asyncResult {
             try
                 use cmd = new GetEggCountOnDateSql(conn)
-                let! result = cmd.AsyncExecute(date)
-                let! mapped = result |> Seq.map toDomain |> Seq.toList |> List.sequenceResultM
-                return mapped |> Map.ofList
+                let! result = cmd.AsyncExecute(dateTime)
+                let! domainResult = result |> Seq.map toDomain |> Seq.toList |> List.sequenceResultM
+                return (date, domainResult |> Map.ofList)
             with exn -> return! exn.ToString() |> DatabaseError |> Error
         }
 
@@ -194,20 +194,3 @@ type internal GetEggDataSql = SqlCommandProvider<"
                             " , DevConnectionString>
 
 let handleExn (exn: System.Exception) = exn.ToString() |> DatabaseError |> Error
-// let getEggData (ConnectionString conn) : GetEggData =
-//     let toDomain (entity: GetEggDataSql.Record) =
-//         result {
-//             let! id = entity.ChickenId |> ChickenId.create |> Result.mapError toDatabaseError
-//             let date = entity.Date |> Date.create 
-//             let! count = entity.EggCount Option.defaultValue 0 |> NaturalNum.create |> Result.mapError toDatabaseError
-//             return id, date, count
-//         }
-
-//     fun () ->
-//         asyncResult {
-//             try
-//                 use cmd = new GetEggDataSql(conn)
-//                 let! entities = cmd.AsyncExecute()
-//                 let! domainObjects = entities |> Seq.map toDomain |> List.ofSeq |> List.sequenceResultM
-//             with exn -> return! handleExn exn
-//         }

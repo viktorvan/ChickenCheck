@@ -12,6 +12,7 @@ open ChickenCheck.Client.Router
 open CompositionRoot
 open Fulma.Extensions.Wikiki
 
+
 // defines the initial state and initial command (= side-effect) of the application
 let private init (optRoute : Router.Route option) =
     let session = SessionHandler.tryGet()

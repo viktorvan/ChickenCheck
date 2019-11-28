@@ -3,11 +3,9 @@ group Backend
     FsToolkit.ErrorHandling
     Microsoft.Azure.WebJobs.Extensions.Storage
     Microsoft.NET.Sdk.Functions
-    Microsoft.Extensions.Configuration.UserSecrets
     Microsoft.AspNetCore.Cors
     System.IdentityModel.Tokens.Jwt
     Giraffe
     Fable.Remoting.Server
     Fable.Remoting.Giraffe
-    FsConfig
     Microsoft.AspNetCore.Cryptography.KeyDerivation

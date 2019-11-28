@@ -13,15 +13,12 @@ group Backend
 
     nuget FSharp.Core 4.7.0
     nuget FsToolkit.ErrorHandling
-    nuget Microsoft.Azure.WebJobs.Extensions.Storage 3.0.4
+    nuget Microsoft.Azure.WebJobs.Extensions.Storage 
     nuget Microsoft.NET.Sdk.Functions 1.0.26
-    nuget Microsoft.Extensions.Configuration.UserSecrets
     nuget Microsoft.AspNetCore.Cors
     nuget System.IdentityModel.Tokens.Jwt
     nuget Fable.Remoting.Server
     nuget Fable.Remoting.Giraffe
-    nuget FsConfig
-    nuget Newtonsoft.Json 11.0.2
     nuget Microsoft.AspNetCore.Cryptography.KeyDerivation
 
 group BackendLocal

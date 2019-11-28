@@ -2,7 +2,8 @@
     "private": true,
     "dependencies": {
         "@fortawesome/fontawesome-free": "^5.8.1",
-        "bulma": "0.7.1",
+        "bulma": "0.7.2",
+        "bulma-calendar": "0.1.7",
         "bulma-pageloader": "2.1.0",
         "bulma-quickview": "2.0.0",
         "bulma-tooltip": "^2.0.2",

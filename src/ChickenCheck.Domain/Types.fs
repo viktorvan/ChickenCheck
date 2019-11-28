@@ -35,7 +35,7 @@ type PasswordHash =
     { Hash: byte[]
       Salt: byte[] }
 type UserId = UserId of Guid
-type User = 
+type User =
     { Id : UserId
       Name : String200
       Email : Email
@@ -63,6 +63,20 @@ module Commands =
     type RemoveEgg =
         { ChickenId : ChickenId
           Date : Date }
+    type DomainCommand =
+        | AddEgg of AddEgg
+        | RemoveEgg of RemoveEgg
+        
+module Queries =
+    type DomainQuery =
+        | AllChickens 
+        | EggCountOnDate of Date
+        | TotalEggCount 
+    type Response =
+        | Chickens of Chicken list
+        | EggCountOnDate of Date * Map<ChickenId, EggCount>
+        | TotalEggCount of Map<ChickenId, EggCount>
+    
       
 module Events =
     type EggAdded =
@@ -86,7 +100,7 @@ module Store =
     module Chicken =
         type GetChickens = unit -> AsyncResult<Chicken list, DatabaseError>
         type GetTotalEggCount = unit -> AsyncResult<Map<ChickenId, EggCount>, DatabaseError>
-        type GetEggCountOnDate = Date -> AsyncResult<Map<ChickenId, EggCount>, DatabaseError>
+        type GetEggCountOnDate = Date -> AsyncResult<Date * Map<ChickenId, EggCount>, DatabaseError>
         type AddEgg = ChickenId * Date -> AsyncResult<unit, DatabaseError>
         type RemoveEgg = ChickenId * Date -> AsyncResult<unit, DatabaseError>
         type GetEggData = unit -> AsyncResult<Map<ChickenId, EggCount> * Map<Date, NaturalNum>, DatabaseError>
