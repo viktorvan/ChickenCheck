@@ -2,9 +2,7 @@ module ChickenCheck.Client.ReleaseNotesView
 
 open Fulma.Extensions.Wikiki 
 open Fable.React
-open Fable.React.Props
 open Fulma
-open Fable.FontAwesome
 
 type ReleaseNotesProps = { IsActive: bool; ToggleReleaseNotes: Browser.Types.Event -> unit }
 type ReleaseInfo = { Title: string; Updates: string list }
@@ -64,7 +62,7 @@ let private releaseNotesView notes =
 let view { IsActive = isActive; ToggleReleaseNotes = toggleReleaseNotes } =
     Quickview.quickview [ Quickview.IsActive isActive ]
         [ Quickview.header []
-            [ Quickview.title [ ] [ Heading.h2 [] [ str "Release Notes" ] ]
+            [ Quickview.title [ ] [ str "Release Notes" ]
               Delete.delete [ Delete.OnClick toggleReleaseNotes ] [ ] 
             ]
           Quickview.body [ ]

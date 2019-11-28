@@ -54,11 +54,6 @@ type ChickenMsg =
     | RemoveEggFailed of ChickenId * string
     | AddError of string
     | ClearErrors
-type ChickenCmdMsg =
-    | Msg of ChickenMsg
-    | ApiCommand of Commands.DomainCommand
-    | ApiQuery of Queries.DomainQuery
-    | NoCmdMsg
 
 [<RequireQualifiedAccess>]
 type Page =
@@ -81,6 +76,18 @@ type Msg =
     | ChickenMsg of ChickenMsg
     | SignedIn of Session
     | Signout
+
+type RoutingMsg =
+    | NewRoute of Router.Route
+
+
+type CmdMsg =
+    | Msg of Msg
+    | ApiCommand of Commands.DomainCommand
+    | ApiQuery of Queries.DomainQuery
+    | SessionQuery of Queries.SessionQuery
+    | Routing of RoutingMsg
+    | NoCmdMsg
 
 [<AutoOpen>]
 module DomainError =

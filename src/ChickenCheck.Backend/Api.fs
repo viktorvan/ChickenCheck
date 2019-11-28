@@ -4,7 +4,7 @@ open ChickenCheck.Domain.Commands
 
 
 type IChickenApi =
-    { CreateSession: CreateSession -> AsyncResult<Session, DomainError> 
+    { Session: Queries.SessionQuery -> AsyncResult<Session, DomainError> 
       Query: SecureRequest<Queries.DomainQuery> -> AsyncResult<Queries.Response, DomainError> 
       Command: SecureRequest<Commands.DomainCommand> -> AsyncResult<unit, DomainError> }
 

@@ -21,11 +21,10 @@ let init =
       Errors = []
       CurrentDate = Date.today }, [ Queries.AllChickens |> ApiQuery ]
 
-let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * ChickenCmdMsg list =
+let toMsg = ChickenMsg >> CmdMsg.Msg
+
+let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * CmdMsg list =
     match msg with
-//    | ChickenMsg.FetchChickens -> 
-//        model,
-//        [ ChickenCmdMsg.FetchChickens ]
 
     | FetchedChickens chickens ->
         let buildModel (c: Chicken) =
@@ -46,19 +45,13 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * ChickenCmd
             
     | AddError msg ->
         { model with Errors = msg :: model.Errors }, 
-        [ ChickenCmdMsg.NoCmdMsg ]
-        
-//    | FetchEggCountOnDate date -> 
-//        let callApi = api.GetCountOnDate date
-//        model, 
-////        callApi
-//        ChickenCmdMsg.NoCmdMsg
-        
+        [ CmdMsg.NoCmdMsg ]
+
     | FetchedEggCountOnDate (date, countByChicken) -> 
         if model.CurrentDate = date then
             if countByChicken |> Map.isEmpty then
                 model, 
-                [ "Count by date map was empty" |> AddError |> ChickenCmdMsg.Msg ]
+                [ "Count by date map was empty" |> AddError |> toMsg ]
             else
                 let updateEggCount id (model:ChickenDetails) =
                     match countByChicken |> Map.tryFind id with
@@ -67,22 +60,15 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * ChickenCmd
                     | None -> model
                     
                 { model with Chickens = model.Chickens |> Map.map updateEggCount }, 
-//                Cmd.none
-                [ ChickenCmdMsg.NoCmdMsg ]
+                [ CmdMsg.NoCmdMsg ]
         else
             model, 
-            [ ChickenCmdMsg.NoCmdMsg ]
+            [ CmdMsg.NoCmdMsg ]
 
-//    | FetchTotalCount -> 
-//        model, 
-////        api.GetTotalCount()
-//            ChickenCmdMsg.NoCmdMsg
-        
-    
     | FetchedTotalCount totalCount -> 
         if totalCount |> Map.isEmpty then
             model, 
-            [ "TotalCount map was empty" |> AddError  |> ChickenCmdMsg.Msg ]
+            [ "TotalCount map was empty" |> AddError  |> toMsg ]
         else
             let updateEggCount id (model:ChickenDetails) =
                 match totalCount |> Map.tryFind id with
@@ -91,11 +77,11 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * ChickenCmd
                 | None -> model
                 
             { model with Chickens = model.Chickens |> Map.map updateEggCount }, 
-            [ ChickenCmdMsg.NoCmdMsg ]
+            [ CmdMsg.NoCmdMsg ]
 
     | ClearErrors -> 
         { model with Errors = [] }, 
-        [ ChickenCmdMsg.NoCmdMsg ]
+        [ CmdMsg.NoCmdMsg ]
     | ChangeDate date -> 
         { model with CurrentDate = date }, 
         [ Queries.EggCountOnDate date |> ApiQuery ]
@@ -112,7 +98,7 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * ChickenCmd
         match Map.tryFind id model.Chickens with
         | None -> 
             model, 
-            [ ChickenCmdMsg.NoCmdMsg ]
+            [ CmdMsg.NoCmdMsg ]
     
         | Some chicken ->
             let newEggCount = chicken.EggCountOnDate.Increase()
@@ -125,7 +111,7 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * ChickenCmd
                         EggCountOnDate = newEggCount
                         TotalEggCount = newTotal }
                 { model with Chickens = model.Chickens |> Map.add chicken.Id updatedChicken }, 
-                [ ChickenCmdMsg.NoCmdMsg ]
+                [ CmdMsg.NoCmdMsg ]
                 
                 
             | Error (ValidationError (param, msg)), _ | _, Error (ValidationError (param, msg)) ->
@@ -133,13 +119,13 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * ChickenCmd
                     let errorMsg = sprintf "could not add egg: %s:%s" param msg
                     AddEggFailed (id, errorMsg) 
                 
-                model, [ newMsg |> ChickenCmdMsg.Msg ]
+                model, [ newMsg |> toMsg ]
 
                 
     | AddEggFailed (id, msg) ->
         let isCompleted = model.AddEggStatus |> Map.add id Completed
         { model with AddEggStatus = isCompleted }, 
-        [ AddError msg |> ChickenCmdMsg.Msg ]
+        [ AddError msg |> toMsg ]
         
     | ChickenMsg.RemoveEgg ((id: ChickenId), date) -> 
         let isRunning = model.RemoveEggStatus |> Map.add id Running
@@ -152,7 +138,7 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * ChickenCmd
         match Map.tryFind id model.Chickens with
         | None -> 
             model, 
-            [ ChickenCmdMsg.NoCmdMsg ]
+            [ CmdMsg.NoCmdMsg ]
         | Some chicken ->
             let newEggCount = chicken.EggCountOnDate.Decrease()
             let newTotal = chicken.TotalEggCount.Decrease()
@@ -164,7 +150,7 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * ChickenCmd
                         EggCountOnDate = newEggCount
                         TotalEggCount = newTotal }
                 { model with Chickens = model.Chickens |> Map.add id updatedChicken }, 
-                [ ChickenCmdMsg.NoCmdMsg ]
+                [ CmdMsg.NoCmdMsg ]
 
             | Error (ValidationError (param, msg)), _ | _, Error (ValidationError (param, msg)) ->
                 let newMsg =
@@ -172,11 +158,11 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * ChickenCmd
                     RemoveEggFailed (id, errorMsg)
                 
                 model, 
-                [ newMsg |> ChickenCmdMsg.Msg ]
+                [ newMsg |> toMsg ]
                 
     | RemoveEggFailed (id, msg) ->
         { model with RemoveEggStatus = model.RemoveEggStatus |> Map.add id ApiCallStatus.Completed }, 
-        [ AddError msg |> ChickenCmdMsg.Msg ]
+        [ AddError msg |> toMsg ]
 
 type ChickensProps =
     { Model: ChickensModel; Dispatch: Dispatch<Msg> }

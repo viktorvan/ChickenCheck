@@ -5,6 +5,7 @@ open ChickenCheck.Client
 open ChickenCheck.Domain
 open Fable.React
 open Fable.FontAwesome
+open ChickenCheck.Domain.Queries
 
 type SessionModel with
     member __.IsValid =
@@ -19,12 +20,9 @@ let init() =
       LoginStatus = NotStarted 
       Errors = [] }
 
-type Api =
-    { CreateSession : Commands.CreateSession -> Cmd<Msg> }
+let private toMsg = SessionMsg >> CmdMsg.Msg
 
-let private ofMsg = SessionMsg >> Cmd.ofMsg
-
-let update api (msg: SessionMsg) (model: SessionModel) =
+let update (msg: SessionMsg) (model: SessionModel) =
     match msg with
     | ChangeEmail msg ->
         let newEmail =  
@@ -32,34 +30,35 @@ let update api (msg: SessionMsg) (model: SessionModel) =
             | Ok e -> StringInput.Valid e
             | Error _ -> StringInput.Invalid msg
         
-        { model with Email = newEmail }, Cmd.none 
+        { model with Email = newEmail }, [ CmdMsg.NoCmdMsg ] 
 
     | ChangePassword msg ->
         let newPassword =
             match Password.create msg with
             | Ok pw -> StringInput.Valid pw
             | Error _ -> StringInput.Invalid msg
-        { model with Password = newPassword }, Cmd.none 
+        { model with Password = newPassword }, [ CmdMsg.NoCmdMsg ] 
 
     | LoginCompleted session -> 
-        { model with LoginStatus = ApiCallStatus.Completed }, SignedIn session |> Cmd.ofMsg
+        { model with LoginStatus = ApiCallStatus.Completed }, [ SignedIn session |> CmdMsg.Msg ]
 
     | SessionMsg.AddError msg -> 
         { model with 
               LoginStatus = ApiCallStatus.Completed
               Errors = msg :: model.Errors }, 
-          Cmd.none 
+          [ CmdMsg.NoCmdMsg ] 
 
     | SessionMsg.ClearErrors -> 
-        { model with Errors = [] }, Cmd.none
+        { model with Errors = [] }, [ CmdMsg.NoCmdMsg ]
 
     | Submit ->
         match model.Email, model.Password with
         | (StringInput.Valid email, StringInput.Valid password) ->
+            let apiCommand =
+                CreateSession ( Email = email, Password = password )
+                |> CmdMsg.SessionQuery
             { model with LoginStatus = Running }, 
-            api.CreateSession 
-                { Email = email
-                  Password = password }
+            [ apiCommand ]
             
         | _ -> failwith "Application error, tried to submit invalid form"
         

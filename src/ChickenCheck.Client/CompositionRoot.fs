@@ -10,9 +10,6 @@ open Fable.Core
 open ChickenCheck.Client.Router
 
 
-module Tuple =
-    let mapSnd f (fst, snd) = fst, f snd
-
 let private getToken session =
     match session with
     | Some session -> session.Token
@@ -26,7 +23,8 @@ let private chickenApi : IChickenApi =
     #endif
     |> Remoting.buildProxy<IChickenApi>
 
-let private signinApi : Session.Api =
+let createSession query =
+
     let ofSuccess result =
         match result with
         | Ok session -> SessionMsg.LoginCompleted session |> SessionMsg
@@ -40,15 +38,12 @@ let private signinApi : Session.Api =
                 | _ -> GeneralErrorMsg
             msg |> SessionMsg.AddError |> SessionMsg
 
-    let createSession =
-        fun cmd ->
-            Cmd.OfAsync.either
-                chickenApi.CreateSession
-                cmd
-                ofSuccess
-                (handleApiError (SessionMsg.AddError >> SessionMsg))
+    Cmd.OfAsync.either
+        chickenApi.Session
+        query
+        ofSuccess
+        (handleApiError (SessionMsg.AddError >> SessionMsg))
 
-    { CreateSession = createSession }
 
 module Api =
     let executeQuery query onSuccess onError =
@@ -68,71 +63,79 @@ module Api =
                 cmd
                 onSuccess
                 onError
+let toCmd =
+    let fromCmdMsgs session cmdMsgs =
 
-module Session =
-    let handle msg (model: Model) =
-        match model.ActivePage with
-        | (Page.Signin sessionModel) ->
-            let (pageModel, msg) = Session.update signinApi msg sessionModel
-            { model with ActivePage = pageModel |> Page.Signin }, msg
-        | _ -> model, Cmd.none
-        
-module Chickens =
-    let queryResponseParser query = 
+        let queryResponseParser query = 
+            fun res ->
+                match query, res with
+                | Queries.AllChickens, Queries.Response.Chickens c -> 
+                    c |> FetchedChickens |> ChickenMsg
+                | Queries.EggCountOnDate _, Queries.Response.EggCountOnDate (date, count) -> 
+                    (date, count) |> FetchedEggCountOnDate |> ChickenMsg
+                | Queries.TotalEggCount _, Queries.Response.TotalEggCount count -> 
+                    count |> FetchedTotalCount |> ChickenMsg
+                | _ -> 
+                    notImplemented()
 
-        fun res ->
-            match query, res with
-            | Queries.AllChickens, Queries.Response.Chickens c -> 
-                c |> FetchedChickens |> ChickenMsg
-            | Queries.EggCountOnDate _, Queries.Response.EggCountOnDate (date, count) -> 
-                (date, count) |> FetchedEggCountOnDate |> ChickenMsg
-            | Queries.TotalEggCount _, Queries.Response.TotalEggCount count -> 
-                count |> FetchedTotalCount |> ChickenMsg
-            | _ -> 
-                notImplemented()
+        let cmdResponseParser (cmd: Commands.DomainCommand) =
+            match cmd with
+            | Commands.AddEgg c -> (fun _ -> AddedEgg (c.ChickenId, c.Date))
+            | Commands.RemoveEgg c -> (fun _ -> RemovedEgg (c.ChickenId, c.Date))
+            >> ChickenMsg
 
-    let cmdResponseParser (cmd: Commands.DomainCommand) =
-        match cmd with
-        | Commands.AddEgg c -> (fun _ -> AddedEgg (c.ChickenId, c.Date))
-        | Commands.RemoveEgg c -> (fun _ -> RemovedEgg (c.ChickenId, c.Date))
-        >> ChickenMsg
-
-    let toCmd token cmdMsgs =
         let toSingleCmd cmdMsg =
             match cmdMsg with
-            | ChickenCmdMsg.ApiQuery query -> 
+            | CmdMsg.ApiQuery query -> 
                 callSecureApi
-                    token
+                    (getToken session)
                     chickenApi.Query
                     query
                     (queryResponseParser query)
                     (AddError >> ChickenMsg)
 
-            | ChickenCmdMsg.ApiCommand cmd ->
+            | CmdMsg.ApiCommand cmd ->
                 callSecureApi
-                    token
+                    (getToken session)
                     chickenApi.Command
                     cmd
                     (cmdResponseParser cmd)
                     (AddError >> ChickenMsg)
 
-            | ChickenCmdMsg.Msg msg -> msg |> ChickenMsg |> Cmd.ofMsg
+            | CmdMsg.SessionQuery query ->
+                createSession query
 
-            | ChickenCmdMsg.NoCmdMsg -> Cmd.none
+            | Routing routing ->
+                match routing with
+                | NewRoute route -> Router.newUrl route
+
+            | CmdMsg.Msg msg -> msg |> Cmd.ofMsg
+
+            | CmdMsg.NoCmdMsg -> Cmd.none
             
         match cmdMsgs with
         | [] -> Cmd.none
         | [ cmd ] -> toSingleCmd cmd
         | cmds -> cmds |> List.map toSingleCmd |> Cmd.batch
 
-    let handle (msg: ChickenMsg) model =
-        let token = getToken model.Session 
+    (fun (m: Model, cmds: CmdMsg list) -> m, (fromCmdMsgs m.Session cmds))
+
+module Session =
+    let handle msg (model: Model) =
+        match model.ActivePage with
+        | (Page.Signin sessionModel) ->
+            let (pageModel, cmds) = Session.update msg sessionModel 
+            { model with ActivePage = pageModel |> Page.Signin }, cmds
+        | _ -> model, [ CmdMsg.NoCmdMsg ]
         
+module Chickens =
+
+    let handle (msg: ChickenMsg) model =
         match model.ActivePage with
         | Page.Chickens chickensPageModel ->
-            let (pageModel, cmds) = Chickens.update msg chickensPageModel |> Tuple.mapSnd (toCmd token)
+            let (pageModel, cmds) = Chickens.update msg chickensPageModel 
             { model with ActivePage = pageModel |> Page.Chickens }, cmds
-        | _ -> model, Cmd.none
+        | _ -> model, [ CmdMsg.NoCmdMsg ]
 
 module Authentication =
     let handleExpiredToken _ =
@@ -152,7 +155,7 @@ module Routing =
 
             { model with
                 ActivePage = Page.NotFound
-            }, Cmd.none
+            }, [ CmdMsg.NoCmdMsg ]
 
         | Some route ->
             Router.modifyLocation route
@@ -160,7 +163,7 @@ module Routing =
             | Router.Chicken chickenRoute ->
                 match model.Session with
                 | Some session ->
-                    let (chickenModel, chickenCmd) = Chickens.init |> Tuple.mapSnd (Chickens.toCmd session.Token)
+                    let (chickenModel, chickenCmd) = Chickens.init 
 
                     { model with
                         ActivePage =
@@ -169,7 +172,7 @@ module Routing =
                     }, chickenCmd
 
                 | None ->
-                    model, SessionRoute.Signin |> Session |> Router.newUrl
+                    model, [ Session SessionRoute.Signin |> RoutingMsg.NewRoute |> Routing ] 
 
             | Router.Session s ->
                 match s with
@@ -178,6 +181,6 @@ module Routing =
                     { model with
                         ActivePage =
                             Page.Signin signinModel
-                    }, Cmd.none
+                    }, [ CmdMsg.NoCmdMsg ]
                 | SessionRoute.Signout -> 
-                    model, Signout |> Cmd.ofMsg
+                    model, [ Signout |> CmdMsg.Msg ]

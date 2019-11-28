@@ -41,13 +41,13 @@ let getStatus() =
 module User =
     let getUserByEmail = SqlUserStore.getUserByEmail connectionString
 
-    let createSession command = 
+    let createSession (CreateSession (Email = email; Password = password)) = 
         asyncResult {
-            let! user = command.Email |> getUserByEmail |> AsyncResult.mapError Database
+            let! user = email |> getUserByEmail |> AsyncResult.mapError Database
             match user with
             | None -> return! UserDoesNotExist |> Login |> Error
             | Some user ->
-                if ChickenCheck.PasswordHasher.verifyPasswordHash (user.PasswordHash, command.Password) then
+                if ChickenCheck.PasswordHasher.verifyPasswordHash (user.PasswordHash, password) then
                     let! token = 
                         Authentication.generateToken tokenSecret user.Name.Value 
                         |> Result.mapError Authentication
@@ -115,6 +115,6 @@ let handleCommand request =
     }
 
 let chickenApi : IChickenApi =
-    { CreateSession = User.createSession 
+    { Session = User.createSession 
       Query = handleQuery
       Command = handleCommand }
