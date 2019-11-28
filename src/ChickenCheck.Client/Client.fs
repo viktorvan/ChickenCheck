@@ -61,10 +61,7 @@ let update' (msg : Msg) (model : Model) : Model * CmdMsg list =
         { model with
             Session = None
             ActivePage = Session.init() |> Page.Signin }, 
-        [ Router.SessionRoute.Signout |> Router.Session |> RoutingMsg.NewRoute |> Routing ]
-
-let update msg model =
-    update' msg model |> toCmd
+        [ Router.SessionRoute.Signout |> Router.Session |> OfNewRoute ]
 
 let view model dispatch =
     let loadingPage =             
@@ -82,12 +79,10 @@ let view model dispatch =
         | Page.NotFound -> lazyView NotFound.view model
         | Page.Loading -> loadingPage
 
-    let isLoggedIn, loggedInUsername =
-        match model.Session with
-        | None -> false, ""
-        | Some session -> true, session.Name.Value
+    let isLoggedIn = model.Session.IsSome
 
     let toggleReleaseNotes _ = dispatch ToggleReleaseNotes
+
     div [] 
         [ yield ReleaseNotesView.view { IsActive = model.ShowReleaseNotes; ToggleReleaseNotes = toggleReleaseNotes }
           if isLoggedIn then
@@ -100,8 +95,10 @@ open Elmish.Debug
 open Elmish.HMR
 #endif
 
-let setRoute route model = Routing.setRoute route model |> toCmd
-let init route = init' route |> toCmd
+let setRoute route model = Routing.setRoute route model |> CmdMsg.toCmd
+let update msg model = update' msg model |> CmdMsg.toCmd
+let init route = init' route |> CmdMsg.toCmd
+
 Program.mkProgram init update view
 |> Program.withSubscription Authentication.handleExpiredToken
 |> Program.toNavigable (parseHash Router.pageParser) setRoute

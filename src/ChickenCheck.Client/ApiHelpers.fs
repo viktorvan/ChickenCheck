@@ -20,3 +20,23 @@ let callSecureApi apiToken apiFunc arg successMsg errorMsg =
                 err.ErrorMsg |> errorMsg
     let ofError _ = "Serverfel" |> errorMsg
     Cmd.OfAsync.either apiFunc request ofSuccess ofError
+
+let createSession apiFunc query =
+    let ofSuccess result =
+        match result with
+        | Ok session -> SessionMsg.LoginCompleted session |> SessionMsg
+        | Error err ->
+            let msg =
+                match err with
+                | Login l ->
+                    match l with
+                    | UserDoesNotExist -> "Användaren saknas"
+                    | PasswordIncorrect -> "Fel lösenord"
+                | _ -> GeneralErrorMsg
+            msg |> SessionMsg.AddError |> SessionMsg
+
+    Cmd.OfAsync.either
+        apiFunc
+        query
+        ofSuccess
+        (handleApiError (SessionMsg.AddError >> SessionMsg))

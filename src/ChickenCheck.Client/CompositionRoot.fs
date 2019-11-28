@@ -23,49 +23,8 @@ let private chickenApi : IChickenApi =
     #endif
     |> Remoting.buildProxy<IChickenApi>
 
-let createSession query =
-
-    let ofSuccess result =
-        match result with
-        | Ok session -> SessionMsg.LoginCompleted session |> SessionMsg
-        | Error err ->
-            let msg =
-                match err with
-                | Login l ->
-                    match l with
-                    | UserDoesNotExist -> "Användaren saknas"
-                    | PasswordIncorrect -> "Fel lösenord"
-                | _ -> GeneralErrorMsg
-            msg |> SessionMsg.AddError |> SessionMsg
-
-    Cmd.OfAsync.either
-        chickenApi.Session
-        query
-        ofSuccess
-        (handleApiError (SessionMsg.AddError >> SessionMsg))
-
-
-module Api =
-    let executeQuery query onSuccess onError =
-        fun token ->
-            callSecureApi
-                token
-                chickenApi.Query
-                query
-                onSuccess
-                onError
-
-    let executeCommand cmd onSuccess onError =
-        fun token ->
-            callSecureApi
-                token
-                chickenApi.Command
-                cmd
-                onSuccess
-                onError
-let toCmd =
-    let fromCmdMsgs session cmdMsgs =
-
+module CmdMsg =
+    let toCmd =
         let queryResponseParser query = 
             fun res ->
                 match query, res with
@@ -84,9 +43,9 @@ let toCmd =
             | Commands.RemoveEgg c -> (fun _ -> RemovedEgg (c.ChickenId, c.Date))
             >> ChickenMsg
 
-        let toSingleCmd cmdMsg =
+        let toCmd' session cmdMsg =
             match cmdMsg with
-            | CmdMsg.ApiQuery query -> 
+            | CmdMsg.OfApiQuery query -> 
                 callSecureApi
                     (getToken session)
                     chickenApi.Query
@@ -94,7 +53,7 @@ let toCmd =
                     (queryResponseParser query)
                     (AddError >> ChickenMsg)
 
-            | CmdMsg.ApiCommand cmd ->
+            | CmdMsg.OfApiCommand cmd ->
                 callSecureApi
                     (getToken session)
                     chickenApi.Command
@@ -102,23 +61,23 @@ let toCmd =
                     (cmdResponseParser cmd)
                     (AddError >> ChickenMsg)
 
-            | CmdMsg.SessionQuery query ->
-                createSession query
+            | CmdMsg.OfSessionQuery query ->
+                createSession chickenApi.Session query
 
-            | Routing routing ->
-                match routing with
-                | NewRoute route -> Router.newUrl route
+            | OfNewRoute route -> Router.newUrl route
 
-            | CmdMsg.Msg msg -> msg |> Cmd.ofMsg
+            | CmdMsg.OfMsg msg -> msg |> Cmd.ofMsg
 
             | CmdMsg.NoCmdMsg -> Cmd.none
-            
-        match cmdMsgs with
-        | [] -> Cmd.none
-        | [ cmd ] -> toSingleCmd cmd
-        | cmds -> cmds |> List.map toSingleCmd |> Cmd.batch
 
-    (fun (m: Model, cmds: CmdMsg list) -> m, (fromCmdMsgs m.Session cmds))
+        let fromCmdMsgs session cmdMsgs =
+            match cmdMsgs with
+            | [] -> Cmd.none
+            | [ cmdMsg ] -> cmdMsg |> toCmd' session
+            | cmdMsgs -> cmdMsgs |> List.map (toCmd' session) |> Cmd.batch
+
+        (fun (m: Model, cmds: CmdMsg list) -> m, (fromCmdMsgs m.Session cmds))
+
 
 module Session =
     let handle msg (model: Model) =
@@ -129,7 +88,6 @@ module Session =
         | _ -> model, [ CmdMsg.NoCmdMsg ]
         
 module Chickens =
-
     let handle (msg: ChickenMsg) model =
         match model.ActivePage with
         | Page.Chickens chickensPageModel ->
@@ -160,7 +118,7 @@ module Routing =
         | Some route ->
             Router.modifyLocation route
             match route with
-            | Router.Chicken chickenRoute ->
+            | Router.Chicken _ ->
                 match model.Session with
                 | Some session ->
                     let (chickenModel, chickenCmd) = Chickens.init 
@@ -172,7 +130,7 @@ module Routing =
                     }, chickenCmd
 
                 | None ->
-                    model, [ Session SessionRoute.Signin |> RoutingMsg.NewRoute |> Routing ] 
+                    model, [ Session SessionRoute.Signin |> OfNewRoute ] 
 
             | Router.Session s ->
                 match s with
@@ -183,4 +141,4 @@ module Routing =
                             Page.Signin signinModel
                     }, [ CmdMsg.NoCmdMsg ]
                 | SessionRoute.Signout -> 
-                    model, [ Signout |> CmdMsg.Msg ]
+                    model, [ Signout |> CmdMsg.OfMsg ]

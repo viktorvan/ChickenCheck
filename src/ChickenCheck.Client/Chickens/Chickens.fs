@@ -19,9 +19,9 @@ let init =
       AddEggStatus = Map.empty
       RemoveEggStatus = Map.empty
       Errors = []
-      CurrentDate = Date.today }, [ Queries.AllChickens |> ApiQuery ]
+      CurrentDate = Date.today }, [ Queries.AllChickens |> OfApiQuery ]
 
-let toMsg = ChickenMsg >> CmdMsg.Msg
+let toMsg = ChickenMsg >> CmdMsg.OfMsg
 
 let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * CmdMsg list =
     match msg with
@@ -36,8 +36,8 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * CmdMsg lis
               EggCountOnDate  = EggCount.zero }
             
         let cmds =
-            [ Queries.EggCountOnDate Date.today |> ApiQuery
-              Queries.TotalEggCount |> ApiQuery ]
+            [ Queries.EggCountOnDate Date.today |> OfApiQuery
+              Queries.TotalEggCount |> OfApiQuery ]
               
         { model with 
             Chickens = chickens |> List.map (fun c -> c.Id, buildModel c) |> Map.ofList },
@@ -84,11 +84,11 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * CmdMsg lis
         [ CmdMsg.NoCmdMsg ]
     | ChangeDate date -> 
         { model with CurrentDate = date }, 
-        [ Queries.EggCountOnDate date |> ApiQuery ]
+        [ Queries.EggCountOnDate date |> OfApiQuery ]
         
     | ChickenMsg.AddEgg ((id: ChickenId), date) ->
         let isRunning = model.AddEggStatus |> Map.add id Running
-        let apiCommand = AddEgg { AddEgg.ChickenId = id; Date = date } |> ApiCommand
+        let apiCommand = AddEgg { AddEgg.ChickenId = id; Date = date } |> OfApiCommand
         { model with AddEggStatus = isRunning }, [ apiCommand ]
 
     | AddedEgg (id, date) ->
@@ -129,7 +129,7 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * CmdMsg lis
         
     | ChickenMsg.RemoveEgg ((id: ChickenId), date) -> 
         let isRunning = model.RemoveEggStatus |> Map.add id Running
-        let apiCommand = RemoveEgg { RemoveEgg.ChickenId = id; Date = date } |> ApiCommand 
+        let apiCommand = RemoveEgg { RemoveEgg.ChickenId = id; Date = date } |> OfApiCommand 
         { model with RemoveEggStatus = isRunning }, [ apiCommand ]
 
     | RemovedEgg (id, date) ->

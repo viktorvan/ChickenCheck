@@ -6,10 +6,6 @@ type StringInput<'a> =
     | Valid of 'a
     | Invalid of string
     | Empty
-type NumberInput<'a> =
-    | Valid of 'a
-    | Invalid of string
-    | Empty
 type ApiCallStatus =
     | NotStarted
     | Running
@@ -77,16 +73,12 @@ type Msg =
     | SignedIn of Session
     | Signout
 
-type RoutingMsg =
-    | NewRoute of Router.Route
-
-
 type CmdMsg =
-    | Msg of Msg
-    | ApiCommand of Commands.DomainCommand
-    | ApiQuery of Queries.DomainQuery
-    | SessionQuery of Queries.SessionQuery
-    | Routing of RoutingMsg
+    | OfMsg of Msg
+    | OfApiCommand of Commands.DomainCommand
+    | OfApiQuery of Queries.DomainQuery
+    | OfSessionQuery of Queries.SessionQuery
+    | OfNewRoute of Router.Route
     | NoCmdMsg
 
 [<AutoOpen>]
@@ -124,16 +116,3 @@ module OptionalStringInput =
             true, ""
 
     let inline isValid input = input |> tryValid |> fst
-
-module NumberInput = 
-    let inline tryValid input =
-        match input with
-        | NumberInput.Valid (num : NaturalNum) ->
-            true, (num.Value |> string)
-        | NumberInput.Invalid value -> 
-            false, value
-        | NumberInput.Empty -> 
-            false, ""
-
-    let inline isValid input = input |> tryValid |> fst
-

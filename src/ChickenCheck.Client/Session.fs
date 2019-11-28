@@ -20,7 +20,7 @@ let init() =
       LoginStatus = NotStarted 
       Errors = [] }
 
-let private toMsg = SessionMsg >> CmdMsg.Msg
+let private toMsg = SessionMsg >> CmdMsg.OfMsg
 
 let update (msg: SessionMsg) (model: SessionModel) =
     match msg with
@@ -40,7 +40,7 @@ let update (msg: SessionMsg) (model: SessionModel) =
         { model with Password = newPassword }, [ CmdMsg.NoCmdMsg ] 
 
     | LoginCompleted session -> 
-        { model with LoginStatus = ApiCallStatus.Completed }, [ SignedIn session |> CmdMsg.Msg ]
+        { model with LoginStatus = ApiCallStatus.Completed }, [ SignedIn session |> CmdMsg.OfMsg ]
 
     | SessionMsg.AddError msg -> 
         { model with 
@@ -56,7 +56,7 @@ let update (msg: SessionMsg) (model: SessionModel) =
         | (StringInput.Valid email, StringInput.Valid password) ->
             let apiCommand =
                 CreateSession ( Email = email, Password = password )
-                |> CmdMsg.SessionQuery
+                |> CmdMsg.OfSessionQuery
             { model with LoginStatus = Running }, 
             [ apiCommand ]
             
