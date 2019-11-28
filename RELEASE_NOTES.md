@@ -1,3 +1,7 @@
+### 1.2.0 - New frontend model and Api interface
+* Refactor frontend model to use a flat model
+* Make the api more generic cmd/queries
+
 ### 1.1.2 - Bugfix
 * Handle moving tag, when re-releasing an existing version.
 
