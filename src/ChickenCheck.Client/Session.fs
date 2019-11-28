@@ -22,21 +22,19 @@ let init() =
 
 let private toMsg = SessionMsg >> CmdMsg.OfMsg
 
+let inline set raw value =
+    match value with
+    | Ok e -> StringInput.Valid e
+    | Error _ -> StringInput.Invalid raw
+
 let update (msg: SessionMsg) (model: SessionModel) =
     match msg with
     | ChangeEmail msg ->
-        let newEmail =  
-            match Email.create msg with
-            | Ok e -> StringInput.Valid e
-            | Error _ -> StringInput.Invalid msg
-        
+        let newEmail = StringInput.create Email.create msg
         { model with Email = newEmail }, [ CmdMsg.NoCmdMsg ] 
 
     | ChangePassword msg ->
-        let newPassword =
-            match Password.create msg with
-            | Ok pw -> StringInput.Valid pw
-            | Error _ -> StringInput.Invalid msg
+        let newPassword = StringInput.create Password.create msg
         { model with Password = newPassword }, [ CmdMsg.NoCmdMsg ] 
 
     | LoginCompleted session -> 

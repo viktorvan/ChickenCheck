@@ -42,7 +42,8 @@ type User =
       PasswordHash : PasswordHash }
 type Session = 
     { Token : SecurityToken
-      UserId : UserId; Name : String200 }
+      UserId : UserId 
+      Name : String200 }
 type ChickenId = ChickenId of Guid
 type ImageUrl = ImageUrl of string
 type Chicken = 

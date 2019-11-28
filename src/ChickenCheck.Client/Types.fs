@@ -92,6 +92,11 @@ module DomainError =
         member this.ErrorMsg = getClientErrorMsg this
     
 module StringInput = 
+    let inline create createFunc =
+        fun msg ->
+            match createFunc msg with
+            | Ok value -> StringInput.Valid value
+            | Error _ -> StringInput.Invalid msg
     let inline tryValid input =
         match input with
         | StringInput.Valid a ->

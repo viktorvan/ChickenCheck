@@ -10,7 +10,4 @@ open System
 [<Tests>]
 let tests =
     testList "Chickens" [
-        test "AddEgg starts running AddEgg request" {
-            true =! false
-        }
     ]

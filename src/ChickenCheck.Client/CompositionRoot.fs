@@ -24,6 +24,9 @@ let private chickenApi : IChickenApi =
     |> Remoting.buildProxy<IChickenApi>
 
 module CmdMsg =
+    type private SuccessFunc<'T> = 'T -> Msg
+    type private ErrorFunc = string -> Msg
+
     let toCmd =
         let queryResponseParser query = 
             fun res ->
@@ -34,14 +37,18 @@ module CmdMsg =
                     (date, count) |> FetchedEggCountOnDate |> ChickenMsg
                 | Queries.TotalEggCount _, Queries.Response.TotalEggCount count -> 
                     count |> FetchedTotalCount |> ChickenMsg
-                | _ -> 
-                    notImplemented()
+                | query, response -> 
+                    sprintf "The application does not support query %A with response type %A" query response 
+                    |> invalidArg "query"
 
-        let cmdResponseParser (cmd: Commands.DomainCommand) =
+        let cmdResponseParser (cmd: Commands.DomainCommand) : (SuccessFunc<_> * ErrorFunc)=
             match cmd with
-            | Commands.AddEgg c -> (fun _ -> AddedEgg (c.ChickenId, c.Date))
-            | Commands.RemoveEgg c -> (fun _ -> RemovedEgg (c.ChickenId, c.Date))
-            >> ChickenMsg
+            | Commands.AddEgg c -> 
+                (fun _ -> AddedEgg (c.ChickenId, c.Date) |> ChickenMsg),
+                (fun msg -> (c.ChickenId, msg) |> AddEggFailed |> ChickenMsg)
+            | Commands.RemoveEgg c -> 
+                (fun _ -> RemovedEgg (c.ChickenId, c.Date) |> ChickenMsg),
+                (fun msg -> (c.ChickenId, msg) |> RemoveEggFailed |> ChickenMsg)
 
         let toCmd' session cmdMsg =
             match cmdMsg with
@@ -54,12 +61,13 @@ module CmdMsg =
                     (AddError >> ChickenMsg)
 
             | CmdMsg.OfApiCommand cmd ->
+                let ofSuccess, ofError = cmdResponseParser cmd
                 callSecureApi
                     (getToken session)
                     chickenApi.Command
                     cmd
-                    (cmdResponseParser cmd)
-                    (AddError >> ChickenMsg)
+                    ofSuccess
+                    ofError
 
             | CmdMsg.OfSessionQuery query ->
                 createSession chickenApi.Session query
