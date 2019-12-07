@@ -28,28 +28,6 @@ module CmdMsg =
     type private ErrorFunc = string -> Msg
 
     let toCmd =
-        let queryResponseParser query = 
-            fun res ->
-                match query, res with
-                | Queries.AllChickens, Queries.Response.Chickens c -> 
-                    c |> FetchedChickens |> ChickenMsg
-                | Queries.EggCountOnDate _, Queries.Response.EggCountOnDate (date, count) -> 
-                    (date, count) |> FetchedEggCountOnDate |> ChickenMsg
-                | Queries.TotalEggCount _, Queries.Response.TotalEggCount count -> 
-                    count |> FetchedTotalCount |> ChickenMsg
-                | query, response -> 
-                    sprintf "The application does not support query %A with response type %A" query response 
-                    |> invalidArg "query"
-
-        let cmdResponseParser (cmd: Commands.DomainCommand) : (SuccessFunc<_> * ErrorFunc)=
-            match cmd with
-            | Commands.AddEgg c -> 
-                (fun _ -> AddedEgg (c.ChickenId, c.Date) |> ChickenMsg),
-                (fun msg -> (c.ChickenId, msg) |> AddEggFailed |> ChickenMsg)
-            | Commands.RemoveEgg c -> 
-                (fun _ -> RemovedEgg (c.ChickenId, c.Date) |> ChickenMsg),
-                (fun msg -> (c.ChickenId, msg) |> RemoveEggFailed |> ChickenMsg)
-
         let toCmd' session cmdMsg =
             match cmdMsg with
             | CmdMsg.OfApiQuery query -> 
@@ -57,17 +35,16 @@ module CmdMsg =
                     (getToken session)
                     chickenApi.Query
                     query
-                    (queryResponseParser query)
+                    (Queries.parseResponse query)
                     (AddError >> ChickenMsg)
 
             | CmdMsg.OfApiCommand cmd ->
-                let ofSuccess, ofError = cmdResponseParser cmd
                 callSecureApi
                     (getToken session)
                     chickenApi.Command
                     cmd
-                    ofSuccess
-                    ofError
+                    (Commands.toSuccess cmd)
+                    (Commands.toError cmd)
 
             | CmdMsg.OfSessionQuery query ->
                 createSession chickenApi.Session query

@@ -88,8 +88,8 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * CmdMsg lis
         
     | ChickenMsg.AddEgg ((id: ChickenId), date) ->
         let isRunning = model.AddEggStatus |> Map.add id Running
-        let apiCommand = AddEgg { AddEgg.ChickenId = id; Date = date } |> OfApiCommand
-        { model with AddEggStatus = isRunning }, [ apiCommand ]
+        let cmd = AddEgg { AddEgg.ChickenId = id; Date = date } 
+        { model with AddEggStatus = isRunning }, [ CmdMsg.OfApiCommand cmd ]
 
     | AddedEgg (id, date) ->
         let isCompleted = model.AddEggStatus |> Map.add id Completed
