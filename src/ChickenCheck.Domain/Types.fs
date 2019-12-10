@@ -54,31 +54,18 @@ type Chicken =
 type EggCount = EggCount of NaturalNum
 type Date = { _Year: int; _Month: int; _Day: int }
 
+[<RequireQualifiedAccess>]
 module Commands =
     type AddEgg =
         { ChickenId : ChickenId
           Date : Date }
+        static member Create(chickenId, date) = { ChickenId = chickenId; Date = date }
+
     type RemoveEgg =
         { ChickenId : ChickenId
           Date : Date }
-    type DomainCommand =
-        | AddEgg of AddEgg
-        | RemoveEgg of RemoveEgg
+        static member Create(chickenId, date) = { ChickenId = chickenId; Date = date }
         
-module Queries =
-
-    type DomainQuery =
-        | AllChickens 
-        | EggCountOnDate of Date
-        | TotalEggCount 
-    type SessionQuery =
-        | CreateSession of Email: Email * Password: Password 
-
-    type Response =
-        | Chickens of Chicken list
-        | EggCountOnDate of Date * Map<ChickenId, EggCount>
-        | TotalEggCount of Map<ChickenId, EggCount>
-    
       
 module Events =
     type EggAdded =
@@ -94,7 +81,7 @@ module Events =
         | ChickenEvent of ChickenEvent
     
 type ConnectionString = ConnectionString of string
-type AppendEvents = Events.DomainEvent list -> AsyncResult<unit list, DatabaseError>
+type AppendEvents = Events.DomainEvent list -> AsyncResult<unit, DatabaseError>
 
 module Store =
     module User =
@@ -102,7 +89,7 @@ module Store =
     module Chicken =
         type GetChickens = unit -> AsyncResult<Chicken list, DatabaseError>
         type GetTotalEggCount = unit -> AsyncResult<Map<ChickenId, EggCount>, DatabaseError>
-        type GetEggCountOnDate = Date -> AsyncResult<Date * Map<ChickenId, EggCount>, DatabaseError>
+        type GetEggCountOnDate = Date -> AsyncResult<Map<ChickenId, EggCount>, DatabaseError>
         type AddEgg = ChickenId * Date -> AsyncResult<unit, DatabaseError>
         type RemoveEgg = ChickenId * Date -> AsyncResult<unit, DatabaseError>
         type GetEggData = unit -> AsyncResult<Map<ChickenId, EggCount> * Map<Date, NaturalNum>, DatabaseError>

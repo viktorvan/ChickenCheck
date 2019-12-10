@@ -1,37 +1,44 @@
 ﻿module ChickenCheck.Backend.CompositionRoot
 
 open ChickenCheck.Domain
-open ChickenCheck.Domain.Commands
-open ChickenCheck.Domain.Queries
 open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
 open ChickenCheck.Infrastructure
 open System
 
-let getEnvironmentVariable key =
-    let value = Environment.GetEnvironmentVariable key
-    if String.IsNullOrWhiteSpace value then invalidArg key "cannot be empty"
-    else value
 
-let getEnvironmentVariableOrDefault defaultValue key =
-    try
-        getEnvironmentVariable key
-    with exn -> defaultValue
+module Async =
+    let retn = fun x -> async { return x }
 
-let private connectionString = 
-    getEnvironmentVariableOrDefault "Data Source=.;Initial Catalog=ChickenCheck;User ID=sa;Password=hWfQm@s62[CJX9ypxRd8" "CHICKENCHECK_CONNECTIONSTRING"
-    |> ConnectionString
+let private (>>=) ar f = AsyncResult.bind f ar
+let private (>=>) f1 f2 ar = f1 ar >>= f2
 
-let private tokenSecret =
-    getEnvironmentVariableOrDefault "42be52e5a41d414d8855b6684aad48c2" "CHICKENCHECK_TOKEN_SECRET"
+module private Config =
+    let private getEnvironmentVariable key =
+        let value = Environment.GetEnvironmentVariable key
+        if String.IsNullOrWhiteSpace value then invalidArg key "cannot be empty"
+        else value
+
+    let private getEnvironmentVariableOrDefault defaultValue key =
+        try
+            getEnvironmentVariable key
+        with exn -> defaultValue
+
+    let connectionString = 
+        getEnvironmentVariableOrDefault "Data Source=.;Initial Catalog=ChickenCheck;User ID=sa;Password=hWfQm@s62[CJX9ypxRd8" "CHICKENCHECK_CONNECTIONSTRING"
+        |> ConnectionString
+
+    let tokenSecret =
+        getEnvironmentVariableOrDefault "42be52e5a41d414d8855b6684aad48c2" "CHICKENCHECK_TOKEN_SECRET"
 
 let private validate<'T> = 
     fun token ->
         token 
-        |> Authentication.validate<'T> tokenSecret 
+        |> Authentication.validate<'T> Config.tokenSecret 
         |> Result.mapError Authentication
+        |> Async.retn
 
-let appendEvents = SqlStore.appendEvents connectionString
+let appendEvents = SqlStore.appendEvents Config.connectionString
 let appendEvent = List.singleton >> appendEvents >> AsyncResult.mapError Database
 
 let getStatus() =
@@ -39,9 +46,10 @@ let getStatus() =
     now.ToString("yyyyMMdd HH:mm:ss") |> sprintf "Ok at %s" 
 
 module User =
-    let getUserByEmail = SqlUserStore.getUserByEmail connectionString
 
-    let createSession (CreateSession (Email = email; Password = password)) = 
+    let private getUserByEmail = SqlUserStore.getUserByEmail Config.connectionString
+
+    let createSession (email, password) = 
         asyncResult {
             let! user = email |> getUserByEmail |> AsyncResult.mapError Database
             match user with
@@ -49,7 +57,7 @@ module User =
             | Some user ->
                 if ChickenCheck.PasswordHasher.verifyPasswordHash (user.PasswordHash, password) then
                     let! token = 
-                        Authentication.generateToken tokenSecret user.Name.Value 
+                        Authentication.generateToken Config.tokenSecret user.Name.Value 
                         |> Result.mapError Authentication
                     return {
                         Session.Token = token
@@ -60,61 +68,34 @@ module User =
         }
 
 module Chicken =
+    let getAllChickens = 
+        SqlChickenStore.getChickens Config.connectionString
+        >> AsyncResult.mapError Database
 
-    let getAllChickens () = 
-        SqlChickenStore.getChickens connectionString ()
-        |> AsyncResult.map Response.Chickens
-        |> AsyncResult.mapError Database
+    let getEggsOnDate = 
+        SqlChickenStore.getEggCountOnDate Config.connectionString
+        >> AsyncResult.mapError Database
 
-    let getEggsOnDate onDate =
-        asyncResult {
-            return!
-                SqlChickenStore.getEggCountOnDate connectionString onDate
-                |> AsyncResult.map Response.EggCountOnDate
-                |> AsyncResult.mapError Database
-        }
+    let getTotalEggCount =
+        SqlChickenStore.getTotalEggCount Config.connectionString
+        >> AsyncResult.mapError Database
 
-    let getTotalEggCount () =
-        asyncResult {
-            return!
-                SqlChickenStore.getTotalEggCount connectionString ()
-                |> AsyncResult.map Response.TotalEggCount
-                |> AsyncResult.mapError Database
-        }
-
-    let addEgg cmd =
-        asyncResult {
-            let event = cmd |> ChickenCommandHandler.handleAddEgg |> Events.ChickenEvent
-            let! _ = event |> appendEvent
-            return ()
-        }
-
-    let removeEgg cmd =
-        asyncResult {
-            let event = cmd |> ChickenCommandHandler.handleRemoveEgg |> Events.ChickenEvent
-            let! _ = event |> appendEvent
-            return ()
-        }
-
-let handleQuery request =
-    asyncResult {
-        let! query = request |> validate
-        match query with
-        | AllChickens -> return! Chicken.getAllChickens()
-        | Queries.EggCountOnDate date -> return! Chicken.getEggsOnDate date
-        | Queries.TotalEggCount -> return! Chicken.getTotalEggCount()
-
-    }
-
-let handleCommand request =
-    asyncResult {
-        let! cmd = request |> validate
-        match cmd with
-        | AddEgg c -> return! Chicken.addEgg c
-        | RemoveEgg c-> return! Chicken.removeEgg c
-    }
+    let addEgg =
+        Commands.AddEgg.Create
+        >> ChickenCommandHandler.handleAddEgg
+        >> Events.ChickenEvent
+        >> appendEvent
+        
+    let removeEgg =
+        Commands.RemoveEgg.Create
+        >> ChickenCommandHandler.handleRemoveEgg
+        >> Events.ChickenEvent
+        >> appendEvent
 
 let chickenApi : IChickenApi =
-    { Session = User.createSession 
-      Query = handleQuery
-      Command = handleCommand }
+    { CreateSession = User.createSession
+      GetAllChickens = validate >=> Chicken.getAllChickens
+      GetEggCountOnDate = validate >=> Chicken.getEggsOnDate
+      GetTotalEggCount = validate >=> Chicken.getTotalEggCount
+      AddEgg = validate >=> Chicken.addEgg
+      RemoveEgg = validate >=> Chicken.removeEgg }

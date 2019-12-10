@@ -19,6 +19,7 @@ let appendEvents connection : AppendEvents =
 
         asyncResult {
             try
-                return! events |> List.map handleEvent |> List.sequenceAsyncResultM
+                let! _ = events |> List.map handleEvent |> List.sequenceAsyncResultM
+                return ()
             with exn -> return! exn.ToString() |> DatabaseError |> Error
         }

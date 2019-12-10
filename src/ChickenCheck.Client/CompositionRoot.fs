@@ -30,24 +30,42 @@ module CmdMsg =
     let toCmd =
         let toCmd' session cmdMsg =
             match cmdMsg with
-            | CmdMsg.OfApiQuery query -> 
+            | CmdMsg.GetAllChickens -> notImplemented()
+
+            | CmdMsg.GetEggCountOnDate date ->
                 callSecureApi
                     (getToken session)
-                    chickenApi.Query
-                    query
-                    (Queries.parseResponse query)
+                    chickenApi.GetEggCountOnDate
+                    date
+                    (fun count -> (date, count) |> FetchedEggCountOnDate |> ChickenMsg)
                     (AddError >> ChickenMsg)
 
-            | CmdMsg.OfApiCommand cmd ->
+            | CmdMsg.GetTotalEggCount ->
                 callSecureApi
                     (getToken session)
-                    chickenApi.Command
-                    cmd
-                    (Commands.toSuccess cmd)
-                    (Commands.toError cmd)
+                    chickenApi.GetTotalEggCount
+                    ()
+                    (FetchedTotalCount >> ChickenMsg)
+                    (AddError >> ChickenMsg)
 
-            | CmdMsg.OfSessionQuery query ->
-                createSession chickenApi.Session query
+            | CmdMsg.AddEgg (id, date) ->
+                callSecureApi
+                    (getToken session)
+                    chickenApi.AddEgg
+                    (id, date)
+                    (fun () -> AddedEgg(id, date) |> ChickenMsg)
+                    (fun str -> AddEggFailed(id, str) |> ChickenMsg)
+
+            | CmdMsg.RemoveEgg (id, date) ->
+                callSecureApi
+                    (getToken session)
+                    chickenApi.RemoveEgg
+                    (id, date)
+                    (fun () -> RemovedEgg(id, date) |> ChickenMsg)
+                    (fun str -> RemoveEggFailed(id, str) |> ChickenMsg)
+
+            | CmdMsg.CreateSession (email, pw) ->
+                createSession chickenApi.CreateSession (email, pw)
 
             | OfNewRoute route -> Router.newUrl route
 

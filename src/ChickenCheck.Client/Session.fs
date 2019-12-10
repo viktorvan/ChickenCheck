@@ -5,7 +5,6 @@ open ChickenCheck.Client
 open ChickenCheck.Domain
 open Fable.React
 open Fable.FontAwesome
-open ChickenCheck.Domain.Queries
 
 type SessionModel with
     member __.IsValid =
@@ -52,11 +51,8 @@ let update (msg: SessionMsg) (model: SessionModel) =
     | Submit ->
         match model.Email, model.Password with
         | (StringInput.Valid email, StringInput.Valid password) ->
-            let apiCommand =
-                CreateSession ( Email = email, Password = password )
-                |> CmdMsg.OfSessionQuery
             { model with LoginStatus = Running }, 
-            [ apiCommand ]
+            [ CmdMsg.CreateSession (email, password) ]
             
         | _ -> failwith "Application error, tried to submit invalid form"
         

@@ -73,7 +73,7 @@ let getEggCountOnDate (ConnectionString conn) : GetEggCountOnDate =
                 use cmd = new GetEggCountOnDateSql(conn)
                 let! result = cmd.AsyncExecute(dateTime)
                 let! domainResult = result |> Seq.map toDomain |> Seq.toList |> List.sequenceResultM
-                return (date, domainResult |> Map.ofList)
+                return (domainResult |> Map.ofList)
             with exn -> return! exn.ToString() |> DatabaseError |> Error
         }
 

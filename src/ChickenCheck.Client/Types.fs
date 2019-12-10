@@ -75,44 +75,14 @@ type Msg =
 
 type CmdMsg =
     | OfMsg of Msg
-    | OfApiCommand of Commands.DomainCommand
-    | OfApiQuery of Queries.DomainQuery
-    | OfSessionQuery of Queries.SessionQuery
+    | GetAllChickens
+    | GetEggCountOnDate of Date
+    | GetTotalEggCount
+    | AddEgg of ChickenId * Date
+    | RemoveEgg of ChickenId * Date
+    | CreateSession of Email * Password
     | OfNewRoute of Router.Route
     | NoCmdMsg
-
-module Commands =
-    let toSuccess cmd =
-        fun () ->
-            match cmd with
-            | Commands.AddEgg c -> 
-               AddedEgg (c.ChickenId, c.Date) |> ChickenMsg
-            | Commands.RemoveEgg c -> 
-                RemovedEgg (c.ChickenId, c.Date) |> ChickenMsg
-
-    let toError cmd =
-        fun msg ->
-            match cmd with
-            | Commands.AddEgg c -> 
-                (c.ChickenId, msg) |> AddEggFailed |> ChickenMsg
-            | Commands.RemoveEgg c -> 
-                (c.ChickenId, msg) |> RemoveEggFailed |> ChickenMsg
-
-module Queries =
-    let parseResponse query =
-        fun result ->
-            match query, result with
-            | Queries.AllChickens, Queries.Response.Chickens c -> 
-                c |> FetchedChickens |> ChickenMsg
-            | Queries.EggCountOnDate _, Queries.Response.EggCountOnDate (date, count) -> 
-                (date, count) |> FetchedEggCountOnDate |> ChickenMsg
-            | Queries.TotalEggCount _, Queries.Response.TotalEggCount count -> 
-                count |> FetchedTotalCount |> ChickenMsg
-            | query, response -> 
-                sprintf "The application does not support query %A with response type %A" query response 
-                |> invalidArg "query"
-
-
 
 [<AutoOpen>]
 module DomainError =

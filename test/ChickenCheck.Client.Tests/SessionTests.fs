@@ -64,7 +64,7 @@ let tests =
         }
         test "On Submit should send createSession" {
             let _, cmds = Session.update Submit validModel
-            cmds.[0] =! CmdMsg.OfSessionQuery (Queries.CreateSession(Email = email, Password = password))
+            cmds.[0] =! CmdMsg.CreateSession (email, password)
         }
         test "Submit should fail if model is invalid" {
             let models = 
