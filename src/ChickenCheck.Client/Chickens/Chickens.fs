@@ -10,7 +10,7 @@ open ChickenCheck.Client
 open Fulma.Extensions.Wikiki
 open ChickenCheck.Client.Utils
 open ChickenCheck.Client.ChickenCard
-open ChickenCheck.Domain
+open ChickenCheck.Backend
 
 
 let init =
@@ -18,29 +18,29 @@ let init =
       AddEggStatus = Map.empty
       RemoveEggStatus = Map.empty
       Errors = []
-      CurrentDate = Date.today }, [ CmdMsg.GetAllChickens ]
+      CurrentDate = Date.today }, [ CmdMsg.GetAllChickensWithEggs Date.today ]
 
 let toMsg = ChickenMsg >> CmdMsg.OfMsg
 
 let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * CmdMsg list =
     match msg with
 
-    | FetchedChickens chickens ->
-        let buildModel (c: Chicken) =
-            { Id = c.Id
-              Name = c.Name
-              ImageUrl = c.ImageUrl
-              Breed = c.Breed
-              TotalEggCount = EggCount.zero
-              EggCountOnDate  = EggCount.zero }
+    | FetchedChickensWithEggs chickens ->
+        let buildModel { Chicken = chicken; OnDate = onDateCount; Total = totalCount } =
+            chicken.Id,
+            { Id = chicken.Id
+              Name = chicken.Name
+              ImageUrl = chicken.ImageUrl
+              Breed = chicken.Breed
+              TotalEggCount = totalCount
+              EggCountOnDate  = onDateCount }
             
-        let cmds =
-            [ CmdMsg.GetEggCountOnDate model.CurrentDate
-              CmdMsg.GetTotalEggCount ]
-              
+        let newChickens =
+            chickens |> List.map buildModel |> Map.ofList 
+            
         { model with 
-            Chickens = chickens |> List.map (fun c -> c.Id, buildModel c) |> Map.ofList },
-            cmds
+            Chickens = newChickens },
+            [ CmdMsg.NoCmdMsg ]
             
     | AddError msg ->
         { model with Errors = msg :: model.Errors }, 
@@ -62,20 +62,6 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * CmdMsg lis
                 [ CmdMsg.NoCmdMsg ]
         else
             model, 
-            [ CmdMsg.NoCmdMsg ]
-
-    | FetchedTotalCount totalCount -> 
-        if totalCount |> Map.isEmpty then
-            model, 
-            [ "TotalCount map was empty" |> AddError  |> toMsg ]
-        else
-            let updateEggCount id (model:ChickenDetails) =
-                match totalCount |> Map.tryFind id with
-                | Some newCount ->
-                    { model with TotalEggCount = newCount }
-                | None -> model
-                
-            { model with Chickens = model.Chickens |> Map.map updateEggCount }, 
             [ CmdMsg.NoCmdMsg ]
 
     | ClearErrors -> 
@@ -189,29 +175,30 @@ let view = elmishView "Chickens" (fun (props:ChickensProps) ->
     let hasErrors = model.Errors |> List.isEmpty |> not
 
     let listView = 
-        let batched =
-            props.Model.Chickens 
-            |> Map.toList
-            |> List.map snd
-            |> List.sortBy (fun c -> c.Name)
-            |> List.map (fun c -> c.Id)
-            |> List.batchesOf 3 
+        let cardViewRows = 
+            let idsInBatchOf n =
+                let idsSortedByName =
+                    props.Model.Chickens 
+                    |> Map.values
+                    |> List.sortBy (fun c -> c.Name)
+                    |> List.map (fun c -> c.Id)
+                    
+                idsSortedByName 
+                |> List.batchesOf n
+                
+            let cardView chickenId =
+                { Model = props.Model
+                  Id = chickenId
+                  AddEgg = (ChickenMsg.AddEgg >> ChickenMsg >> props.Dispatch)
+                  RemoveEgg = (ChickenMsg.RemoveEgg >> ChickenMsg >> props.Dispatch) }
+                |> ChickenCard.view
+                
+            let cardViewRow ids = List.map cardView ids
+            
+            idsInBatchOf 3
+            |> List.map cardViewRow
 
-        let batchedCardViews =
-            batched
-            |> List.map
-                (fun batch ->
-                    batch
-                    |> List.map
-                        (fun chickenId ->
-                            let props =
-                                { Model = props.Model
-                                  Id = chickenId
-                                  AddEgg = (ChickenMsg.AddEgg >> ChickenMsg >> props.Dispatch)
-                                  RemoveEgg = (ChickenMsg.RemoveEgg >> ChickenMsg >> props.Dispatch) }
-                            ChickenCard.view props))
-
-        batchedCardViews
+        cardViewRows
         |> List.map (Columns.columns []) 
         |> Container.container []
     

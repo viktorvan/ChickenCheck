@@ -4,44 +4,40 @@ open ChickenCheck.Domain
 open FsToolkit.ErrorHandling
 open FSharp.Data
 open ChickenCheck.Infrastructure.SqlHelpers
-open Store.Chicken
-
 
 type internal GetChickensSql = SqlCommandProvider<"
                         SELECT TOP 100 c.Id, c.Name, c.Breed, c.ImageUrl FROM Chicken c
                         ORDER BY c.Name
                         ", DevConnectionString>
 
-let getChickens (ConnectionString conn) : GetChickens =
+let getChickens (ConnectionString conn) =
     let toDomain (entity:GetChickensSql.Record) =
         result {
-            let! id = entity.Id |> ChickenId.create |> Result.mapError toDatabaseError
+            let! id = entity.Id |> ChickenId.create
             let! name = 
                 entity.Name 
                 |> String200.create "name" 
-                |> Result.mapError toDatabaseError
             let! breed = 
                 entity.Breed 
                 |> String200.create "breed" 
-                |> Result.mapError toDatabaseError
             let! imageUrl = 
                 entity.ImageUrl 
-                |> Option.map (ImageUrl.create >> (Result.mapError toDatabaseError)) 
-                |> Option.sequenceResult
+                |> Option.traverseResult ImageUrl.create 
             return 
                 { Chicken.Id = id
                   Name = name
                   Breed = breed
                   ImageUrl = imageUrl }
-        }
+        } |> throwOnParsingError
 
     fun () ->
-        asyncResult {
-            try
-                use cmd = new GetChickensSql(conn)
-                let! result = cmd.AsyncExecute()
-                return! result |> Seq.map toDomain |> Seq.toList |> List.sequenceResultM
-            with exn -> return! exn.ToString() |> DatabaseError |> Error
+        async {
+            use cmd = GetChickensSql.Create(conn)
+            let! result = cmd.AsyncExecute()
+            return 
+                result 
+                |> Seq.map toDomain 
+                |> Seq.toList 
         }
 
 type internal GetEggCountOnDateSql = SqlCommandProvider<"
@@ -51,30 +47,28 @@ type internal GetEggCountOnDateSql = SqlCommandProvider<"
                             GROUP BY c.Id
                             ", DevConnectionString>
 
-let getEggCountOnDate (ConnectionString conn) : GetEggCountOnDate =
+let getEggCountOnDate (ConnectionString conn) =
     let toDomain (entity: GetEggCountOnDateSql.Record) =
         result {
             let! chickenId = 
                 entity.ChickenId 
                 |> ChickenId.create 
-                |> Result.mapError toDatabaseError
             let! eggsOrZero = 
                 Option.defaultValue 0 entity.EggCount 
                 |> NaturalNum.create 
                 |> Result.map EggCount
-                |> Result.mapError toDatabaseError
             return chickenId, eggsOrZero
-        }
+        } |> throwOnParsingError
 
-    fun date ->
-        let dateTime = System.DateTime(date.Year, date.Month, date.Day)
-        asyncResult {
-            try
-                use cmd = new GetEggCountOnDateSql(conn)
-                let! result = cmd.AsyncExecute(dateTime)
-                let! domainResult = result |> Seq.map toDomain |> Seq.toList |> List.sequenceResultM
-                return (domainResult |> Map.ofList)
-            with exn -> return! exn.ToString() |> DatabaseError |> Error
+    fun { Date.Year = year; Month = month; Day = day } ->
+        let dateTime = System.DateTime(year, month, day)
+        async {
+            use cmd = GetEggCountOnDateSql.Create(conn)
+            let! result = cmd.AsyncExecute(dateTime)
+            return 
+                result 
+                |> Seq.map toDomain 
+                |> Map.ofSeq
         }
 
 type internal GetTotalEggCountSql = SqlCommandProvider<"
@@ -83,30 +77,28 @@ type internal GetTotalEggCountSql = SqlCommandProvider<"
                             GROUP BY c.Id
                             ", DevConnectionString>
 
-let getTotalEggCount (ConnectionString conn) : GetTotalEggCount =
+let getTotalEggCount (ConnectionString conn) =
     let toDomain (entity: GetTotalEggCountSql.Record) =
         result {
             let! id = 
                 entity.ChickenId 
                 |> ChickenId.create 
-                |> Result.mapError toDatabaseError
             let! count = 
                 entity.EggCount 
                 |> Option.defaultValue 0 
                 |> NaturalNum.create 
                 |> Result.map EggCount 
-                |> Result.mapError toDatabaseError
             return id, count
-        }
+        } |> throwOnParsingError
 
     fun () ->
-        asyncResult {
-            try
-                use cmd = new GetTotalEggCountSql(conn)
-                let! result = cmd.AsyncExecute()
-                let! mapped = result |> Seq.map toDomain |> Seq.toList |> List.sequenceResultM
-                return mapped |> Map.ofList
-            with exn -> return! exn.ToString() |> DatabaseError |> Error
+        async {
+            use cmd = GetTotalEggCountSql.Create(conn)
+            let! result = cmd.AsyncExecute()
+            return 
+                result 
+                |> Seq.map toDomain 
+                |> Map.ofSeq
         }
 
 type internal AddEggSql = SqlCommandProvider<"
@@ -137,15 +129,14 @@ type internal AddEggSql = SqlCommandProvider<"
                             END
                             ", DevConnectionString>
 
-let addEgg (ConnectionString conn) : AddEgg =
-    fun (chickenId, (date: Date)) ->
-        let date = System.DateTime(date.Year, date.Month, date.Day)
-        asyncResult {
-            try
-                use cmd = new AddEggSql(conn)
-                let! _ = cmd.AsyncExecute(chickenId.Value, date, System.DateTime.Now)
-                return ()
-            with exn -> return! exn.ToString() |> DatabaseError |> Error
+let addEgg (ConnectionString conn) =
+    fun (ChickenId id, { Year = year; Month = month; Day = day }) ->
+        let date = System.DateTime(year, month, day)
+        async {
+            use cmd = AddEggSql.Create(conn)
+            return!
+                cmd.AsyncExecute(id, date, System.DateTime.Now) 
+                |> Async.Ignore
         }
 
 type internal RemoveEggSql = SqlCommandProvider<"
@@ -176,21 +167,10 @@ type internal RemoveEggSql = SqlCommandProvider<"
                             END
                             ", DevConnectionString>
 
-let removeEgg (ConnectionString conn) : RemoveEgg =
-    fun (chickenId, (date: Date)) ->
+let removeEgg (ConnectionString conn) =
+    fun (ChickenId id, (date: Date)) ->
         let date = System.DateTime(date.Year, date.Month, date.Day)
-        asyncResult {
-            try
-                use cmd = new RemoveEggSql(conn)
-                let! _ = cmd.AsyncExecute(chickenId.Value, date, System.DateTime.Now)
-                return ()
-            with exn -> return! exn.ToString() |> DatabaseError |> Error
+        async {
+            use cmd = RemoveEggSql.Create(conn)
+            return! cmd.AsyncExecute(id, date, System.DateTime.Now) |> Async.Ignore
         }
-
-type internal GetEggDataSql = SqlCommandProvider<"
-                            SELECT ChickenId, Date, Sum(EggCount) AS EggCount
-                            FROM Egg
-                            GROUP BY ChickenId, Date
-                            " , DevConnectionString>
-
-let handleExn (exn: System.Exception) = exn.ToString() |> DatabaseError |> Error

@@ -12,17 +12,25 @@ open System
 open Microsoft.Extensions.Logging
 
 
+let debugErrorHandler (ex: Exception) (routeInfo: RouteInfo<HttpContext>) = 
+    // do some logging
+    printfn "Error at %s on method %s" routeInfo.path routeInfo.methodName
+    printfn "%O" ex
+    // decide whether or not you want to propagate the error to the client
+    Ignore
+
 let webApp : HttpHandler =
-    let commandApi =
+    let api =
         Remoting.createApi()
         |> Remoting.fromValue chickenApi
         |> Remoting.withRouteBuilder Api.routeBuilder
         #if DEBUG
+        |> Remoting.withErrorHandler debugErrorHandler
         |> Remoting.withDiagnosticsLogger (printfn "%s")
         #endif
         |> Remoting.buildHttpHandler
 
-    choose [ commandApi ]
+    choose [ api ]
 
 module Http =
     [<FunctionName("api")>]

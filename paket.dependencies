@@ -20,6 +20,7 @@ group Backend
     nuget Fable.Remoting.Server
     nuget Fable.Remoting.Giraffe
     nuget Microsoft.AspNetCore.Cryptography.KeyDerivation
+    nuget FSharpPlus
 
 group BackendLocal
     source https://api.nuget.org/v3/index.json
@@ -36,6 +37,7 @@ group Infrastructure
     nuget FSharp.Core 4.7.0
     nuget FsToolkit.ErrorHandling
     nuget FSharp.Data.SqlClient
+    nuget FSharpPlus
 
 group Client
     source https://api.nuget.org/v3/index.json

@@ -10,29 +10,25 @@ open FsToolkit.ErrorHandling
 
 let private securityKey (secret: string) = secret |> Encoding.UTF8.GetBytes |> SymmetricSecurityKey
 
-let generateToken : GenerateToken = 
+let generateToken = 
     fun tokenSecret username ->
-        try
-            let claims = [| Claim(JwtRegisteredClaimNames.Sub, username) |]
-            let expires = Nullable(DateTime.UtcNow.AddDays(7.0))
-            let notBefore = Nullable(DateTime.UtcNow)
-            let signingCredentials = SigningCredentials(key = securityKey tokenSecret, algorithm = SecurityAlgorithms.HmacSha256)
+        let claims = [| Claim(JwtRegisteredClaimNames.Sub, username) |]
+        let expires = Nullable(DateTime.UtcNow.AddDays(7.0))
+        let notBefore = Nullable(DateTime.UtcNow)
+        let signingCredentials = SigningCredentials(key = securityKey tokenSecret, algorithm = SecurityAlgorithms.HmacSha256)
 
-            let token =
-                JwtSecurityToken(
-                    issuer = "chickencheck",
-                    audience = "chickencheck",
-                    claims = claims,
-                    expires = expires,
-                    notBefore = notBefore,
-                    signingCredentials = signingCredentials)
-            JwtSecurityTokenHandler().WriteToken(token)
-            |> String1000.create "security token" |> Result.mapError (fun _ -> TokenGenerationFailed "invalid token length")
-            |> Result.map ChickenCheck.Domain.SecurityToken 
-        with exn -> 
-            exn.Message
-            |> TokenGenerationFailed
-            |> Error
+        let token =
+            JwtSecurityToken(
+                issuer = "chickencheck",
+                audience = "chickencheck",
+                claims = claims,
+                expires = expires,
+                notBefore = notBefore,
+                signingCredentials = signingCredentials)
+        JwtSecurityTokenHandler().WriteToken(token)
+        |> String1000.create "security token"
+        |> Result.defaultWith (fun () -> invalidArg "token" "invalid token length")
+        |> ChickenCheck.Domain.SecurityToken 
 
 let private validateToken tokenSecret (SecurityToken token) =
     let tokenValidationParameters =
@@ -46,10 +42,9 @@ let private validateToken tokenSecret (SecurityToken token) =
         validationParams.IssuerSigningKey <- securityKey tokenSecret
         validationParams
     try
-        let handler = JwtSecurityTokenHandler()
-        let _ = handler.ValidateToken(token.Value, tokenValidationParameters, ref null)
-
-        Ok ()
+        JwtSecurityTokenHandler().ValidateToken(token.Value, tokenValidationParameters, ref null) 
+        |> ignore 
+        |> Ok
     with 
         | :? SecurityTokenInvalidLifetimeException | :? SecurityTokenExpiredException -> 
             UserTokenExpired |> Error

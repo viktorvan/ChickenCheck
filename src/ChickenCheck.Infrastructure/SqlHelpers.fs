@@ -2,11 +2,14 @@
 
 open ChickenCheck.Domain
 open System
+open FsToolkit.ErrorHandling
 
 [<Literal>]
 let DevConnectionString = "Data Source=.;Initial Catalog=ChickenCheck;User ID=sa;Password=hWfQm@s62[CJX9ypxRd8"
 
 let now() = DateTime.UtcNow
 
-let toDatabaseError (ValidationError (param,msg)) =
-    (param,msg) ||> sprintf "Failed to parse data from database %s %s" |> DatabaseError
+let inline throwOnParsingError result = 
+    result 
+    |> Result.defaultWith (fun () -> invalidArg "entity" "could not parse database entity to domain")
+    

@@ -1,16 +1,8 @@
 group Client
-    FSharp.Core
-    Fable.Elmish.Debugger
-    Fable.Elmish.React
-    Fable.Elmish.HMR
-    Fable.Elmish.Browser
-    Fable.Core
-    Fable.Remoting.Client
-    FsToolkit.Errorhandling
-    Fulma
-    Fable.FontAwesome.Free
-    Fulma.Elmish
-    Fulma.Extensions.Wikiki.Calendar
-    Fable.SimpleJson
-    Fulma.Extensions.Wikiki.PageLoader
-    Fulma.Extensions.Wikiki.Quickview
+Fable.Elmish.Debugger
+Fable.Elmish.HMR
+Fable.Remoting.Client
+FsToolkit.Errorhandling
+Fulma.Elmish
+Fulma.Extensions.Wikiki.PageLoader
+Fulma.Extensions.Wikiki.Quickview

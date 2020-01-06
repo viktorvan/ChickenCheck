@@ -47,44 +47,46 @@ let validModel =
 [<Tests>]
 let tests =
     testList "Session.update" [
-        test "On LoginCompleted Sets ApiCallStatus = Completed" {
-            let msg = LoginCompleted session
-            let newModel, _ = Session.update msg validModel
-            newModel.LoginStatus =! Completed
-        }
-        test "On LoginCompleted send SignedIn msg" {
-            let msg = LoginCompleted session
-            let _, cmds = Session.update msg validModel
-            let expectedCmd = SignedIn session |> CmdMsg.OfMsg
-            cmds.[0] =! expectedCmd
-        }
-        test "On Submit should set LoginStatus to running" {
+        test "On Submit sets LoginStatus to running" {
             let model, _ = Session.update Submit validModel
-            model.LoginStatus =! Running
+            model =! { validModel with LoginStatus = Running }
         }
         test "On Submit should send createSession" {
             let _, cmds = Session.update Submit validModel
-            cmds.[0] =! CmdMsg.CreateSession (email, password)
+            cmds =! [ CmdMsg.CreateSession (email, password) ]
         }
-        test "Submit should fail if model is invalid" {
-            let models = 
-                [ { validModel with Email = StringInput.Empty }
-                  { validModel with Email = StringInput.Invalid "abc" }
-                  { validModel with Password = StringInput.Empty }
-                  { validModel with Password = StringInput.Invalid "abc" }
-                  { validModel with 
-                      Email = StringInput.Empty
-                      Password = StringInput.Empty } ]
-            models
-            |> List.iter 
-                (fun model ->
-                    toAction2 Session.update Submit model
-                    |> Expect.throwsWithMessage "tried to submit invalid form")
+
+        [ { validModel with Email = StringInput.Empty }
+          { validModel with Email = StringInput.Invalid "abc" }
+          { validModel with Password = StringInput.Empty }
+          { validModel with Password = StringInput.Invalid "abc" }
+          { validModel with 
+              Email = StringInput.Empty
+              Password = StringInput.Empty } ]
+        |> List.map (fun model -> test "Submit should throw if model is invalid" {
+            toAction2 Session.update Submit model
+            |> Expect.throwsWithMessage "tried to submit invalid form"
+        })
+        |> testList "Submit with invalid models"
+
+        test "On LoginCompleted Sets ApiCallStatus = Completed" {
+            let msg = LoginCompleted session
+            let newModel, _ = Session.update msg validModel
+            newModel =! { validModel with LoginStatus = Completed }
         }
+
+        test "On LoginCompleted sends SignedIn msg" {
+            let msg = LoginCompleted session
+            let _, cmds = Session.update msg validModel
+            let expectedCmd = SignedIn session |> CmdMsg.OfMsg
+            cmds =! [ expectedCmd ]
+        }
+
         test "On AddError should add error message and set LoginStatus to completed" {
             let msg = SessionMsg.AddError "something failed"
             let model, _ = Session.update msg validModel
-            model.Errors =! [ "something failed" ]
-            model.LoginStatus =! ApiCallStatus.Completed
+            model =! { validModel with
+                        Errors = [ "something failed"]
+                        LoginStatus = Completed }
         }
     ]

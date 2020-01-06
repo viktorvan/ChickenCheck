@@ -11,13 +11,13 @@ let callSecureApi apiToken apiFunc arg successMsg errorMsg =
 
     let ofSuccess = function
         | Ok res -> res |> successMsg
-        | Result.Error (err:DomainError) -> 
+        | Result.Error (err:AuthenticationError) ->
             match err with
-            | Authentication (UserTokenExpired) -> 
+            | UserTokenExpired -> 
                 SessionHandler.expired.Trigger()
                 "Token expired" |> errorMsg
-            | _ ->
-                err.ErrorMsg |> errorMsg
+            | TokenInvalid _ ->
+                Signout
     let ofError _ = "Serverfel" |> errorMsg
     Cmd.OfAsync.either apiFunc request ofSuccess ofError
 
@@ -28,10 +28,6 @@ let createSession apiFunc query =
         | Error err ->
             let msg =
                 match err with
-                | Login l ->
-                    match l with
-                    | UserDoesNotExist -> "Användaren saknas"
-                    | PasswordIncorrect -> "Fel lösenord"
                 | _ -> GeneralErrorMsg
             msg |> SessionMsg.AddError |> SessionMsg
 

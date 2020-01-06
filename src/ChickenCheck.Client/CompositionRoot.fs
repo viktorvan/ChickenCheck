@@ -30,7 +30,13 @@ module CmdMsg =
     let toCmd =
         let toCmd' session cmdMsg =
             match cmdMsg with
-            | CmdMsg.GetAllChickens -> notImplemented()
+            | CmdMsg.GetAllChickensWithEggs date ->
+                callSecureApi
+                    (getToken session)
+                    chickenApi.GetAllChickensWithEggs
+                    date
+                    (FetchedChickensWithEggs >> ChickenMsg)
+                    (AddError >> ChickenMsg)
 
             | CmdMsg.GetEggCountOnDate date ->
                 callSecureApi
@@ -38,14 +44,6 @@ module CmdMsg =
                     chickenApi.GetEggCountOnDate
                     date
                     (fun count -> (date, count) |> FetchedEggCountOnDate |> ChickenMsg)
-                    (AddError >> ChickenMsg)
-
-            | CmdMsg.GetTotalEggCount ->
-                callSecureApi
-                    (getToken session)
-                    chickenApi.GetTotalEggCount
-                    ()
-                    (FetchedTotalCount >> ChickenMsg)
                     (AddError >> ChickenMsg)
 
             | CmdMsg.AddEgg (id, date) ->
@@ -76,10 +74,10 @@ module CmdMsg =
         let fromCmdMsgs session cmdMsgs =
             match cmdMsgs with
             | [] -> Cmd.none
-            | [ cmdMsg ] -> cmdMsg |> toCmd' session
+//            | [ cmdMsg ] -> cmdMsg |> toCmd' session
             | cmdMsgs -> cmdMsgs |> List.map (toCmd' session) |> Cmd.batch
 
-        (fun (m: Model, cmds: CmdMsg list) -> m, (fromCmdMsgs m.Session cmds))
+        fun (model: Model, cmds: CmdMsg list) -> model, (fromCmdMsgs model.Session cmds)
 
 
 module Session =

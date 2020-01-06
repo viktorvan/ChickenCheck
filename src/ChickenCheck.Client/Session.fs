@@ -71,14 +71,16 @@ let view = Utils.elmishView "Session" (fun (props: SessionProps) ->
         let isValid, emailStr = model.Email |> StringInput.tryValid
         Field.div []
             [ Label.label [] [ str "Email" ]
-              Control.div [ Control.HasIconLeft; Control.HasIconRight ] 
+              Control.div 
+                  [ Control.HasIconLeft; Control.HasIconRight ] 
                   [ yield Input.email [ Input.Value emailStr
                                         Input.Placeholder "Email" 
                                         Input.OnChange (fun ev -> ev.Value |> ChangeEmail |> SessionMsg |> dispatch) 
                                         Input.Props [ Required true ] ] 
-                    yield Icon.icon [ Icon.Size IsSmall; Icon.IsLeft ] 
+                    yield Icon.icon 
+                        [ Icon.Size IsSmall; Icon.IsLeft ] 
                         [ Fa.i [ Fa.Solid.Envelope ] [] ] 
-                    if not isValid then yield Icon.icon [ Icon.Size IsSmall; Icon.IsRight ]
+                    if not isValid then yield Icon.icon [ Icon.Size IsSmall; Icon.IsRight ] 
                                                         [ Fa.i [ Fa.Solid.ExclamationTriangle] [] ]
                     if not isValid then yield Help.help [ Help.Color IsDanger ] [ str "Ogiltig epostadress"] ]]
 
@@ -86,12 +88,14 @@ let view = Utils.elmishView "Session" (fun (props: SessionProps) ->
         let isValid, pwStr = model.Password |> StringInput.tryValid
         Field.div []
             [ Label.label [] [ str "Lösenord" ]
-              Control.div [ Control.HasIconLeft; Control.HasIconRight ] 
+              Control.div 
+                  [ Control.HasIconLeft; Control.HasIconRight ] 
                   [ yield Input.password [ Input.Value pwStr
                                            Input.Placeholder "Lösenord" 
                                            Input.OnChange (fun ev -> ev.Value |> ChangePassword |> SessionMsg |> dispatch) 
                                            Input.Props [ Required true ] ] 
-                    yield Icon.icon [ Icon.Size IsSmall; Icon.IsLeft ] 
+                    yield Icon.icon 
+                        [ Icon.Size IsSmall; Icon.IsLeft ] 
                         [ Fa.i [ Fa.Solid.Key ] [] ] 
                     if not isValid then yield Icon.icon [ Icon.Size IsSmall; Icon.IsRight ]
                                                         [ Fa.i [ Fa.Solid.ExclamationTriangle] [] ]

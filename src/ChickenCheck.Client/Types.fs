@@ -1,4 +1,5 @@
 namespace ChickenCheck.Client
+open ChickenCheck.Backend
 open ChickenCheck.Domain
 
 
@@ -38,8 +39,7 @@ type ChickensModel =
       CurrentDate : Date
       Errors : string list }
 type ChickenMsg =
-    | FetchedChickens of Chicken list
-    | FetchedTotalCount of Map<ChickenId, EggCount>
+    | FetchedChickensWithEggs of GetAllChickensResponse list
     | FetchedEggCountOnDate of Date * Map<ChickenId, EggCount>
     | ChangeDate of Date
     | AddEgg of ChickenId * Date
@@ -75,24 +75,13 @@ type Msg =
 
 type CmdMsg =
     | OfMsg of Msg
-    | GetAllChickens
+    | GetAllChickensWithEggs of Date
     | GetEggCountOnDate of Date
-    | GetTotalEggCount
     | AddEgg of ChickenId * Date
     | RemoveEgg of ChickenId * Date
     | CreateSession of Email * Password
     | OfNewRoute of Router.Route
     | NoCmdMsg
-
-[<AutoOpen>]
-module DomainError =
-    let getClientErrorMsg error =
-        match error with
-        | Validation _ -> "Ogiltigt värde"
-        | Database _ | Duplicate | NotFound | ConfigMissing _ -> "Serverfel"
-        | Authentication _ | Login _ -> "Autentiseringsfel"
-    type DomainError with
-        member this.ErrorMsg = getClientErrorMsg this
     
 module StringInput = 
     let inline create createFunc =
@@ -109,18 +98,5 @@ module StringInput =
             false, value
         | StringInput.Empty -> 
             false, ""
-
-    let inline isValid input = input |> tryValid |> fst
-
-module OptionalStringInput =
-    let inline tryValid input = 
-        match input with
-        | StringInput.Valid a ->
-            let value = (^a : (member Value : string) a)
-            true, value
-        | StringInput.Invalid value -> 
-            false, value
-        | StringInput.Empty -> 
-            true, ""
 
     let inline isValid input = input |> tryValid |> fst

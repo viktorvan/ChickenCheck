@@ -3,32 +3,23 @@
 open System
 open FsToolkit.ErrorHandling
 
-
 type AsyncResult<'TResult, 'TError> = Async<Result<'TResult, 'TError>> 
 type ValidationError = ValidationError of Param : string * Message : string
-type DatabaseError = DatabaseError of Message : string
 type LoginError =
     | UserDoesNotExist
     | PasswordIncorrect
 type AuthenticationError =
     | UserTokenExpired
     | TokenInvalid of string
-    | UserDoesNotHaveAccess
-    | TokenGenerationFailed of string
 type DomainError = 
     | Validation of ValidationError
-    | Database of DatabaseError
-    | Login of LoginError
     | Authentication of AuthenticationError
-    | Duplicate
-    | NotFound
-    | ConfigMissing of Key: string
+    | Internal
 type NaturalNum = NaturalNum of int
 type String200 = String200 of string
 type String1000 = String1000 of string
 type Email = Email of string
 type SecurityToken = SecurityToken of String1000
-type GenerateToken = string -> string -> Result<SecurityToken, AuthenticationError>
 type SecureRequest<'T> = { Token: SecurityToken; Content: 'T }
 type Password = Password of string
 type PasswordHash = 
@@ -52,7 +43,11 @@ type Chicken =
       ImageUrl : ImageUrl option 
       Breed : String200 }
 type EggCount = EggCount of NaturalNum
-type Date = { _Year: int; _Month: int; _Day: int }
+type EggCountByChicken = Map<ChickenId, EggCount>
+type Date = 
+    { Year: int
+      Month: int
+      Day: int }
 
 [<RequireQualifiedAccess>]
 module Commands =
@@ -81,18 +76,6 @@ module Events =
         | ChickenEvent of ChickenEvent
     
 type ConnectionString = ConnectionString of string
-type AppendEvents = Events.DomainEvent list -> AsyncResult<unit, DatabaseError>
-
-module Store =
-    module User =
-        type GetUserByEmail = Email -> AsyncResult<User option, DatabaseError>
-    module Chicken =
-        type GetChickens = unit -> AsyncResult<Chicken list, DatabaseError>
-        type GetTotalEggCount = unit -> AsyncResult<Map<ChickenId, EggCount>, DatabaseError>
-        type GetEggCountOnDate = Date -> AsyncResult<Map<ChickenId, EggCount>, DatabaseError>
-        type AddEgg = ChickenId * Date -> AsyncResult<unit, DatabaseError>
-        type RemoveEgg = ChickenId * Date -> AsyncResult<unit, DatabaseError>
-        type GetEggData = unit -> AsyncResult<Map<ChickenId, EggCount> * Map<Date, NaturalNum>, DatabaseError>
     
 [<AutoOpen>]
 module Helpers =
@@ -212,7 +195,7 @@ module EggCount =
 
     let increase (EggCount num) =
         num
-        |> NaturalNum.map ((+) 1)
+        |> NaturalNum.map (fun value -> value + 1)
         |> Result.map EggCount
 
     let decrease (EggCount num) =
@@ -232,12 +215,13 @@ type EggCount with
 
 module Date =
     let create (date: DateTime) =
-        { _Year = date.Year
-          _Month = date.Month
-          _Day = date.Day }
-
+        { Year = date.Year
+          Month = date.Month
+          Day = date.Day }
+          
     let today = create DateTime.Today
-    let toDateTime (date: Date) = DateTime(date._Year, date._Month, date._Day)
+    
+    let toDateTime { Year = year; Month = month; Day = day } = DateTime(year, month, day)
 
     let addDays numDays date =
         date
@@ -246,10 +230,4 @@ module Date =
         |> create
 
 type Date with
-    member this.ToDateTime() =
-        Date.toDateTime this
-        
-    member this.Year = this._Year
-    member this.Month = this._Month
-    member this.Day = this._Day
-    
+    member this.ToDateTime() = Date.toDateTime this

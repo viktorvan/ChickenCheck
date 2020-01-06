@@ -1,4 +1,4 @@
 group Infrastructure
-    FSharp.Core
-    FsToolkit.ErrorHandling
-    FSharp.Data.SqlClient
+FsToolkit.ErrorHandling
+FSharp.Data.SqlClient
+FSharpPlus

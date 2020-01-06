@@ -5,7 +5,6 @@ open Elmish.React
 open Elmish.Navigation
 open Elmish.UrlParser
 open ChickenCheck.Client
-open ChickenCheck.Domain
 open Fulma
 open Fable.React
 open ChickenCheck.Client.Router
@@ -21,36 +20,27 @@ let private init' (optRoute : Router.Route option) =
           ActivePage = Page.Loading
           IsMenuExpanded = false
           Session = session
-          ShowReleaseNotes = false
-        }
+          ShowReleaseNotes = false }
 
     match session with
-    | Some _ ->
-        Routing.setRoute optRoute model
-    | None ->
-        Routing.setRoute (SessionRoute.Signin |> Session |> Some) model
-
+    | Some _ -> Routing.setRoute optRoute model
+    | None -> Routing.setRoute (SessionRoute.Signin |> Session |> Some) model
 
 // The update function computes the next state of the application based on the current state and the incoming events/messages
 // It can also run side-effects (encoded as commands) like calling the server via Http.
 // these commands in turn, can dispatch messages to which the update function will react.
 let update' (msg : Msg) (model : Model) : Model * CmdMsg list =
     match msg with
-    | SessionMsg msg ->
-        Session.handle msg model 
+    | SessionMsg msg -> Session.handle msg model 
 
-    | ChickenMsg msg -> 
-        Chickens.handle msg model 
+    | ChickenMsg msg -> Chickens.handle msg model 
 
-    | ToggleReleaseNotes ->
-        { model with ShowReleaseNotes = not model.ShowReleaseNotes }, [ CmdMsg.NoCmdMsg ]
+    | ToggleReleaseNotes -> { model with ShowReleaseNotes = not model.ShowReleaseNotes }, [ CmdMsg.NoCmdMsg ]
         
-    | ToggleMenu ->
-        { model with IsMenuExpanded = not model.IsMenuExpanded }, [ CmdMsg.NoCmdMsg ]
+    | ToggleMenu -> { model with IsMenuExpanded = not model.IsMenuExpanded }, [ CmdMsg.NoCmdMsg ]
         
     | SignedIn session ->
         SessionHandler.store session
-
         { model with 
             Session = Some session
             ActivePage = Session.init() |> Page.Signin }

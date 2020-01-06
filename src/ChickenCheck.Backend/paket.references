@@ -1,11 +1,9 @@
 group Backend
-    FSharp.Core
-    FsToolkit.ErrorHandling
-    Microsoft.Azure.WebJobs.Extensions.Storage
-    Microsoft.NET.Sdk.Functions
-    Microsoft.AspNetCore.Cors
-    System.IdentityModel.Tokens.Jwt
-    Giraffe
-    Fable.Remoting.Server
-    Fable.Remoting.Giraffe
-    Microsoft.AspNetCore.Cryptography.KeyDerivation
+FsToolkit.ErrorHandling
+Microsoft.Azure.WebJobs.Extensions.Storage
+Microsoft.NET.Sdk.Functions
+Microsoft.AspNetCore.Cors
+System.IdentityModel.Tokens.Jwt
+Fable.Remoting.Giraffe
+Microsoft.AspNetCore.Cryptography.KeyDerivation
+FSharpPlus
