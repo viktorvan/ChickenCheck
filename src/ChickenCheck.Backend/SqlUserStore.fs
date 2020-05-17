@@ -1,18 +1,21 @@
-﻿module ChickenCheck.Infrastructure.SqlUserStore
+﻿module ChickenCheck.Backend.SqlUserStore
 
 open ChickenCheck.Domain
 open FsToolkit.ErrorHandling
-open FSharp.Data
-open ChickenCheck.Infrastructure.SqlHelpers
+open Dapper
+open ChickenCheck.Backend.SqlHelpers
+open System
 
 
-type internal GetUserByEmailSql = SqlCommandProvider<"
-                        SELECT TOP 2 Id, Name, Email, PasswordHash, Salt FROM [USER]
-                        WHERE Email = @Email
-                        ", DevConnectionString, SingleRow=true>
+type internal UserEntity =
+    { Id: Guid
+      Name: string
+      Email: string
+      PasswordHash: string
+      Salt: string }
 
-let getUserByEmail (ConnectionString conn) =
-    let toDomain (entity:GetUserByEmailSql.Record) =
+let getUserByEmail (conn: ConnectionString) =
+    let toDomain (entity:UserEntity) =
         result {
             let hash = entity.PasswordHash |> PasswordHash.toByteArray
             let salt = entity.Salt |> PasswordHash.toByteArray
@@ -28,8 +31,11 @@ let getUserByEmail (ConnectionString conn) =
         
     fun (Email email) ->
         async {
-            use cmd = GetUserByEmailSql.Create(conn)
-            let! result = cmd.AsyncExecute(email)
+            let sql = """
+                        SELECT TOP 2 Id, Name, Email, PasswordHash, Salt FROM [USER]
+                        WHERE Email = @Email"""
+            use! connection = getConnection conn
+            let! result = querySingle connection sql !{| Email = email |}
             return Option.map toDomain result
         }
         

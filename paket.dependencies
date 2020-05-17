@@ -1,6 +1,6 @@
 group Domain
     source https://api.nuget.org/v3/index.json
-    framework: netcoreapp2.2
+    framework: netstandard2.0
     storage: none
 
     nuget FSharp.Core 4.7.0
@@ -8,40 +8,28 @@ group Domain
 
 group Backend
     source https://api.nuget.org/v3/index.json
-    framework: netcoreapp2.2
+    framework: netcoreapp3.1
     storage: none
+
+    nuget Giraffe
+    nuget Fable.Remoting.Giraffe ~> 3
 
     nuget FSharp.Core 4.7.0
     nuget FsToolkit.ErrorHandling
-    nuget Microsoft.Azure.WebJobs.Extensions.Storage 
-    nuget Microsoft.NET.Sdk.Functions 1.0.26
-    nuget Microsoft.AspNetCore.Cors
     nuget System.IdentityModel.Tokens.Jwt
     nuget Fable.Remoting.Server
-    nuget Fable.Remoting.Giraffe
     nuget Microsoft.AspNetCore.Cryptography.KeyDerivation
     nuget FSharpPlus
+    nuget System.Data.SqlClient
+    nuget Dapper
+    nuget FsConfig
+    nuget Microsoft.Extensions.Configuration.UserSecrets 
+    nuget Microsoft.ApplicationInsights.AspNetCore
 
-group BackendLocal
-    source https://api.nuget.org/v3/index.json
-    storage: none
-
-    source /Users/viktora/developer/my-nugets
-    nuget FakeUtils
-
-group Infrastructure
-    source https://api.nuget.org/v3/index.json
-    framework: netcoreapp2.2
-    storage: none
-
-    nuget FSharp.Core 4.7.0
-    nuget FsToolkit.ErrorHandling
-    nuget FSharp.Data.SqlClient
-    nuget FSharpPlus
 
 group Client
     source https://api.nuget.org/v3/index.json
-    framework: netcoreapp2.2
+    framework: netstandard2.0
     storage: none
 
     nuget Fable.Core ~> 3
@@ -78,7 +66,7 @@ group Migrations
 
     nuget Argu
     nuget Simple.Migrations
-    nuget System.Data.SqlClient
+    nuget System.Data.SqlClient 
 
 group Tests
     source https://www.nuget.org/api/v2
@@ -89,3 +77,17 @@ group Tests
     nuget Expecto
     nuget Unquote
     nuget Fable.Elmish ~> 3
+
+group Build
+
+    source https://www.nuget.org/api/v2
+    source https://api.nuget.org/v3/index.json
+    framework: netstandard2.0
+    nuget Fake.Core.Target 5.19.0
+    nuget Fake.Core.ReleaseNotes 5.19.0
+    nuget FAKE.Core.Environment 5.19.0
+    nuget FAKE.Core.Process 5.19.0
+    nuget Fake.DotNet.Cli 5.19.0
+    nuget Fake.IO.FileSystem 5.19.0
+    nuget Fake.Tools.Git 5.19.0
+    nuget Fake.BuildServer.TeamFoundation 5.19.0

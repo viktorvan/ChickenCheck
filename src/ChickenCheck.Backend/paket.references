@@ -1,9 +1,11 @@
 group Backend
 FsToolkit.ErrorHandling
-Microsoft.Azure.WebJobs.Extensions.Storage
-Microsoft.NET.Sdk.Functions
-Microsoft.AspNetCore.Cors
 System.IdentityModel.Tokens.Jwt
 Fable.Remoting.Giraffe
 Microsoft.AspNetCore.Cryptography.KeyDerivation
 FSharpPlus
+Dapper
+System.Data.SqlClient
+FsConfig
+Microsoft.Extensions.Configuration.UserSecrets
+Microsoft.ApplicationInsights.AspNetCore

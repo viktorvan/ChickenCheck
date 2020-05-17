@@ -19,8 +19,7 @@ let private init' (optRoute : Router.Route option) =
         { CurrentRoute = None
           ActivePage = Page.Loading
           IsMenuExpanded = false
-          Session = session
-          ShowReleaseNotes = false }
+          Session = session }
 
     match session with
     | Some _ -> Routing.setRoute optRoute model
@@ -35,8 +34,6 @@ let update' (msg : Msg) (model : Model) : Model * CmdMsg list =
 
     | ChickenMsg msg -> Chickens.handle msg model 
 
-    | ToggleReleaseNotes -> { model with ShowReleaseNotes = not model.ShowReleaseNotes }, [ CmdMsg.NoCmdMsg ]
-        
     | ToggleMenu -> { model with IsMenuExpanded = not model.IsMenuExpanded }, [ CmdMsg.NoCmdMsg ]
         
     | SignedIn session ->
@@ -71,10 +68,9 @@ let view model dispatch =
 
     let isLoggedIn = model.Session.IsSome
 
-    let toggleReleaseNotes _ = dispatch ToggleReleaseNotes
 
     div [] 
-        [ yield ReleaseNotesView.view { IsActive = model.ShowReleaseNotes; ToggleReleaseNotes = toggleReleaseNotes }
+        [ 
           if isLoggedIn then
               yield Navbar.view { Model = model; Dispatch = dispatch }
           yield div [] [ pageHtml model.ActivePage ] ] 

@@ -2,7 +2,6 @@ module ChickenCheck.Client.CompositionRoot
 
 open ChickenCheck.Client
 open ChickenCheck.Domain
-open ChickenCheck.Backend
 open Fable.Remoting.Client
 open Elmish
 open ChickenCheck.Client.ApiHelpers
@@ -17,7 +16,7 @@ let private getToken session =
 
 let private chickenApi : IChickenApi =
     Remoting.createApi()
-    |> Remoting.withRouteBuilder Api.routeBuilder
+    |> Remoting.withRouteBuilder Route.builder
     #if !DEBUG
     |> Remoting.withBaseUrl "https://chickencheck-functions.azurewebsites.net"
     #endif

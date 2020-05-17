@@ -3,7 +3,6 @@
 open ChickenCheck.Domain
 open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
-open ChickenCheck.Infrastructure
 open System
 open FSharpPlus
 

@@ -1,31 +1,23 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.2</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
-    <DisableAutoSetFscCompilerPath>true</DisableAutoSetFscCompilerPath>
-    <DotnetFscCompilerPath></DotnetFscCompilerPath>
+    <UserSecretsId>f1dcbf68-77d8-40ba-807d-b98d9be91d5e</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="Api.fs" />
+    <Compile Include="Configuration.fs" />
     <Compile Include="Authentication.fs" />
+    <Compile Include="SqlHelpers.fs" />
+    <Compile Include="SqlUserStore.fs" />
+    <Compile Include="SqlChickenStore.fs" />
+    <Compile Include="SqlStore.fs" />
     <Compile Include="CompositionRoot.fs" />
-    <Compile Include="Functions.fs" />
+    <Compile Include="Server.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\ChickenCheck.Domain\ChickenCheck.Domain.fsproj" />
-    <ProjectReference Include="..\ChickenCheck.Infrastructure\ChickenCheck.Infrastructure.fsproj" />
     <ProjectReference Include="..\ChickenCheck.PasswordHasher.Console\ChickenCheck.PasswordHasher.Console.fsproj" />
   </ItemGroup>
-  <ItemGroup>
-    <Content Update="host.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </Content>
-    <Content Update="local.settings.json">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <CopyToPublishDirectory>Never</CopyToPublishDirectory>
-    </Content>
-  </ItemGroup>
-  <Import Project="../../fsc.props" />
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

@@ -1,5 +1,4 @@
 namespace ChickenCheck.Client
-open ChickenCheck.Backend
 open ChickenCheck.Domain
 
 
@@ -62,12 +61,10 @@ type Model =
     { CurrentRoute: Router.Route option
       Session: Session option
       IsMenuExpanded: bool
-      ActivePage: Page 
-      ShowReleaseNotes: bool }
+      ActivePage: Page }
       
 type Msg =
     | ToggleMenu
-    | ToggleReleaseNotes
     | SessionMsg of SessionMsg
     | ChickenMsg of ChickenMsg
     | SignedIn of Session

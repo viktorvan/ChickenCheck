@@ -15,10 +15,9 @@ $fa-font-path: "~@fortawesome/fontawesome-free/webfonts/";
 
 @import '~bulma/bulma.sass';
 @import "~bulma-pageloader/dist/css/bulma-pageloader.sass";
-@import "~bulma-quickview/dist/css/bulma-quickview.sass";
 
 .login-img { 
-    background: url(https://chickencheck.z6.web.core.windows.net/Images/Signin1.jpg) no-repeat center center fixed; 
+    background: url(/Images/Signin1.jpg) no-repeat center center fixed; 
     background-size: cover;
     text-align: center;
     text-justify: center;

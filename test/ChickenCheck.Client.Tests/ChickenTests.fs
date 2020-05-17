@@ -3,7 +3,6 @@ module ChickenCheck.Client.Tests.ChickenCardTests
 open Swensen.Unquote
 open Expecto
 open ChickenCheck.Domain
-open ChickenCheck.Backend
 open ChickenCheck.Client
 open System
 open TestHelpers

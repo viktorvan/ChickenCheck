@@ -1,166 +1,166 @@
-#r "paket:
-source https://api.nuget.org/v3/index.json
-nuget FSharp.Core 4.5.4
-nuget Fake.Core.Target
-nuget Fake.Core.ReleaseNotes
-nuget Fake.DotNet.Cli
-nuget Fake.Dotnet.Testing.Expecto
-nuget Fake.IO.FileSystem
-nuget Fake.Tools.Git
-nuget FSharp.Data
-nuget Newtonsoft.Json
-nuget Fake.Javascript.Yarn 
-github viktorvan/ViktorVan.Fake.AzureCLI Azure.fsx //"
-#load "./.fake/build.fsx/intellisense.fsx"
+#r "paket: groupref Build //"
+#load ".fake/build.fsx/intellisense.fsx"
+
 #if !FAKE
+#r "Facades/netstandard"
 #r "netstandard"
-#r "Facades/netstandard" // https://github.com/ionide/ionide-vscode-fsharp/issues/839#issuecomment-396296095
-
 #endif
-
-#nowarn "52"
-
-#load "./.fake/build.fsx/paket-files/viktorvan/ViktorVan.Fake.AzureCLI/Azure.fsx"
+#load "src/tools/common.fsx"
 open System
 open Fake.Core
-open Fake.Core.TargetOperators
 open Fake.DotNet
+open Fake.Tools
+open Fake.Core.TargetOperators
 open Fake.IO
+open Fake.IO.FileSystemOperators
 open Fake.IO.Globbing.Operators
-open Fake.JavaScript
-open ViktorVan.Fake
-
-let tee f x =
-    f x |> ignore
-    x
-
-module Config =
-    let clientPath = Path.getFullName "./src/ChickenCheck.Client"
-    let clientOutputPath = Path.combine clientPath "output"
-    let backendPath = Path.getFullName "./src/ChickenCheck.Backend"
-    let localBackendPath = Path.getFullName "./src/ChickenCheck.Backend.Local"
-    let backendProj = Path.combine backendPath "ChickenCheck.Backend.fsproj"
-    let backendBinPath =
-        match Environment.environVarOrDefault "CHICKENCHECK_CONFIGURATION" "debug" with
-        | "release" -> Path.combine backendPath "bin/Release/netcoreapp2.2"
-        | _ -> Path.combine backendPath "bin/Debug/netcoreapp2.2"
-
-    let deployPath = Path.getFullName "./deploy"
-    let backendDeployPath = Path.combine deployPath "ChickenCheck.Backend"
-    let clientDeployPath = Path.combine deployPath "ChickenCheck.Client/output"
-    let migrationsPath = "./src/ChickenCheck.Migrations"
-    let tokenSecret = Environment.environVarOrDefault "this isn't the secret you are looking for" "CHICKENCHECK_TOKEN_SECRET"
-    let releaseNotesFile = clientPath + "/ReleaseNotes.fs"
-
-module Tools =
-    let run cmd args workingDir =
-        let arguments =
-            args
-            |> String.split ' '
-            |> Arguments.OfArgs
-        Command.RawCommand(cmd, arguments)
-        |> CreateProcess.fromCommand
-        |> CreateProcess.withWorkingDirectory workingDir
-        |> CreateProcess.ensureExitCode
-        |> Proc.run
-        |> ignore
-
-    let runWithResult cmd args =
-        let raiseError (res: ProcessResult<ProcessOutput>) =
-            if res.ExitCode <> 0 then failwith res.Result.Error
-            else res
-
-        CreateProcess.fromRawCommand cmd args
-        |> CreateProcess.redirectOutput
-        |> Proc.run
-        |> raiseError
-    
-module AzureConfig =
-    let location = Environment.environVarOrDefault "CHICKENCHECK_AZURE_LOCATION" "westeurope" |> Azure.Location.parse
-    let appName = Environment.environVarOrDefault "CHICKENCHECK_AZURE_APPNAME" "chickencheck"
-    let resourceGroup = 
-        match Environment.environVarOrNone "CHICKENCHECK_AZURE_RESOURCEGROUP" with 
-        | Some rg -> rg |> Azure.ResourceGroupName
-        | None -> appName |> Azure.ResourceGroupName
-    let storageName = appName |> Azure.StorageAccountName.create
-    let devStorageName = appName |> sprintf "%sdev" |> Azure.StorageAccountName.create 
-    let storageSku = Environment.environVarOrDefault "CHICKENCHECK_AZURE_STORAGE_SKU" "standard_lrs" |> Azure.StorageSku.Parse
-    let functionsAppName = appName |> sprintf "%s-functions" |> Azure.FunctionsApp
-    let tenant = Environment.environVarOrNone "CHICKENCHECK_AZURE_TENANT" |> Option.map Azure.Tenant
-    let databaseServer = appName |> Azure.ServerName
-    let chickenCheckDatabase = appName |> sprintf "%sdb" |> Azure.DatabaseName
-
-    let private dbUsername = Environment.environVarOrNone "CHICKENCHECK_DATABASE_USERNAME" 
-    let private dbPassword = Environment.environVarOrNone "CHICKENCHECK_DATABASE_PASSWORD" 
-    let databaseCredentials = 
-        match dbUsername, dbPassword with
-        | Some user, Some pw ->
-            (user, pw) |> Azure.Credentials |> Some
-        | _ -> None
-
-let tryGetFakeVar key =
-    FakeVar.get key
-    |> function
-    | Some value -> value
-    | None -> sprintf "Could not read FAKE variable '%s'" key |> failwith
-
-let setStorageAccessKeyVar = FakeVar.set "StorageAccessKey"
-let getStorageAccessKeyVar() : Azure.AccessKey = tryGetFakeVar "StorageAccessKey" 
-let setStorageConnectionStringVar = FakeVar.set "StorageConnectionString"
-let getStorageConnectionStringVar() : Azure.ConnectionString = tryGetFakeVar "StorageConnectionString"
-let setChickenCheckDbConnectionString = FakeVar.set "ChickenCheckDbConnectionString"
-let getChickenCheckDbConnectionStringVar() : Azure.ConnectionString = tryGetFakeVar "ChickenCheckDbConnectionString"
-let setInstrumentationKeyVar = FakeVar.set "AppInsightsInstrumentationKey"
-let getInstrumentationKeyVar() : Azure.InstrumentationKey = tryGetFakeVar "AppInsightsInstrumentationKey"
+open Fake.BuildServer
 
 
-Target.create "Clean" <| fun _ ->
-    Shell.cleanDirs [ Config.deployPath; Config.clientOutputPath ]
-    !! "src/**/bin/**/*"
-    ++ "src/**/obj/**/*"
-    ++ "test/**/bin/**/*"
-    ++ "test/**/obj/**/*"
-    |> File.deleteAll
+//-----------------------------------------------------------------------------
+// Metadata and Configuration
+//-----------------------------------------------------------------------------
 
-// Build
-    
-Target.create "RestoreBackend" <| fun _ ->
-    DotNet.restore id Config.backendPath
-Target.create "BuildBackend" <| fun _ -> 
-    DotNet.build (fun p -> { p with Configuration = DotNet.BuildConfiguration.Release }) Config.backendPath
+let sln = "ChickenCheck.sln"
+let rootPath = __SOURCE_DIRECTORY__
+let outputDir = rootPath @@ "output"
+let src = rootPath @@ "src"
+let serverPath = src @@ "ChickenCheck.Backend"
+let serverProj = serverPath @@ "ChickenCheck.Backend.fsproj"
+let clientPath = src @@ "ChickenCheck.Client"
+let migrationsPath = src @@ "ChickenCheck.Migrations"
+let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.Client.Tests"
+let connectionString = "Data Source=.;Initial Catalog=ChickenCheck;User ID=sa;Password=hWfQm@s62[CJX9ypxRd8"
 
-Target.create "InstallClient" <| fun _ -> Yarn.install id
 
-Target.create "CompileFable" <| fun _ ->
-    (sprintf "webpack --config %s/webpack.config.js" Config.clientPath, id) ||> Yarn.exec
+let srcCodeGlob =
+    !! ( src  @@ "**/*.fs")
+    ++ ( src  @@ "**/*.fsx")
 
-Target.create "FullBuild" ignore
+let testsCodeGlob =
+    !! (__SOURCE_DIRECTORY__  @@ "test/**/*.fs")
+    ++ (__SOURCE_DIRECTORY__  @@ "test/**/*.fsx")
 
-// Development
-Target.create "SetupDevStorage" <| fun _ ->
-    let (connectionString, _) = Azure.Storage.createAccount AzureConfig.resourceGroup AzureConfig.devStorageName AzureConfig.location AzureConfig.storageSku
-    Azure.Functions.setLocalSettings Config.backendPath connectionString
+let srcGlob = src @@ "**/*.??proj"
+let testsGlob = __SOURCE_DIRECTORY__  @@ "test/**/*.??proj"
 
-Target.create "Run" <| fun _ ->
+let changelog = Fake.Core.Changelog.load "CHANGELOG.md"
+let semVersion = changelog.LatestEntry.SemVer.AsString
+let fullVersion =
+    if BuildServer.isLocalBuild then
+        semVersion
+    else
+        sprintf "%s.%s" semVersion TeamFoundation.Environment.BuildId
 
-    // let localSettings = Path.combine Config.backendPath "local.settings.json" |> Seq.singleton
-    // Shell.copy Config.backendBinPath localSettings
-    // DotNet.build (fun p -> { p with Configuration = DotNet.BuildConfiguration.Debug }) Config.backendPath
+//-----------------------------------------------------------------------------
+// Build Target Implementations
+//-----------------------------------------------------------------------------
 
-    // let backend = async { Azure.Functions.start Config.backendBinPath }
-    let backend = 
-        async { 
-            DotNet.exec 
-                (fun p -> 
-                    { p with WorkingDirectory = Config.localBackendPath }) 
-                "watch run" 
-                (sprintf "%s %s" Config.backendPath Config.backendBinPath) |> ignore 
-        }
-    let client = async { 
-        (sprintf "webpack-dev-server --config %s/webpack.config.js" Config.clientPath, id) 
-        ||> Yarn.exec }
+let clean _ =
+    [ "bin"; "temp"; outputDir ]
+    |> Shell.cleanDirs
 
-    let browser =
+    !! srcGlob
+    ++ testsGlob
+    |> Seq.collect(fun p ->
+        ["bin";"obj"]
+        |> Seq.map(fun sp ->
+            IO.Path.GetDirectoryName p @@ sp)
+        )
+    |> Shell.cleanDirs
+
+    [ "paket-files/paket.restore.cached" ]
+    |> Seq.iter Shell.rm
+
+let dotnetRestore _ = DotNet.restore id sln
+
+let runMigrations _ =
+    if BuildServer.isLocalBuild then
+        Common.runMigrations migrationsPath connectionString
+
+let installClient _ =
+    printfn "Node version:"
+    Common.node "--version" __SOURCE_DIRECTORY__
+    printfn "Yarn version:"
+    Common.yarn "--version" __SOURCE_DIRECTORY__
+    Common.yarn "install --frozen-lockfile" __SOURCE_DIRECTORY__
+
+let dotnetBuild ctx =
+    let args =
+        [
+            sprintf "/p:PackageVersion=%s" semVersion
+            "--no-restore"
+        ]
+    DotNet.build(fun c ->
+        { c with
+            Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+            Common =
+                c.Common
+                |> DotNet.Options.withAdditionalArgs args
+        }) sln
+
+let updateChangeLog  _ =
+    let printEntry sb (entry: Changelog.ChangelogEntry) =
+        Printf.bprintf sb
+            "            \"%s - %s\"\n"
+            entry.SemVer.AsString
+            (entry.Date |> Option.map (fun d -> d.ToString("yyyy-MM-dd")) |> Option.defaultValue "XXXX")
+    let sb = System.Text.StringBuilder("module ChangeLog\n\n")
+    Printf.bprintf sb "    let version = \"%s\"\n" fullVersion
+    Printf.bprintf sb "    let changelog =\n        [\n"
+    changelog.Entries |> Seq.iter (printEntry sb)
+    Printf.bprintf sb "        ]\n"
+
+    File.writeString false (clientPath @@ "ChangeLog.fs") (sb.ToString())
+
+let buildClient _ =
+    Common.yarn "webpack-cli -p" __SOURCE_DIRECTORY__
+
+let dotnetPublishServer ctx =
+    let args =
+        [
+            sprintf "/p:PackageVersion=%s" semVersion
+            "--no-restore"
+            "--no-build"
+        ]
+    DotNet.publish(fun c ->
+        { c with
+            Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+            Common =
+                c.Common
+                |> DotNet.Options.withAdditionalArgs args
+            OutputPath = outputDir @@ "Server" |> Some
+        }) serverProj
+
+let runUnitTests _ =
+    let args =
+        match BuildServer.isLocalBuild  with
+        | true -> ""
+        | false -> "--fail-on-focused-tests"
+    DotNet.exec (fun c ->
+        { c with WorkingDirectory = unitTestsPath }) "run" args
+    |> (fun res -> if not res.OK then failwithf "RunUnitTests failed")
+
+// Using DotNet.test to run the tests would give us better test result reporting in Azure DevOps, but:
+// There is a bug in DotNet.test that, it does not use RunSettingsArguments https://github.com/fsharp/FAKE/issues/2376
+// Until it is fixed we can run the tests with dotnet run (above) to be able to pass arguments.
+//let runUnitTests _ =
+//    DotNet.test
+//        (fun c ->
+//            { c with
+//                NoBuild = true
+//                RunSettingsArguments = Some "-- Expecto.fail-on-focused-tests=true" })
+//        sln
+
+let watchApp _ =
+
+    let server() = Common.DotNetWatch "run" serverPath
+
+    let client() = Common.yarn "webpack-dev-server --config webpack.config.js" clientPath
+
+    let functions() = ()
+
+    let browser() =
         let openBrowser url =
             //https://github.com/dotnet/corefx/issues/10361
             Command.ShellCommand url
@@ -168,251 +168,85 @@ Target.create "Run" <| fun _ ->
             |> CreateProcess.ensureExitCodeWithMessage "opening browser failed"
             |> Proc.run
             |> ignore
-        
-        async {
-            do! Async.Sleep 15000
-            openBrowser "http://localhost:8080"
-        }
-    [ backend; client; browser ]
-    |> Async.Parallel
-    |> Async.RunSynchronously
-    |> ignore
 
-// Infrastructure
+        System.Threading.Thread.Sleep 15000
+        openBrowser "http://localhost:8080"
 
-Target.create "AzureLogin" <| fun _ ->
-    // verify we are logged in to correct tenant
-    match AzureConfig.tenant with
-    | None -> invalidArg "AzureConfig.tenant" "Missing setting for Azure Tenant"
-    | Some tenant ->
-    let currentTenant = Azure.Account.getCurrentTenant()
-    if currentTenant <> tenant then failwith "Not logged in to expected azure tenant"
+    [ server; client; functions; browser ]
+    |> Seq.iter (Common.invokeAsync >> Async.Catch >> Async.Ignore >> Async.Start)
+    printfn "Press Ctrl+C (or Ctrl+Break) to stop..."
+    let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
+    cancelEvent.Cancel <- true
 
-Target.create "SetupResourceGroup" <| fun _ ->
-    Azure.ResourceGroup.create AzureConfig.location AzureConfig.resourceGroup |> ignore
+let watchTests _ =
+    !! testsGlob
+    |> Seq.map(fun proj -> fun () ->
+        Common.DotNetWatch "test" proj
+        |> ignore
+    )
+    |> Seq.iter (Common.invokeAsync >> Async.Catch >> Async.Ignore >> Async.Start)
 
-Target.create "SetupAppInsights" <| fun _ ->
-    Azure.AppInsights.create AzureConfig.resourceGroup AzureConfig.appName AzureConfig.location
-    |> setInstrumentationKeyVar
+    printfn "Press Ctrl+C (or Ctrl+Break) to stop..."
+    let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
+    cancelEvent.Cancel <- true
 
-Target.create "SetupStorageAccount" <| fun _ ->
-    let (connectionString, accessKey) =
-        Azure.Storage.createAccount AzureConfig.resourceGroup AzureConfig.storageName AzureConfig.location AzureConfig.storageSku 
+let gitTagBuild _ =
+    if BuildServer.isTFBuild then
+        let tag =
+            match TeamFoundation.Environment.BuildSourceBranchName with
+            | branch when branch = "master" -> sprintf "CI-%s" fullVersion
+            | branch -> sprintf "CI-%s-%s" fullVersion branch
 
-    setStorageConnectionStringVar connectionString
-    setStorageAccessKeyVar accessKey
-    Azure.Storage.enableStaticWebhosting AzureConfig.storageName "404.html" "index.html"
+        Git.Branches.tag "" tag
+        Git.Branches.pushTag "" "origin" tag
 
-Target.create "SetupFunctionsApp" <| fun _ ->
-    Azure.Functions.create AzureConfig.resourceGroup AzureConfig.location AzureConfig.functionsAppName AzureConfig.storageName
+//-----------------------------------------------------------------------------
+// Build Target Declaration
+//-----------------------------------------------------------------------------
 
-Target.create "SetupDatabase" <| fun _ ->
-    let getConnectionString credentials =
-        let withServerName (Azure.ServerName serverName) connectionString =
-            String.replace "<servername>" serverName connectionString
-        let withUsername user connectionString =
-            String.replace "<username>" user connectionString
-        let withPassword pw connectionString =
-            String.replace "<password>" pw connectionString
+Target.create "Clean" clean
+Target.create "DotnetRestore" dotnetRestore
+Target.create "RunMigrations" runMigrations
+Target.create "InstallClient" installClient
+Target.create "DotnetBuild" dotnetBuild
+Target.create "BuildClient" buildClient
+Target.create "UpdateChangeLog" updateChangeLog
+Target.create "RunUnitTests" runUnitTests
+Target.create "WatchApp" watchApp
+Target.create "WatchTests" watchTests
+Target.create "Build" ignore
+Target.create "DotnetPublishServer" dotnetPublishServer
+Target.create "Package" ignore
+Target.create "GitTagBuild" gitTagBuild
+Target.create "CreateRelease" ignore
 
-        let (connectionString: Azure.ConnectionString) = Azure.Sql.getConnectionString AzureConfig.chickenCheckDatabase 
+//-----------------------------------------------------------------------------
+// Build Target Dependencies
+//-----------------------------------------------------------------------------
 
-        let (Azure.Credentials (user, pw)) = credentials
-        connectionString.Val
-        |> withServerName AzureConfig.databaseServer
-        |> withUsername user
-        |> withPassword pw
-        |> Azure.ConnectionString.create
-
-    let getLocalIp() =
-        Tools.runWithResult "curl" [ "ifconfig.me" ]
-        |> (fun res -> res.Result.Output)
-
-    match AzureConfig.databaseCredentials with
-    | None -> failwith "Missing setting for database credentials"
-    | Some credentials ->
-        Azure.Sql.createDatabase AzureConfig.location AzureConfig.resourceGroup AzureConfig.databaseServer AzureConfig.chickenCheckDatabase credentials
-
-        let localIp = getLocalIp()
-        Azure.Sql.createFirewallRule AzureConfig.resourceGroup AzureConfig.databaseServer Environment.MachineName localIp
-
-        Azure.Sql.allowAccessFromAzureServices AzureConfig.resourceGroup AzureConfig.databaseServer
-
-        let connectionString = getConnectionString credentials 
-
-        setChickenCheckDbConnectionString connectionString
-
-// Deploy
-Target.create "PublishBackend" <| fun _ ->
-    DotNet.publish (fun o ->
-        { o with Configuration = DotNet.BuildConfiguration.Release
-                 OutputPath = Some Config.backendDeployPath }) Config.backendProj
-
-    let host = Path.combine Config.backendPath "host.json" 
-    Shell.copyFile Config.backendDeployPath host
-
-Target.create "BundleClient" <| fun _ ->
-    Shell.copyDir Config.clientDeployPath Config.clientOutputPath FileFilter.allFiles
-
-Target.create "Bundle" ignore
-
-Target.create "UploadWebsite" <| fun _ ->
-    let storageConnection = getStorageConnectionStringVar()
-    let blob = Azure.BlobName "$web"
-    Azure.Storage.deleteAll storageConnection blob
-    Azure.Storage.uploadBatchBlob Config.clientDeployPath storageConnection blob
-
-Target.create "DeployFunctionsApp" <| fun _ ->
-    Azure.Functions.deploy Config.backendDeployPath AzureConfig.functionsAppName
-
-    let (storageConnectionString: Azure.ConnectionString) = getStorageConnectionStringVar()
-    let (dbConnectionString: Azure.ConnectionString) = getChickenCheckDbConnectionStringVar()
-    let (Azure.InstrumentationKey instrumentationKey) = getInstrumentationKeyVar()
-    let settings = [ "CHICKENCHECK_CONNECTIONSTRING", dbConnectionString.Val 
-                     "CHICKENCHECK_TOKEN_SECRET", Config.tokenSecret
-                     "STORAGE_CONNECTION", storageConnectionString.Val
-                     "APPINSIGHTS_INSTRUMENTATIONKEY", instrumentationKey ] |> Map.ofList
-    Azure.Functions.setAppSettings AzureConfig.resourceGroup AzureConfig.functionsAppName settings
-
-Target.create "RunMigrations" <| fun _ ->
-    let (connectionString: Azure.ConnectionString) = getChickenCheckDbConnectionStringVar()
-    let args = sprintf "--connectionstring \"%s\"" connectionString.Val
-    DotNet.exec (fun o -> { o with WorkingDirectory = Config.migrationsPath }) "run" args
-    |> (fun res -> if not res.OK then String.Join(", ", res.Errors) |> failwith)
-
-Target.create "SetupInfrastructure" ignore
-
-Target.create "Deploy" ignore
-
-let releaseNotes = System.IO.File.ReadAllLines "RELEASE_NOTES.md"
-
-let release =
-    releaseNotes
-    |> ReleaseNotes.parse
-
-let private addGitTag() =
-    let tagName = release.NugetVersion
-
-    let addGitTag tag =
-        Trace.tracefn "Creating git tag %s" tagName
-        Fake.Tools.Git.Branches.tag "" tag
-        Trace.tracefn "Pushing git tag"
-        Fake.Tools.Git.Branches.pushTag "" "origin" tag
-
-    let deleteGitTag tag =
-        Fake.Tools.Git.Branches.deleteTag "" tag
-        sprintf "push origin :refs/tags/%s" tag 
-        |> Fake.Tools.Git.CommandHelper.runGitCommand ""
-        |> function
-        | (true, _, _) -> Trace.tracefn "deleted remote tag %s" tag
-        | (false, _, _) -> failwithf "failed delete remote tag %s" tag
-
-    let gitTagExists = 
-        let gitCommand = sprintf "tag -l %s" tagName 
-        Fake.Tools.Git.CommandHelper.runGitCommand "" gitCommand
-        |> function
-        | (true, existing , _) -> 
-            Trace.tracefn "found existing git tags %A" existing
-            existing |> List.contains tagName
-        | (false, _, _ ) -> sprintf "git command '%s' failed" gitCommand |> failwith
-
-    if gitTagExists then 
-        Trace.tracefn "git tag %s already exists, deleting..." tagName
-        deleteGitTag tagName
-    addGitTag tagName
-
-let private commitReleaseNoteFiles() =
-    Fake.Tools.Git.Staging.stageFile "" Config.releaseNotesFile |> ignore
-    Fake.Tools.Git.Staging.stageFile "" "RELEASE_NOTES.md" |> ignore
-    Fake.Tools.Git.Commit.exec "" (sprintf "Bumping version to %s" release.NugetVersion)
-    Fake.Tools.Git.Branches.pushBranch "" "origin" "master"
-
-Target.create "TagRelease" <| fun _ ->
-    commitReleaseNoteFiles()
-    addGitTag()
-
-Target.create "SetReleaseNotes" <| fun _ ->
-    let lines = [
-        "// auto-generated from RELEASE_NOTES.md"
-        ""
-        "module internal ReleaseNotes"
-        ""
-        (sprintf "let version = \"%s\"" release.NugetVersion)
-        ""
-        "let notes = \"\"\""] @ Array.toList releaseNotes @ [ "\"\"\"" ]
-    System.IO.File.WriteAllLines(Config.releaseNotesFile, lines)
-
-// Dependency order
-"SetupResourceGroup"
-    ==> "SetupDevStorage"
-
-"RestoreBackend" ==> "BuildBackend"
-"InstallClient" ==> "SetReleaseNotes" ==> "CompileFable"
-
-"BuildBackend" <=> "CompileFable"
-    ==> "FullBuild"
-
-"Clean" ?=> "RestoreBackend"
+// Only call Clean if 'Package' was in the call chain
+// Ensure Clean is called before 'DotnetRestore' and 'InstallClient'
+"Clean" ?=> "DotnetRestore"
 "Clean" ?=> "InstallClient"
+"Clean" ==> "Package"
+"UpdateChangeLog" ==> "BuildClient"
 
-"BuildBackend"
-    ==> "PublishBackend"
+"DotnetRestore" ==> "RunMigrations" ==> "DotNetBuild"
 
-"CompileFable"
-    ==> "BundleClient"
+"DotnetRestore" <=> "InstallClient"
+    ==> "DotnetBuild" ==> "BuildClient"
+    ==> "RunUnitTests"
+    ==> "Build"
+    ==> "DotnetPublishServer"
+    ==> "Package"
+    ==> "GitTagBuild"
+    ==> "CreateRelease"
 
-"Clean" 
-    ==> "PublishBackend" <=> "BundleClient" 
-    ==> "Bundle" 
+"DotnetRestore"
+    ==> "WatchTests"
 
-"BundleClient"
-    ==> "UploadWebsite"
+//-----------------------------------------------------------------------------
+// Start
+//-----------------------------------------------------------------------------
 
-"PublishBackend"
-    ==> "DeployFunctionsApp"
-
-"AzureLogin"
-    ==> "SetupResourceGroup"
-    ==> "SetupStorageAccount"
-    ==> "SetupDatabase"
-    ==> "SetupFunctionsApp" 
-    ==> "SetupInfrastructure"
-
-"SetupResourceGroup"
-    ==> "SetupDatabase"
-    ==> "SetupInfrastructure"
-
-"SetupStorageAccount"
-    ==> "SetupInfrastructure"
-
-"SetupStorageAccount"
-    ==> "UploadWebsite" 
-
-"SetupResourceGroup"
-    ==> "SetupAppInsights"
-    ==> "SetupInfrastructure"
-
-"SetupAppInsights"
-    ==> "DeployFunctionsApp"
-
-"SetupFunctionsApp"
-    ==> "DeployFunctionsApp"
-
-"SetupDatabase"
-    ==> "RunMigrations"
-
-"UploadWebsite" 
-   ==> "TagRelease"
-
-"DeployFunctionsApp" 
-    ==> "TagRelease"
-
-"RunMigrations"
-    ==> "TagRelease"
-
-"TagRelease"
-    ==> "Deploy"
-
-let ctx = Target.WithContext.runOrDefaultWithArguments "FullBuild"
-Target.updateBuildStatus ctx
-Target.raiseIfError ctx
+Target.runOrDefaultWithArguments "Build"

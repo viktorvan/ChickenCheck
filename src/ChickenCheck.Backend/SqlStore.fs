@@ -1,4 +1,4 @@
-﻿module ChickenCheck.Infrastructure.SqlStore
+﻿module ChickenCheck.Backend.SqlStore
 
 open ChickenCheck.Domain.Events
 open FsToolkit.ErrorHandling

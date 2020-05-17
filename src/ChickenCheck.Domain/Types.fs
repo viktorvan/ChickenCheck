@@ -1,7 +1,6 @@
 ﻿namespace ChickenCheck.Domain
 
 open System
-open FsToolkit.ErrorHandling
 
 type AsyncResult<'TResult, 'TError> = Async<Result<'TResult, 'TError>> 
 type ValidationError = ValidationError of Param : string * Message : string
@@ -231,3 +230,23 @@ module Date =
 
 type Date with
     member this.ToDateTime() = Date.toDateTime this
+
+
+type GetAllChickensResponse =
+    { Chicken: Chicken
+      OnDate: EggCount
+      Total: EggCount }
+
+
+type IChickenApi =
+    { CreateSession: (Email * Password) -> AsyncResult<Session, LoginError> 
+      GetAllChickensWithEggs: SecureRequest<Date> -> AsyncResult<GetAllChickensResponse list, AuthenticationError>
+      GetEggCountOnDate: SecureRequest<Date> -> AsyncResult<Map<ChickenId, EggCount>, AuthenticationError>
+      AddEgg: SecureRequest<ChickenId * Date> -> AsyncResult<unit, AuthenticationError> 
+      RemoveEgg: SecureRequest<ChickenId * Date> -> AsyncResult<unit, AuthenticationError> }
+
+
+module Route =
+    let builder typeName methodName =
+        sprintf "/api/%s/%s" typeName methodName
+

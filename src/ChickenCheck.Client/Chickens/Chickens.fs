@@ -10,7 +10,6 @@ open ChickenCheck.Client
 open Fulma.Extensions.Wikiki
 open ChickenCheck.Client.Utils
 open ChickenCheck.Client.ChickenCard
-open ChickenCheck.Backend
 
 
 let init =

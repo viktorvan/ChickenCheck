@@ -1,13 +1,13 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk">
     <PropertyGroup>
-        <TargetFramework>netcoreapp2.2</TargetFramework>
+        <TargetFramework>netstandard2.0</TargetFramework>
         <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+        <DefineConstants>FABLE_COMPILER</DefineConstants>
+
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="Utils.fs" />
-        <Compile Include="ReleaseNotes.fs" />
-        <Compile Include="ReleaseNotesView.fs" />
         <Compile Include="CollectionExtensions.fs" />
         <Compile Include="NotFound.fs" />
         <Compile Include="Logger.fs" />
@@ -28,7 +28,6 @@
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\ChickenCheck.Domain\ChickenCheck.Domain.fsproj" />
-      <ProjectReference Include="..\ChickenCheck.Backend\ChickenCheck.Backend.fsproj" />
     </ItemGroup>
     <ItemGroup>
       <EmbeddedResource Remove="Session\**" />

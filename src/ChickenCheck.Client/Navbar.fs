@@ -13,7 +13,6 @@ type NavbarProps =
 let view = elmishView "Navbar" (fun (props: NavbarProps) ->
     let dispatch = props.Dispatch
     let model = props.Model
-    let toggleReleaseNotes _ = dispatch ToggleReleaseNotes 
     Navbar.navbar 
         [ 
             Navbar.Color IsInfo 
@@ -31,11 +30,11 @@ let view = elmishView "Navbar" (fun (props: NavbarProps) ->
                         ]  
                     Navbar.burger 
                         [ 
-                            Props 
-                                [ 
-                                    OnClick (fun _ -> (dispatch ToggleMenu) )
-                                    classList [ "is-active", model.IsMenuExpanded; "navbar-burger", true ] 
-                                ] 
+                            // Props 
+                            //     [ 
+                            //         OnClick (fun _ -> (dispatch ToggleMenu) )
+                            //         classList [ "is-active", model.IsMenuExpanded; "navbar-burger", true ] 
+                            //     ] 
                         ] 
                         [
                             span [] []
@@ -47,11 +46,6 @@ let view = elmishView "Navbar" (fun (props: NavbarProps) ->
                 [
                     Navbar.End.div []
                         [
-                            Navbar.Item.a 
-                                [ Navbar.Item.Props [ OnClick toggleReleaseNotes ] ]
-                                [ 
-                                    sprintf "v%s" ReleaseNotes.version |> str
-                                ] 
                             Navbar.Item.a 
                                 [
                                     Navbar.Item.Props [ OnClick (fun _ -> Signout |> dispatch) ]
