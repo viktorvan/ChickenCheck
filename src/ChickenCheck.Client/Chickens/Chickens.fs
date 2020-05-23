@@ -1,30 +1,58 @@
 module ChickenCheck.Client.Chickens
 
+open ChickenCheck.Client
 open Fable.React
 open ChickenCheck.Domain
 open Elmish
 open System
 open Fulma
 open FsToolkit.ErrorHandling
-open ChickenCheck.Client
 open Fulma.Extensions.Wikiki
 open ChickenCheck.Client.Utils
 open ChickenCheck.Client.ChickenCard
 
 
-let init =
-    { Chickens = Map.empty
-      AddEggStatus = Map.empty
-      RemoveEggStatus = Map.empty
+let init token (api: IChickenApiCmds) =
+    { Chickens = HasNotStartedYet
       Errors = []
-      CurrentDate = Date.today }, [ CmdMsg.GetAllChickensWithEggs Date.today ]
+      CurrentDate = Date.today }, api.GetAllChickensWithEggs(token, Date.today)
 
-let toMsg = ChickenMsg >> CmdMsg.OfMsg
+let toMsg = ChickenMsg >> Cmd.ofMsg
 
-let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * CmdMsg list =
+let setIsLoading model state id =
+    let c =
+        model.Chickens
+        |> Deferred.map (fun chickens ->
+            chickens
+            |> Map.change id (Option.map (fun c -> { c with IsLoading = state }))
+            )
+    { model with Chickens = c }
+    
+let setStartLoading id model  = setIsLoading model true id
+let setStopLoading id model = setIsLoading model false id
+    
+let changeEggCount model id f =
+    let newChickens =
+        model.Chickens
+        |> Deferred.map (fun chickens ->
+            chickens
+            |> Map.change id (Option.map (fun c ->
+                { c with 
+                    EggCountOnDate = f c.EggCountOnDate
+                    TotalEggCount = f c.TotalEggCount  } ))
+        )
+    { model with Chickens = newChickens }
+        
+let increaseEggCount id model = changeEggCount model id EggCount.increase
+    
+let decreaseEggCount id model = changeEggCount model id EggCount.decrease
+
+let update token (api: IChickenApiCmds) (msg: ChickenMsg) (model: ChickensPageModel) : ChickensPageModel * Cmd<Msg>=
     match msg with
-
-    | FetchedChickensWithEggs chickens ->
+    | GetAllChickensWithEggs (Start date) ->
+        model, api.GetAllChickensWithEggs(token, date)
+        
+    | GetAllChickensWithEggs (Finished chickens) ->
         let buildModel { Chicken = chicken; OnDate = onDateCount; Total = totalCount } =
             chicken.Id,
             { Id = chicken.Id
@@ -32,24 +60,26 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * CmdMsg lis
               ImageUrl = chicken.ImageUrl
               Breed = chicken.Breed
               TotalEggCount = totalCount
-              EggCountOnDate  = onDateCount }
+              EggCountOnDate  = onDateCount
+              IsLoading = false }
             
         let newChickens =
             chickens |> List.map buildModel |> Map.ofList 
             
         { model with 
-            Chickens = newChickens },
-            [ CmdMsg.NoCmdMsg ]
+            Chickens = Deferred.Resolved newChickens }, Cmd.none
             
     | AddError msg ->
-        { model with Errors = msg :: model.Errors }, 
-        [ CmdMsg.NoCmdMsg ]
+        { model with Errors = msg :: model.Errors }, Cmd.none
+        
+    | GetEggCountOnDate (Start (date)) ->
+        model, api.GetEggCountOnDate(token, date)
 
-    | FetchedEggCountOnDate (date, countByChicken) -> 
+    | GetEggCountOnDate (Finished (date, countByChicken)) -> 
         if model.CurrentDate = date then
             if countByChicken |> Map.isEmpty then
                 model, 
-                [ "Count by date map was empty" |> AddError |> toMsg ]
+                "Count by date map was empty" |> AddError |> ChickenMsg |> Cmd.ofMsg
             else
                 let updateEggCount id (model:ChickenDetails) =
                     match countByChicken |> Map.tryFind id with
@@ -57,97 +87,40 @@ let update (msg: ChickenMsg) (model: ChickensModel) : ChickensModel * CmdMsg lis
                         { model with EggCountOnDate = newCount }
                     | None -> model
                     
-                { model with Chickens = model.Chickens |> Map.map updateEggCount }, 
-                [ CmdMsg.NoCmdMsg ]
+                model.Chickens
+                |> Deferred.map (fun chickens ->
+                    { model with Chickens = chickens |> Map.map updateEggCount |> Resolved }, Cmd.none
+                    )
+                |> Deferred.defaultValue (model, Cmd.none)
         else
-            model, 
-            [ CmdMsg.NoCmdMsg ]
+            model, Cmd.none
 
     | ClearErrors -> 
-        { model with Errors = [] }, 
-        [ CmdMsg.NoCmdMsg ]
+        { model with Errors = [] }, Cmd.none
+        
     | ChangeDate date -> 
-        { model with CurrentDate = date }, 
-        [ CmdMsg.GetEggCountOnDate date ]
+        { model with CurrentDate = date }, api.GetEggCountOnDate(token, date)
         
-    | ChickenMsg.AddEgg ((id: ChickenId), date) ->
-        let isRunning = model.AddEggStatus |> Map.add id Running
-        { model with AddEggStatus = isRunning }, [ CmdMsg.AddEgg (id, date) ]
+    | ChickenMsg.AddEgg (Start (id, date)) ->
+        model
+        |> setStartLoading id, api.AddEgg (token, id, date)
 
-    | AddedEgg (id, date) ->
-        let isCompleted = model.AddEggStatus |> Map.add id Completed
-        let model = { model with AddEggStatus = isCompleted }
-        
-        match Map.tryFind id model.Chickens with
-        | None -> 
-            model, 
-            [ CmdMsg.NoCmdMsg ]
-    
-        | Some chicken ->
-            let newEggCount = chicken.EggCountOnDate.Increase()
-            let newTotal = chicken.TotalEggCount.Increase()
+    | ChickenMsg.AddEgg (Finished (id, date)) ->
+        model
+        |> setStopLoading id
+        |> increaseEggCount id, Cmd.none
 
-            match newEggCount, newTotal with
-            | Ok newEggCount, Ok newTotal ->
-                let updatedChicken =
-                    { chicken with 
-                        EggCountOnDate = newEggCount
-                        TotalEggCount = newTotal }
-                { model with Chickens = model.Chickens |> Map.add chicken.Id updatedChicken }, 
-                [ CmdMsg.NoCmdMsg ]
+    | ChickenMsg.RemoveEgg (Start (id, date)) -> 
+        model
+        |> setStartLoading id, api.RemoveEgg (token, id, date)
+
+    | ChickenMsg.RemoveEgg (Finished (id, date)) ->
+        model
+        |> setStopLoading id
+        |> decreaseEggCount id, Cmd.none
                 
-                
-            | Error (ValidationError (param, msg)), _ | _, Error (ValidationError (param, msg)) ->
-                let newMsg =
-                    let errorMsg = sprintf "could not add egg: %s:%s" param msg
-                    AddEggFailed (id, errorMsg) 
-                
-                model, [ newMsg |> toMsg ]
-
-                
-    | AddEggFailed (id, msg) ->
-        let isCompleted = model.AddEggStatus |> Map.add id Completed
-        { model with AddEggStatus = isCompleted }, 
-        [ AddError msg |> toMsg ]
-        
-    | ChickenMsg.RemoveEgg ((id: ChickenId), date) -> 
-        let isRunning = model.RemoveEggStatus |> Map.add id Running
-        { model with RemoveEggStatus = isRunning }, [ CmdMsg.RemoveEgg (id, date) ]
-
-    | RemovedEgg (id, date) ->
-        let isCompleted = model.RemoveEggStatus |> Map.add id Completed 
-        let model = { model with RemoveEggStatus = isCompleted }
-        match Map.tryFind id model.Chickens with
-        | None -> 
-            model, 
-            [ CmdMsg.NoCmdMsg ]
-        | Some chicken ->
-            let newEggCount = chicken.EggCountOnDate.Decrease()
-            let newTotal = chicken.TotalEggCount.Decrease()
-
-            match (newEggCount, newTotal) with
-            | Ok newEggCount, Ok newTotal ->
-                let updatedChicken =
-                    { chicken with
-                        EggCountOnDate = newEggCount
-                        TotalEggCount = newTotal }
-                { model with Chickens = model.Chickens |> Map.add id updatedChicken }, 
-                [ CmdMsg.NoCmdMsg ]
-
-            | Error (ValidationError (param, msg)), _ | _, Error (ValidationError (param, msg)) ->
-                let newMsg =
-                    let errorMsg = sprintf "could not add egg: %s:%s" param msg
-                    RemoveEggFailed (id, errorMsg)
-                
-                model, 
-                [ newMsg |> toMsg ]
-                
-    | RemoveEggFailed (id, msg) ->
-        { model with RemoveEggStatus = model.RemoveEggStatus |> Map.add id ApiCallStatus.Completed }, 
-        [ AddError msg |> toMsg ]
-
 type ChickensProps =
-    { Model: ChickensModel; Dispatch: Dispatch<Msg> }
+    { Model: ChickensPageModel; Dispatch: Dispatch<Msg> }
     
 let view = elmishView "Chickens" (fun (props:ChickensProps) ->
     let model = props.Model
@@ -172,57 +145,54 @@ let view = elmishView "Chickens" (fun (props:ChickensProps) ->
         model.Errors |> List.map errorFor
 
     let hasErrors = model.Errors |> List.isEmpty |> not
-
-    let listView = 
-        let cardViewRows = 
-            let idsInBatchOf n =
-                let idsSortedByName =
-                    props.Model.Chickens 
-                    |> Map.values
-                    |> List.sortBy (fun c -> c.Name)
-                    |> List.map (fun c -> c.Id)
-                    
-                idsSortedByName 
-                |> List.batchesOf n
-                
-            let cardView chickenId =
-                { Model = props.Model
-                  Id = chickenId
-                  AddEgg = (ChickenMsg.AddEgg >> ChickenMsg >> props.Dispatch)
-                  RemoveEgg = (ChickenMsg.RemoveEgg >> ChickenMsg >> props.Dispatch) }
+        
+    let chickenListView = 
+        let cardViewRows (chickens: ChickenDetails list) = 
+            let cardView (chicken: ChickenDetails) =
+                { Name = chicken.Name
+                  Breed = chicken.Breed
+                  ImageUrl = chicken.ImageUrl
+                  EggCountOnDate = chicken.EggCountOnDate
+                  IsLoading = chicken.IsLoading
+                  AddEgg = fun () -> Start (chicken.Id, model.CurrentDate) |> ChickenMsg.AddEgg |> ChickenMsg |> props.Dispatch
+                  RemoveEgg = fun () -> Start (chicken.Id, model.CurrentDate) |> ChickenMsg.RemoveEgg |> ChickenMsg |> props.Dispatch }
                 |> ChickenCard.view
                 
             let cardViewRow ids = List.map cardView ids
             
-            idsInBatchOf 3
+            chickens
+            |> List.sortBy (fun c -> c.Name)
+            |> List.batchesOf 3
             |> List.map cardViewRow
 
-        cardViewRows
-        |> List.map (Columns.columns []) 
-        |> Container.container []
+        model.Chickens
+        |> Deferred.map (fun chickens ->
+            chickens
+            |> Map.values
+            |> cardViewRows 
+            |> List.map (Columns.columns []) 
+            |> Container.container [])
+        |> Deferred.defaultValue nothing
     
-    let chickenEggView =
-        Section.section 
-            [ ]
-            [ 
-                header
-                DatePicker.view { CurrentDate = model.CurrentDate; OnChangeDate = (ChangeDate >> ChickenMsg >> dispatch) }
-                listView
-            ]
-
     div []
         [
             yield PageLoader.pageLoader 
                 [ 
                     PageLoader.Color IsInfo
-                    PageLoader.IsActive (model.Chickens.IsEmpty)  
+                    PageLoader.IsActive (model.Chickens |> Deferred.resolved)  
                 ] 
                 [ ] 
             if hasErrors then yield Section.section [ ] ( errorView )
-            if not model.Chickens.IsEmpty then 
+            if not (model.Chickens |> Deferred.resolved) then 
                 yield Section.section [] 
                     [ 
-                        chickenEggView 
+                        Section.section 
+                            [ ]
+                            [ 
+                                header
+                                DatePicker.view { CurrentDate = model.CurrentDate; OnChangeDate = (ChangeDate >> ChickenMsg >> dispatch) }
+                                chickenListView
+                            ]
                         Statistics.view model
                     ]
         ])

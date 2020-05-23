@@ -1,18 +1,19 @@
 module ChickenCheck.Client.CompositionRoot
 
 open ChickenCheck.Client
+open ChickenCheck.Client.ApiCommands
 open ChickenCheck.Domain
 open Fable.Remoting.Client
 open Elmish
-open ChickenCheck.Client.ApiHelpers
 open Fable.Core
 open ChickenCheck.Client.Router
 
 
 let private getToken session =
     match session with
-    | Some session -> session.Token
-    | None -> failwith "Cannot access api without token"
+    | Resolved session -> session.Token
+    | HasNotStartedYet | InProgress ->
+        failwith "Cannot access api without token"
 
 let private chickenApi : IChickenApi =
     Remoting.createApi()
@@ -22,78 +23,27 @@ let private chickenApi : IChickenApi =
     #endif
     |> Remoting.buildProxy<IChickenApi>
 
-module CmdMsg =
-    type private SuccessFunc<'T> = 'T -> Msg
-    type private ErrorFunc = string -> Msg
-
-    let toCmd =
-        let toCmd' session cmdMsg =
-            match cmdMsg with
-            | CmdMsg.GetAllChickensWithEggs date ->
-                callSecureApi
-                    (getToken session)
-                    chickenApi.GetAllChickensWithEggs
-                    date
-                    (FetchedChickensWithEggs >> ChickenMsg)
-                    (AddError >> ChickenMsg)
-
-            | CmdMsg.GetEggCountOnDate date ->
-                callSecureApi
-                    (getToken session)
-                    chickenApi.GetEggCountOnDate
-                    date
-                    (fun count -> (date, count) |> FetchedEggCountOnDate |> ChickenMsg)
-                    (AddError >> ChickenMsg)
-
-            | CmdMsg.AddEgg (id, date) ->
-                callSecureApi
-                    (getToken session)
-                    chickenApi.AddEgg
-                    (id, date)
-                    (fun () -> AddedEgg(id, date) |> ChickenMsg)
-                    (fun str -> AddEggFailed(id, str) |> ChickenMsg)
-
-            | CmdMsg.RemoveEgg (id, date) ->
-                callSecureApi
-                    (getToken session)
-                    chickenApi.RemoveEgg
-                    (id, date)
-                    (fun () -> RemovedEgg(id, date) |> ChickenMsg)
-                    (fun str -> RemoveEggFailed(id, str) |> ChickenMsg)
-
-            | CmdMsg.CreateSession (email, pw) ->
-                createSession chickenApi.CreateSession (email, pw)
-
-            | OfNewRoute route -> Router.newUrl route
-
-            | CmdMsg.OfMsg msg -> msg |> Cmd.ofMsg
-
-            | CmdMsg.NoCmdMsg -> Cmd.none
-
-        let fromCmdMsgs session cmdMsgs =
-            match cmdMsgs with
-            | [] -> Cmd.none
-//            | [ cmdMsg ] -> cmdMsg |> toCmd' session
-            | cmdMsgs -> cmdMsgs |> List.map (toCmd' session) |> Cmd.batch
-
-        fun (model: Model, cmds: CmdMsg list) -> model, (fromCmdMsgs model.Session cmds)
-
+let sessionCmds = SessionApiCmds(chickenApi)
+let chickenCmds = ChickenApiCmds(chickenApi)
 
 module Session =
     let handle msg (model: Model) =
         match model.ActivePage with
         | (Page.Signin sessionModel) ->
-            let (pageModel, cmds) = Session.update msg sessionModel 
+            let (pageModel, cmds) = Session.update sessionCmds msg sessionModel 
             { model with ActivePage = pageModel |> Page.Signin }, cmds
-        | _ -> model, [ CmdMsg.NoCmdMsg ]
+        | _ -> model, Cmd.none
         
 module Chickens =
     let handle (msg: ChickenMsg) model =
         match model.ActivePage with
         | Page.Chickens chickensPageModel ->
-            let (pageModel, cmds) = Chickens.update msg chickensPageModel 
-            { model with ActivePage = pageModel |> Page.Chickens }, cmds
-        | _ -> model, [ CmdMsg.NoCmdMsg ]
+            match model.Session with
+            | Resolved session ->
+                let (pageModel, cmds) = Chickens.update session.Token chickenCmds msg chickensPageModel 
+                { model with ActivePage = pageModel |> Page.Chickens }, cmds
+            | HasNotStartedYet | InProgress -> model, Cmd.none
+        | _ -> model, Cmd.none
 
 module Authentication =
     let handleExpiredToken _ =
@@ -113,15 +63,15 @@ module Routing =
 
             { model with
                 ActivePage = Page.NotFound
-            }, [ CmdMsg.NoCmdMsg ]
+            }, Cmd.none
 
         | Some route ->
             Router.modifyLocation route
             match route with
             | Router.Chicken _ ->
                 match model.Session with
-                | Some session ->
-                    let (chickenModel, chickenCmd) = Chickens.init 
+                | Resolved session ->
+                    let (chickenModel, chickenCmd) = Chickens.init session.Token chickenCmds
 
                     { model with
                         ActivePage =
@@ -129,8 +79,8 @@ module Routing =
                             |> Page.Chickens
                     }, chickenCmd
 
-                | None ->
-                    model, [ Session SessionRoute.Signin |> OfNewRoute ] 
+                | HasNotStartedYet | InProgress ->
+                    model, Session SessionRoute.Signin |> Router.newUrl  
 
             | Router.Session s ->
                 match s with
@@ -139,6 +89,6 @@ module Routing =
                     { model with
                         ActivePage =
                             Page.Signin signinModel
-                    }, [ CmdMsg.NoCmdMsg ]
+                    }, Cmd.none
                 | SessionRoute.Signout -> 
-                    model, [ Signout |> CmdMsg.OfMsg ]
+                    model, Signout |> Cmd.ofMsg 

@@ -5,6 +5,7 @@
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Extensions.fs" />
     <Compile Include="Types.fs" />
     <Compile Include="ChickenCommandHandler.fs" />
   </ItemGroup>

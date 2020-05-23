@@ -13,13 +13,13 @@
         <Compile Include="Logger.fs" />
         <Compile Include="Router.fs" />
         <Compile Include="Types.fs" />
+        <Compile Include="ApiCommands.fs" />
         <Compile Include="SessionHandler.fs" />
-        <Compile Include="ApiHelpers.fs" />
         <Compile Include="EventHelpers.fs" />
         <Compile Include="ViewComponents.fs" />
         <Compile Include="Session.fs" />
         <Compile Include="Chickens/Statistics.fs" />
-        <Compile Include="Chickens/ChickenCard.fs" />
+        <Compile Include="Chickens\ChickenCard.fs" />
         <Compile Include="Chickens/DatePicker.fs" />
         <Compile Include="Chickens/Chickens.fs" />
         <Compile Include="Navbar.fs" />

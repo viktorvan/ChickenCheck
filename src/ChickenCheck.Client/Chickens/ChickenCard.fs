@@ -9,109 +9,101 @@ open ChickenCheck.Client
 open Utils
 
 type ChickenCardProps =
-    { Model : ChickensModel
-      Id : ChickenId
-      AddEgg : ChickenId * Date -> unit
-      RemoveEgg : ChickenId * Date -> unit }
+    { Name: String200
+      Breed: String200
+      ImageUrl: ImageUrl option
+      EggCountOnDate : EggCount
+      IsLoading : bool
+      AddEgg : unit -> unit
+      RemoveEgg : unit -> unit }
       
 let view = elmishView "ChickenCard" (fun (props:ChickenCardProps) ->
-    let model = props.Model
     
-    match model.Chickens |> Map.tryFind props.Id with
-    | None ->
-        div [] []
-    | Some chicken ->
-        let eggIcons =
-            let eggIcon = 
-                Icon.icon 
-                    [ 
-                        Icon.Size IsLarge
-                        Icon.Modifiers [ Modifier.TextColor Color.IsWhite ] 
-                        Icon.Props 
-                            [ OnClick 
-                                (fun ev ->
-                                    ev.cancelBubble <- true
-                                    ev.stopPropagation()
-                                    props.RemoveEgg (props.Id, props.Model.CurrentDate)) ]
-                    ] 
-                    [ 
-                        Fa.i [ Fa.Size Fa.Fa5x; Fa.Solid.Egg ] [] 
-                    ]
-
-            let addedEggs =
-                let isLoading = 
-                    match model.AddEggStatus |> Map.tryFind props.Id, model.RemoveEggStatus |> Map.tryFind props.Id with
-                    | Some Running, _ | _ , Some Running -> true
-                    | _ -> false
-
-                if isLoading then
-                    [ ViewComponents.loading ]
-                else
-                    [ for _ in 1..chicken.EggCountOnDate.Value do
-                        yield 
-                            Column.column 
-                                [ 
-                                    Column.Width (Screen.All, Column.Is3) 
-                                ] 
-                                [ 
-                                    eggIcon 
-                                ] 
-                    ]
-
-            Columns.columns 
+    let eggIcons =
+        let eggIcon = 
+            Icon.icon 
                 [ 
-                    Columns.IsCentered
-                    Columns.IsVCentered
-                    Columns.IsMobile
-                    Columns.Props [ Style [ Height 200 ] ]
+                    Icon.Size IsLarge
+                    Icon.Modifiers [ Modifier.TextColor Color.IsWhite ] 
+                    Icon.Props 
+                        [ OnClick 
+                            (fun ev ->
+                                ev.cancelBubble <- true
+                                ev.stopPropagation()
+                                props.RemoveEgg()) ]
                 ] 
-                addedEggs
-
-        let header =
-            div 
-                [ ] 
                 [ 
-                    Heading.h4 
-                        [ Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ] 
-                        [ str chicken.Name.Value ]
-                    Heading.h6 
-                        [ Heading.IsSubtitle;  Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ]
-                        [ str chicken.Breed.Value ] 
+                    Fa.i [ Fa.Size Fa.Fa5x; Fa.Solid.Egg ] [] 
                 ]
 
-        let cardBackgroundStyle =
+        let addedEggs =
 
-            let imageUrlStr = 
-                match chicken.ImageUrl with
-                | Some (imageUrl: ImageUrl) -> imageUrl.Value
-                | None -> ""
-
-            Style 
-                [ 
-                    sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrlStr 
-                    |> box 
-                    |> BackgroundImage 
-                    BackgroundRepeat "no-repeat"
-                    BackgroundSize "cover" 
-                ] 
-
-        Column.column
-            [ 
-                Column.Width (Screen.Desktop, Column.Is4)
-                Column.Width (Screen.Mobile, Column.Is12)
-            ]
-            [
-                Card.card 
-                    [ 
-                        Props 
+            if props.IsLoading then
+                [ ViewComponents.loading ]
+            else
+                [ for _ in 1..props.EggCountOnDate.Value do
+                    yield 
+                        Column.column 
                             [ 
-                                OnClick (fun _ -> props.AddEgg (props.Id, model.CurrentDate))
-                                cardBackgroundStyle
+                                Column.Width (Screen.All, Column.Is3) 
                             ] 
-                    ]
-                    [ 
-                        Card.header [] [ header ] 
-                        Card.content [] [ eggIcons ] 
-                    ]
+                            [ 
+                                eggIcon 
+                            ] 
+                ]
+
+        Columns.columns 
+            [ 
+                Columns.IsCentered
+                Columns.IsVCentered
+                Columns.IsMobile
+                Columns.Props [ Style [ Height 200 ] ]
+            ] 
+            addedEggs
+
+    let header =
+        div 
+            [ ] 
+            [ 
+                Heading.h4 
+                    [ Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ] 
+                    [ str props.Name.Value ]
+                Heading.h6 
+                    [ Heading.IsSubtitle;  Heading.Modifiers [ Modifier.TextColor Color.IsWhite ] ]
+                    [ str props.Breed.Value ] 
             ]
-        )
+
+    let cardBackgroundStyle =
+        let imageUrlStr =
+            props.ImageUrl
+            |> Option.map (ImageUrl.value)
+            |> Option.defaultValue ""
+
+        Style 
+            [ 
+                sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrlStr 
+                |> box 
+                |> BackgroundImage 
+                BackgroundRepeat "no-repeat"
+                BackgroundSize "cover" 
+            ] 
+
+    Column.column
+        [ 
+            Column.Width (Screen.Desktop, Column.Is4)
+            Column.Width (Screen.Mobile, Column.Is12)
+        ]
+        [
+            Card.card 
+                [ 
+                    Props 
+                        [ 
+                            OnClick (fun _ -> props.AddEgg())
+                            cardBackgroundStyle
+                        ] 
+                ]
+                [ 
+                    Card.header [] [ header ] 
+                    Card.content [] [ eggIcons ] 
+                ]
+        ])

@@ -62,10 +62,10 @@ let getEggCountOnDate (conn: ConnectionString) =
             let! chickenId = 
                 entity.ChickenId 
                 |> ChickenId.create 
-            let! eggsOrZero = 
+            let eggsOrZero = 
                 Option.defaultValue 0 entity.EggCount 
                 |> NaturalNum.create 
-                |> Result.map EggCount
+                |> EggCount
             return chickenId, eggsOrZero
         } |> throwOnParsingError
 
@@ -90,11 +90,11 @@ let getTotalEggCount (conn: ConnectionString) =
             let! id = 
                 entity.ChickenId 
                 |> ChickenId.create 
-            let! count = 
+            let count = 
                 entity.EggCount 
                 |> Option.defaultValue 0 
                 |> NaturalNum.create 
-                |> Result.map EggCount 
+                |> EggCount 
             return id, count
         } |> throwOnParsingError
 
@@ -104,7 +104,7 @@ let getTotalEggCount (conn: ConnectionString) =
             let! result = query connection sql None
             return 
                 result 
-                |> Seq.map toDomain 
+                |> Seq.map toDomain
                 |> Map.ofSeq
         }
 

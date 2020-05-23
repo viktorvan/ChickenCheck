@@ -25,3 +25,11 @@ module List =
 module Map =
     let values map = map |> Map.toList |> List.map snd
     
+    let change key f map =
+        Map.tryFind key map
+        |> f
+        |> function
+        | Some v -> Map.add key v map
+        | None -> Map.remove key map
+
+    

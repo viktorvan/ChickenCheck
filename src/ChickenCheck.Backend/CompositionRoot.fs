@@ -6,9 +6,6 @@ open FsToolkit.ErrorHandling
 open System
 open FSharpPlus
 
-module Async =
-    let retn = fun x -> async { return x }
-
 module Result =
     let bindAsync fAsync argResult = 
         match argResult with
@@ -63,7 +60,7 @@ module Chicken =
     let getTotalEggCount = SqlChickenStore.getTotalEggCount Config.connectionString
     let getAllChickens = SqlChickenStore.getChickens Config.connectionString
         
-    let private toChickenWithEggCount (countOnDate: EggCountByChicken) (totalCount: EggCountByChicken) chicken =
+    let private toChickenWithEggCount (countOnDate) (totalCount) chicken =
         let onDate = Map.find chicken.Id countOnDate 
         let total = Map.find chicken.Id totalCount
         { Chicken = chicken

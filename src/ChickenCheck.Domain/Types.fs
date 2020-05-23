@@ -2,6 +2,8 @@
 
 open System
 
+// types
+
 type AsyncResult<'TResult, 'TError> = Async<Result<'TResult, 'TError>> 
 type ValidationError = ValidationError of Param : string * Message : string
 type LoginError =
@@ -42,7 +44,6 @@ type Chicken =
       ImageUrl : ImageUrl option 
       Breed : String200 }
 type EggCount = EggCount of NaturalNum
-type EggCountByChicken = Map<ChickenId, EggCount>
 type Date = 
     { Year: int
       Month: int
@@ -75,6 +76,21 @@ module Events =
         | ChickenEvent of ChickenEvent
     
 type ConnectionString = ConnectionString of string
+
+type GetAllChickensResponse =
+    { Chicken: Chicken
+      OnDate: EggCount
+      Total: EggCount }
+
+
+type IChickenApi =
+    { CreateSession: (Email * Password) -> AsyncResult<Session, LoginError> 
+      GetAllChickensWithEggs: SecureRequest<Date> -> AsyncResult<GetAllChickensResponse list, AuthenticationError>
+      GetEggCountOnDate: SecureRequest<Date> -> AsyncResult<Map<ChickenId, EggCount>, AuthenticationError>
+      AddEgg: SecureRequest<ChickenId * Date> -> AsyncResult<unit, AuthenticationError> 
+      RemoveEgg: SecureRequest<ChickenId * Date> -> AsyncResult<unit, AuthenticationError> }
+    
+// implementation
     
 [<AutoOpen>]
 module Helpers =
@@ -90,26 +106,21 @@ module Helpers =
 
 module NaturalNum =
     let create i =
-        if i < 0 then ("Natural number", "must be >= 0") |> ValidationError |> Error
-        else i |> NaturalNum |> Ok
+        if i < 0 then NaturalNum 0
+        else NaturalNum i
 
     let parse (str: string) =
         match Int32.TryParse str with
-        | (true, i) -> i |> create
+        | (true, i) -> i |> create |> Ok
         | (false, _) -> ("natural number", "input is not an int") |> ValidationError |> Error
 
-    let createOrFail = raiseOnValidationError create
-
-    let zero = createOrFail 0
+    let zero = create 0
 
     let map f (NaturalNum num) =
         f num
         |> create
         
     let value (NaturalNum i) = i
-    
-type NaturalNum with
-   member this.Value = this |> NaturalNum.value 
 
 module String200 = 
     let create (name: string) (str: string) =
@@ -121,8 +132,6 @@ module String200 =
     let value (String200 str) = str
     let createOrFail name = raiseOnValidationError (create name) 
 
-type String200 with
-    member this.Value = String200.value this
 
 module String1000 = 
     let create (name: string) (str: string) =
@@ -132,8 +141,9 @@ module String1000 =
             (name, "must be less than 1000 characters") |> ValidationError |> Error
         else str |> String1000 |> Ok
     let value (String1000 str) = str
-type String1000 with
-    member this.Value = String1000.value this
+    
+module SecureRequest =
+    let create token content = { Token = token; Content = content }
     
 module Email =
     let create (str: string) =
@@ -143,8 +153,6 @@ module Email =
         else str |> Email |> Ok
     let value (Email str) = str
 
-type Email with
-    member this.Value = Email.value this
 
 module Password =
     let create str =
@@ -152,9 +160,6 @@ module Password =
         else str |> Password |> Ok
 
     let value (Password str) = str
-
-type Password with
-    member this.Value = Password.value this
 
 module PasswordHash =   
     let toByteArray = Convert.FromBase64String
@@ -165,16 +170,12 @@ module UserId =
         if guid = Guid.Empty then ("UserId", "empty guid") |> ValidationError |> Error
         else UserId guid |> Ok
     let value (UserId guid) = guid
-type UserId with
-    member this.Value = UserId.value this
     
 module ChickenId =
     let create guid =
         if guid = Guid.Empty then ("ChickenId", "empty guid") |> ValidationError |> Error
         else ChickenId guid |> Ok
     let value (ChickenId guid) = guid
-type ChickenId with
-    member this.Value = this |> ChickenId.value
 
 module ImageUrl =
     let create (str: string) = 
@@ -186,32 +187,23 @@ module ImageUrl =
             ImageUrl str |> Ok
     let value (ImageUrl str) = str
 
-type ImageUrl with
-    member this.Value = ImageUrl.value this
-
 module EggCount =
     let zero = NaturalNum.zero |> EggCount
 
     let increase (EggCount num) =
         num
         |> NaturalNum.map (fun value -> value + 1)
-        |> Result.map EggCount
+        |> EggCount
 
     let decrease (EggCount num) =
-        if num.Value > 0 then 
-            num |> NaturalNum.map (fun value -> value - 1) |> Result.map EggCount
-        else 
-            NaturalNum.zero |> EggCount |> Ok
+        num |> NaturalNum.map (fun value -> value - 1) |> EggCount
 
     let value (EggCount (NaturalNum num)) = num
 
-    let toString (EggCount num) = num.Value.ToString()
+    let toString (EggCount num) = 
+        let value = NaturalNum.value num 
+        value.ToString()
     
-type EggCount with
-    member this.Value = this |> EggCount.value
-    member this.Increase() = this |> EggCount.increase
-    member this.Decrease() = this |> EggCount.decrease
-
 module Date =
     let create (date: DateTime) =
         { Year = date.Year
@@ -228,25 +220,37 @@ module Date =
         |> (fun dt -> dt.AddDays numDays)
         |> create
 
-type Date with
-    member this.ToDateTime() = Date.toDateTime this
-
-
-type GetAllChickensResponse =
-    { Chicken: Chicken
-      OnDate: EggCount
-      Total: EggCount }
-
-
-type IChickenApi =
-    { CreateSession: (Email * Password) -> AsyncResult<Session, LoginError> 
-      GetAllChickensWithEggs: SecureRequest<Date> -> AsyncResult<GetAllChickensResponse list, AuthenticationError>
-      GetEggCountOnDate: SecureRequest<Date> -> AsyncResult<Map<ChickenId, EggCount>, AuthenticationError>
-      AddEgg: SecureRequest<ChickenId * Date> -> AsyncResult<unit, AuthenticationError> 
-      RemoveEgg: SecureRequest<ChickenId * Date> -> AsyncResult<unit, AuthenticationError> }
-
-
 module Route =
     let builder typeName methodName =
         sprintf "/api/%s/%s" typeName methodName
+
+// Extensions
+type NaturalNum with
+   member this.Value = this |> NaturalNum.value 
+type String200 with
+    member this.Value = String200.value this
+
+type String1000 with
+    member this.Value = String1000.value this
+
+type Email with
+    member this.Value = Email.value this
+
+type Password with
+    member this.Value = Password.value this
+type UserId with
+    member this.Value = UserId.value this
+
+type ChickenId with
+    member this.Value = this |> ChickenId.value
+type ImageUrl with
+    member this.Value = ImageUrl.value this
+
+type EggCount with
+    member this.Value = this |> EggCount.value
+    member this.Increase() = this |> EggCount.increase
+    member this.Decrease() = this |> EggCount.decrease
+
+type Date with
+    member this.ToDateTime() = Date.toDateTime this
 

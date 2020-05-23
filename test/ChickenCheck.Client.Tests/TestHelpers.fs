@@ -18,6 +18,9 @@ let toAction f arg =
 
 let toAction2 f arg1 arg2 =
     fun _ -> f arg1 arg2 |> ignore
+    
+let toAction3 f arg1 arg2 arg3 =
+    fun _ -> f arg1 arg2 arg3 |> ignore
 
 module Expect =
     let throwsWithType<'texn> f =

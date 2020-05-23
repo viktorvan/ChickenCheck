@@ -11,18 +11,21 @@ let private eggCountView (chicken: ChickenDetails) =
             [ Level.heading [] [ chicken.Name.Value |> str ] 
               Level.title [] [ str totalCount ] ] ]
 
-let view = elmishView "Statistics" (fun (model: ChickensModel) -> 
-    let allCounts =
-        model.Chickens
+let view = elmishView "Statistics" (fun (model: ChickensPageModel) -> 
+    let allCounts chickens =
+        chickens
         |> Map.values
         |> List.map eggCountView
         |> Level.level []
         
-    Container.container []
-        [ Text.p 
-            [ Modifiers 
-                [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered)
-                  Modifier.TextSize (Screen.All, TextSize.Is2)] ] 
-            [ str "Hur mycket har de värpt totalt?" ] 
-          allCounts ]
+    model.Chickens
+    |> Deferred.map(fun chickens ->     
+        Container.container []
+            [ Text.p 
+                [ Modifiers 
+                    [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered)
+                      Modifier.TextSize (Screen.All, TextSize.Is2)] ] 
+                [ str "Hur mycket har de värpt totalt?" ] 
+              allCounts chickens ])
+    |> Deferred.defaultValue nothing
     )

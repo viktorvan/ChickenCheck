@@ -1,65 +1,122 @@
 namespace ChickenCheck.Client
 open ChickenCheck.Domain
+open Fable.Core.JsInterop
+open Fable.Core
+open FsToolkit.ErrorHandling
+
+type Deferred<'T> =
+    | HasNotStartedYet
+    | InProgress
+    | Resolved of 'T
+
+type AsyncOperationStatus<'T1,'T2> =
+    | Start of 'T1
+    | Finished of 'T2
+
+/// Utility functions around `Deferred<'T>` types.
+module Deferred =
+    let map (transform: 'T -> 'U) (deferred: Deferred<'T>) : Deferred<'U> =
+        match deferred with
+        | HasNotStartedYet -> HasNotStartedYet
+        | InProgress -> InProgress
+        | Resolved value -> Resolved (transform value)
+
+    /// Returns whether the `Deferred<'T>` value has been resolved or not.
+    let resolved = function
+        | HasNotStartedYet -> false
+        | InProgress -> false
+        | Resolved _ -> true
+
+    /// Returns whether the `Deferred<'T>` value is in progress or not.
+    let inProgress = function
+        | HasNotStartedYet -> false
+        | InProgress -> true
+        | Resolved _ -> false
+
+    /// Verifies that a `Deferred<'T>` value is resolved and the resolved data satisfies a given requirement.
+    let exists (predicate: 'T -> bool) = function
+        | HasNotStartedYet -> false
+        | InProgress -> false
+        | Resolved value -> predicate value
+
+    let defaultValue defValue deferred =
+        match deferred with
+        | HasNotStartedYet -> defValue
+        | InProgress -> defValue
+        | Resolved value -> value
+
+    let ofOption deferred =
+        match deferred with
+        | HasNotStartedYet
+        | InProgress -> None
+        | Resolved value -> Some value
+
+type DeferredResult<'T1,'T2> = Deferred<Result<'T1, 'T2>>
+module DeferredResult =
+    let map f = Deferred.map (Result.map f)
+    let mapError f = Deferred.map (Result.mapError f)
+    let defaultValue defValue deferred =
+        match deferred with
+        | HasNotStartedYet -> defValue
+        | InProgress -> defValue
+        | Resolved (Error _) -> defValue
+        | Resolved (Ok value) -> value
+    let ofOption deferredResult =
+        match deferredResult with
+        | HasNotStartedYet
+        | InProgress -> None
+        | Resolved (Ok value) -> Some value
+        | Resolved (Error _) -> None
+
 
 
 type StringInput<'a> =
     | Valid of 'a
     | Invalid of string
     | Empty
-type ApiCallStatus =
-    | NotStarted
-    | Running
-    | Completed
     
-type SessionModel =
+type SessionPageModel =
     { Email : StringInput<Email>
       Password : StringInput<Password>
-      LoginStatus : ApiCallStatus 
+      LoginStatus : Deferred<Result<unit, LoginError>>
       Errors : string list }
 type SessionMsg =
     | ChangeEmail of string
     | ChangePassword of string
-    | LoginCompleted of Session
-    | AddError of string
     | ClearErrors
-    | Submit
-      
+    | SignIn of AsyncOperationStatus<unit, LoginError>
+    
 type ChickenDetails =
     { Id: ChickenId
       Name : String200 
       ImageUrl : ImageUrl option 
       Breed : String200
       TotalEggCount : EggCount
-      EggCountOnDate : EggCount }
-type ChickensModel =
-    { Chickens : Map<ChickenId, ChickenDetails>
-      AddEggStatus : Map<ChickenId, ApiCallStatus>
-      RemoveEggStatus : Map<ChickenId, ApiCallStatus>
+      EggCountOnDate : EggCount
+      IsLoading : bool }
+type ChickensPageModel =
+    { Chickens : Deferred<Map<ChickenId, ChickenDetails>>
       CurrentDate : Date
       Errors : string list }
 type ChickenMsg =
-    | FetchedChickensWithEggs of GetAllChickensResponse list
-    | FetchedEggCountOnDate of Date * Map<ChickenId, EggCount>
+    | GetAllChickensWithEggs of AsyncOperationStatus<Date, GetAllChickensResponse list>
+    | GetEggCountOnDate of AsyncOperationStatus<Date, Date * Map<ChickenId, EggCount>>
     | ChangeDate of Date
-    | AddEgg of ChickenId * Date
-    | AddedEgg of ChickenId * Date
-    | AddEggFailed of ChickenId * string
-    | RemoveEgg of ChickenId * Date
-    | RemovedEgg of ChickenId * Date
-    | RemoveEggFailed of ChickenId * string
+    | AddEgg of AsyncOperationStatus<ChickenId * Date, ChickenId * Date>
+    | RemoveEgg of AsyncOperationStatus<ChickenId * Date, ChickenId * Date>
     | AddError of string
     | ClearErrors
 
 [<RequireQualifiedAccess>]
 type Page =
-    | Signin of SessionModel
-    | Chickens of ChickensModel
+    | Signin of SessionPageModel
+    | Chickens of ChickensPageModel
     | Loading
     | NotFound
 
 type Model =
     { CurrentRoute: Router.Route option
-      Session: Session option
+      Session: Deferred<Session>
       IsMenuExpanded: bool
       ActivePage: Page }
       
@@ -69,16 +126,18 @@ type Msg =
     | ChickenMsg of ChickenMsg
     | SignedIn of Session
     | Signout
+    | ApiError of string
+    | LoginFailed of AuthenticationError
 
-type CmdMsg =
-    | OfMsg of Msg
-    | GetAllChickensWithEggs of Date
-    | GetEggCountOnDate of Date
-    | AddEgg of ChickenId * Date
-    | RemoveEgg of ChickenId * Date
-    | CreateSession of Email * Password
-    | OfNewRoute of Router.Route
-    | NoCmdMsg
+open Elmish
+type IChickenApiCmds =
+    abstract GetAllChickensWithEggs : SecurityToken * Date -> Cmd<Msg> 
+    abstract GetEggCountOnDate : SecurityToken * Date -> Cmd<Msg> 
+    abstract AddEgg: SecurityToken * ChickenId * Date -> Cmd<Msg> 
+    abstract RemoveEgg: SecurityToken * ChickenId * Date -> Cmd<Msg>
+
+type ISessionApiCmds =
+    abstract Login : Email * Password -> Cmd<Msg>
     
 module StringInput = 
     let inline create createFunc =

@@ -1,12 +1,13 @@
 module ChickenCheck.Client.Session
 
 open Elmish
-open ChickenCheck.Client
-open ChickenCheck.Domain
 open Fable.React
+open ChickenCheck.Domain
 open Fable.FontAwesome
+open FsToolkit.ErrorHandling
+open ChickenCheck.Client
 
-type SessionModel with
+type SessionPageModel with
     member __.IsValid =
         match __.Email, __.Password with
         | StringInput.Valid _, StringInput.Valid _ -> true
@@ -16,52 +17,46 @@ type SessionModel with
 let init() =
     { Email = StringInput.Empty
       Password = StringInput.Empty
-      LoginStatus = NotStarted 
+      LoginStatus = HasNotStartedYet
       Errors = [] }
 
-let private toMsg = SessionMsg >> CmdMsg.OfMsg
+let private toMsg = SessionMsg >> Cmd.ofMsg
 
 let inline set raw value =
     match value with
     | Ok e -> StringInput.Valid e
     | Error _ -> StringInput.Invalid raw
 
-let update (msg: SessionMsg) (model: SessionModel) =
+let update (api: ISessionApiCmds) (msg: SessionMsg) (model: SessionPageModel) =
     match msg with
     | ChangeEmail msg ->
         let newEmail = StringInput.create Email.create msg
-        { model with Email = newEmail }, [ CmdMsg.NoCmdMsg ] 
+        { model with Email = newEmail }, Cmd.none
 
     | ChangePassword msg ->
         let newPassword = StringInput.create Password.create msg
-        { model with Password = newPassword }, [ CmdMsg.NoCmdMsg ] 
-
-    | LoginCompleted session -> 
-        { model with LoginStatus = ApiCallStatus.Completed }, [ SignedIn session |> CmdMsg.OfMsg ]
-
-    | SessionMsg.AddError msg -> 
-        { model with 
-              LoginStatus = ApiCallStatus.Completed
-              Errors = msg :: model.Errors }, 
-          [ CmdMsg.NoCmdMsg ] 
+        { model with Password = newPassword }, Cmd.none
 
     | SessionMsg.ClearErrors -> 
-        { model with Errors = [] }, [ CmdMsg.NoCmdMsg ]
+        { model with Errors = [] }, Cmd.none
 
-    | Submit ->
+    | SignIn (Start ()) ->
         match model.Email, model.Password with
         | (StringInput.Valid email, StringInput.Valid password) ->
-            { model with LoginStatus = Running }, 
-            [ CmdMsg.CreateSession (email, password) ]
-            
+            model, api.Login(email, password) 
+
         | _ -> failwith "Application error, tried to submit invalid form"
+    
+    | SignIn (Finished loginError) ->
+        { model with Errors = "Misslyckades att logga in" :: model.Errors }, Cmd.none
+
         
 open Fable.React.Props
 open Fulma
 
 
 type SessionProps =
-    { Model : SessionModel
+    { Model : SessionPageModel
       Dispatch : Dispatch<Msg> }
 let view = Utils.elmishView "Session" (fun (props: SessionProps) ->
     let model = props.Model
@@ -101,11 +96,11 @@ let view = Utils.elmishView "Session" (fun (props: SessionProps) ->
                                                         [ Fa.i [ Fa.Solid.ExclamationTriangle] [] ]
                     if not isValid then yield Help.help [ Help.Color IsDanger ] [ str "Ange ett lösenord"] ]]
     
-    let running = match model.LoginStatus with Running -> true | _ -> false
+    let running = Deferred.inProgress model.LoginStatus
 
     let submitButton text =
         Button.button              
-            [ Button.OnClick (fun ev -> ev.preventDefault(); Submit |> SessionMsg |> dispatch )
+            [ Button.OnClick (fun ev -> ev.preventDefault(); (SignIn (AsyncOperationStatus.Start())) |> SessionMsg |> dispatch )
               Button.Disabled (model.IsInvalid || running) ] 
             [ str text ]
 
