@@ -2,7 +2,6 @@
 
 open ChickenCheck.Domain
 open FsToolkit.ErrorHandling
-open Dapper
 open ChickenCheck.Backend.SqlHelpers
 open System
 

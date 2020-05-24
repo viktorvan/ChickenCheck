@@ -42,11 +42,9 @@ group Client
     nuget fstoolkit.errorhandling
     nuget Fable.Remoting.Client ~> 5
     nuget Fable.SimpleJson ~> 3
-    nuget Fulma
-    nuget Fable.FontAwesome.Free
-    nuget Fulma.Elmish
-    nuget Fulma.Extensions.Wikiki.PageLoader
-    nuget Fulma.Extensions.Wikiki.Quickview
+    nuget Feliz
+    nuget Feliz.Bulma
+    nuget Feliz.Bulma.PageLoader
 
 group Console
     source https://api.nuget.org/v3/index.json

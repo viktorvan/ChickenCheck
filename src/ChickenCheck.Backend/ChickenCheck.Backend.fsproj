@@ -8,6 +8,7 @@
   <ItemGroup>
     <Compile Include="Configuration.fs" />
     <Compile Include="Authentication.fs" />
+    <Compile Include="DapperOptionHandler.fs" />
     <Compile Include="SqlHelpers.fs" />
     <Compile Include="SqlUserStore.fs" />
     <Compile Include="SqlChickenStore.fs" />

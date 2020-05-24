@@ -16,7 +16,7 @@
         <Compile Include="ApiCommands.fs" />
         <Compile Include="SessionHandler.fs" />
         <Compile Include="EventHelpers.fs" />
-        <Compile Include="ViewComponents.fs" />
+        <Compile Include="SharedViews.fs" />
         <Compile Include="Session.fs" />
         <Compile Include="Chickens/Statistics.fs" />
         <Compile Include="Chickens\ChickenCard.fs" />

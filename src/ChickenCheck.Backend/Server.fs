@@ -3,6 +3,7 @@ open ChickenCheck.Backend
 open System
 open System.IO
 
+open ChickenCheck.Backend.SqlStore
 open Microsoft.AspNetCore
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting
@@ -55,6 +56,8 @@ let configureServices (services : IServiceCollection) =
     // inject ILogger
     services.AddGiraffe() |> ignore
     tryGetEnv "APPINSIGHTS_INSTRUMENTATIONKEY" |> Option.iter (services.AddApplicationInsightsTelemetry >> ignore)
+    
+OptionHandler.register()
 
 WebHost
     .CreateDefaultBuilder()

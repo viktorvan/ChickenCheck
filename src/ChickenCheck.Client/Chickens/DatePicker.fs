@@ -2,15 +2,25 @@ module ChickenCheck.Client.DatePicker
 
 open ChickenCheck.Client
 open ChickenCheck.Domain
-open Fulma
 open Fable.React
-open Fable.React.Props
-open Fable.FontAwesome
 open System
+open Feliz
+open Feliz.Bulma
 
 type DatePickerProps =
     { CurrentDate : Date
       OnChangeDate : Date -> unit }
+      
+let private icon faIcon =
+    Bulma.icon [
+        Html.i [
+            prop.classes [ sprintf "fas fa-3x %s" faIcon ]
+        ]
+    ]
+    
+let private iconLeft = icon "fa-caret-left"
+let private iconRight = icon "fa-caret-right"
+
 let view = Utils.elmishView "DatePicker" (fun (props : DatePickerProps) ->
     let onDateSet date =
         props.OnChangeDate date
@@ -25,46 +35,27 @@ let view = Utils.elmishView "DatePicker" (fun (props : DatePickerProps) ->
         |> Date.create
 
     let dateButton onClick icon =
-        Button.a 
-            [ 
-                Button.IsLink
-                Button.OnClick onClick
-                Button.Size IsLarge 
-            ] 
-            [ 
-                Icon.icon [] 
-                    [ Fa.i 
-                        [ 
-                            Fa.Size Fa.Fa3x
-                            icon
-                        ] 
-                        [] 
-                    ] 
-            ]
-
-    Level.level [ Level.Level.IsMobile ]
-        [ 
-            Level.item []
-                [ 
-                    dateButton previousDate Fa.Solid.CaretLeft
-                ]
-            Level.item []
-                [ 
-                    Field.div 
-                        [ 
-                            Field.Props [ Style [ Width "100%" ] ] 
-                        ]
-                        [ 
-                            Input.date
-                                [ 
-                                    Input.OnChange (parseDate >> onDateSet) 
-                                    props.CurrentDate.ToDateTime().ToString("yyyy-MM-dd") |> Input.Value
-                                ] 
-                        ] 
-                ]
-            Level.item []
-                [ 
-                    dateButton nextDate Fa.Solid.CaretRight
-                ] 
+        Bulma.button.a [
+            color.isLink
+            button.isLarge
+            prop.onClick onClick
+            prop.children [ icon ]
         ]
-    )
+    Bulma.level [
+        level.isMobile
+        prop.children [
+            Bulma.levelItem [ dateButton previousDate iconLeft ]
+            Bulma.levelItem [
+                Bulma.field.div [
+                    prop.style [ style.width (length.percent 100) ]
+                    prop.children [
+                        Bulma.input.date [
+                            prop.onChange (parseDate >> onDateSet)
+                            prop.value (props.CurrentDate.ToDateTime().ToString("yyyy-MM-dd"))
+                        ]
+                    ]
+                ]
+            ]
+            Bulma.levelItem [ dateButton nextDate iconRight ]
+        ]
+    ])

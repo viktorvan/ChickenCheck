@@ -1,31 +1,45 @@
 module ChickenCheck.Client.Statistics 
 
-open Fulma
-open Fable.React
 open Utils
+open Feliz
+open Feliz.Bulma
 
-let private eggCountView (chicken: ChickenDetails) =
-    let totalCount = chicken.TotalEggCount.Value |> string
-    Level.item [ Level.Item.HasTextCentered ]
-        [ div []
-            [ Level.heading [] [ chicken.Name.Value |> str ] 
-              Level.title [] [ str totalCount ] ] ]
 
-let view = elmishView "Statistics" (fun (model: ChickensPageModel) -> 
-    let allCounts chickens =
-        chickens
-        |> Map.values
-        |> List.map eggCountView
-        |> Level.level []
+let private eggCountViews chickens =
+    let eggCountView (chicken: ChickenDetails) =
+        Bulma.levelItem [
+            text.hasTextCentered
+            prop.children [
+                Html.div [
+                    Html.p [
+                        prop.classes [ "heading" ]
+                        prop.text chicken.Name.Value
+                    ]
+                    Bulma.title.p chicken.TotalEggCount.Value
+                ]
+            ]
+        ]
+    
+    chickens
+    |> Map.values
+    |> List.sortBy (fun c -> c.Name)
+    |> List.map eggCountView
+    |> Bulma.level
         
+let view' chickens =
+    let header = 
+        Bulma.text.p [
+            Bulma.size.isSize2
+            text.hasTextCentered
+            prop.text "Hur mycket har de värpt totalt?"
+        ]
+    Bulma.container [
+        header
+        eggCountViews chickens
+    ]
+    
+let view = elmishView "Statistics" (fun (model: ChickensPageModel) -> 
     model.Chickens
-    |> Deferred.map(fun chickens ->     
-        Container.container []
-            [ Text.p 
-                [ Modifiers 
-                    [ Modifier.TextAlignment (Screen.All, TextAlignment.Centered)
-                      Modifier.TextSize (Screen.All, TextSize.Is2)] ] 
-                [ str "Hur mycket har de värpt totalt?" ] 
-              allCounts chickens ])
-    |> Deferred.defaultValue nothing
+    |> Deferred.map(view')
+    |> Deferred.defaultValue Html.none
     )

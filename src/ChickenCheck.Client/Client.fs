@@ -5,11 +5,11 @@ open Elmish.React
 open Elmish.Navigation
 open Elmish.UrlParser
 open ChickenCheck.Client
-open Fulma
-open Fable.React
 open ChickenCheck.Client.Router
 open CompositionRoot
-open Fulma.Extensions.Wikiki
+open Feliz
+open Feliz.Bulma
+open Feliz.Bulma.PageLoader
 
 
 // defines the initial state and initial command (= side-effect) of the application
@@ -58,12 +58,10 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
 
 let view model dispatch =
     let loadingPage =             
-        PageLoader.pageLoader 
-            [ 
-                PageLoader.Color IsInfo
-                PageLoader.IsActive true
-            ] 
-            [ ]
+        PageLoader.pageLoader [
+            pageLoader.isInfo
+            pageLoader.isActive
+        ]
 
     let pageHtml (page : Page) =
         match page with
@@ -74,11 +72,10 @@ let view model dispatch =
 
     let isLoggedIn = Deferred.resolved model.Session
 
-    div [] 
-        [ 
-          if isLoggedIn then
-              yield Navbar.view { Model = model; Dispatch = dispatch }
-          yield div [] [ pageHtml model.ActivePage ] ] 
+    Html.div [
+        if isLoggedIn then Navbar.view { Model = model; Dispatch = dispatch }
+        Html.div [ pageHtml model.ActivePage ]
+    ]
 
 
 #if DEBUG

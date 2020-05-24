@@ -7,7 +7,7 @@ open ChickenCheck.Backend.SqlHelpers
 open System
 
 
-type ChickenEntity =
+type private ChickenEntity =
     { Id: Guid
       Name: string
       Breed: string
@@ -47,7 +47,7 @@ let getChickens (conn: ConnectionString) =
                 |> Seq.toList 
         }
 
-type EggCountEntity =
+type private EggCountEntity =
     { ChickenId: Guid
       EggCount: int option }
 

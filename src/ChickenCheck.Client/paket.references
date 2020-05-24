@@ -3,6 +3,6 @@ Fable.Elmish.Debugger
 Fable.Elmish.HMR
 Fable.Remoting.Client
 FsToolkit.Errorhandling
-Fulma.Elmish
-Fulma.Extensions.Wikiki.PageLoader
-Fulma.Extensions.Wikiki.Quickview
+Feliz
+Feliz.Bulma
+Feliz.Bulma.PageLoader

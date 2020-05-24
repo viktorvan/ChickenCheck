@@ -1,6 +1,8 @@
 ﻿module ChickenCheck.Backend.SqlStore
 
+open System
 open ChickenCheck.Domain.Events
+open Dapper
 open FsToolkit.ErrorHandling
 open FSharpPlus
 

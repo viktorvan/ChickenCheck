@@ -1,15 +1,14 @@
 module ChickenCheck.Client.Chickens
 
 open ChickenCheck.Client
-open Fable.React
 open ChickenCheck.Domain
 open Elmish
-open System
-open Fulma
 open FsToolkit.ErrorHandling
-open Fulma.Extensions.Wikiki
 open ChickenCheck.Client.Utils
 open ChickenCheck.Client.ChickenCard
+open Feliz
+open Feliz.Bulma
+open Feliz.Bulma.PageLoader
 
 
 let init token (api: IChickenApiCmds) =
@@ -127,20 +126,16 @@ let view = elmishView "Chickens" (fun (props:ChickensProps) ->
     let dispatch = props.Dispatch
 
     let header =
-        Text.p 
-            [ 
-                Modifiers 
-                    [ 
-                        Modifier.TextAlignment (Screen.All, TextAlignment.Centered)
-                        Modifier.TextSize (Screen.All, TextSize.Is2)
-                    ] 
-            ] 
-            [ str "Vem värpte idag?" ]
+        Html.p [
+            text.hasTextCentered
+            size.isSize2
+            prop.text "Vem värpte idag?"
+        ]
 
     let errorView =
         let errorFor item = 
             item
-            |> ViewComponents.apiErrorMsg (fun _ -> ClearErrors |> ChickenMsg |> dispatch) 
+            |> SharedViews.apiErrorMsg (fun _ -> ClearErrors |> ChickenMsg |> dispatch) 
 
         model.Errors |> List.map errorFor
 
@@ -149,16 +144,30 @@ let view = elmishView "Chickens" (fun (props:ChickensProps) ->
     let chickenListView = 
         let cardViewRows (chickens: ChickenDetails list) = 
             let cardView (chicken: ChickenDetails) =
-                { Name = chicken.Name
-                  Breed = chicken.Breed
-                  ImageUrl = chicken.ImageUrl
-                  EggCountOnDate = chicken.EggCountOnDate
-                  IsLoading = chicken.IsLoading
-                  AddEgg = fun () -> Start (chicken.Id, model.CurrentDate) |> ChickenMsg.AddEgg |> ChickenMsg |> props.Dispatch
-                  RemoveEgg = fun () -> Start (chicken.Id, model.CurrentDate) |> ChickenMsg.RemoveEgg |> ChickenMsg |> props.Dispatch }
-                |> ChickenCard.view
+                let card =
+                    ChickenCard.view
+                        { Name = chicken.Name
+                          Breed = chicken.Breed
+                          ImageUrl = chicken.ImageUrl
+                          EggCountOnDate = chicken.EggCountOnDate
+                          IsLoading = chicken.IsLoading
+                          AddEgg = fun () -> Start (chicken.Id, model.CurrentDate) |> ChickenMsg.AddEgg |> ChickenMsg |> props.Dispatch
+                          RemoveEgg = fun () -> Start (chicken.Id, model.CurrentDate) |> ChickenMsg.RemoveEgg |> ChickenMsg |> props.Dispatch }
                 
-            let cardViewRow ids = List.map cardView ids
+                [ 
+                    Bulma.column [
+                        column.is4
+                        prop.classes [ "is-hidden-touch" ]
+                        prop.children [ card ] 
+                    ]
+                    Bulma.column [
+                        column.is12
+                        prop.classes [ "is-hidden-desktop" ]
+                        prop.children [ card ] 
+                    ]
+                ]
+                
+            let cardViewRow details = List.collect cardView details
             
             chickens
             |> List.sortBy (fun c -> c.Name)
@@ -169,30 +178,24 @@ let view = elmishView "Chickens" (fun (props:ChickensProps) ->
         |> Deferred.map (fun chickens ->
             chickens
             |> Map.values
-            |> cardViewRows 
-            |> List.map (Columns.columns []) 
-            |> Container.container [])
-        |> Deferred.defaultValue nothing
-    
-    div []
-        [
-            yield PageLoader.pageLoader 
-                [ 
-                    PageLoader.Color IsInfo
-                    PageLoader.IsActive (model.Chickens |> Deferred.resolved)  
-                ] 
-                [ ] 
-            if hasErrors then yield Section.section [ ] ( errorView )
-            if not (model.Chickens |> Deferred.resolved) then 
-                yield Section.section [] 
-                    [ 
-                        Section.section 
-                            [ ]
-                            [ 
-                                header
-                                DatePicker.view { CurrentDate = model.CurrentDate; OnChangeDate = (ChangeDate >> ChickenMsg >> dispatch) }
-                                chickenListView
-                            ]
-                        Statistics.view model
-                    ]
-        ])
+            |> cardViewRows
+            |> List.map (Bulma.columns) 
+            |> Bulma.container)
+        |> Deferred.defaultValue Html.none
+
+    let view' =
+        Bulma.section [
+            header
+            DatePicker.view { CurrentDate = model.CurrentDate; OnChangeDate = (ChangeDate >> ChickenMsg >> dispatch) }
+            chickenListView
+            Statistics.view model
+        ]
+            
+    Html.div [
+        PageLoader.pageLoader [
+            pageLoader.isInfo
+            if not (model.Chickens |> Deferred.resolved) then pageLoader.isActive 
+        ]
+        if hasErrors then Bulma.section errorView
+        view'
+    ])

@@ -1,11 +1,9 @@
 module ChickenCheck.Client.Session
 
 open Elmish
-open Fable.React
 open ChickenCheck.Domain
-open Fable.FontAwesome
-open FsToolkit.ErrorHandling
-open ChickenCheck.Client
+open Feliz
+open Feliz.Bulma
 
 type SessionPageModel with
     member __.IsValid =
@@ -50,11 +48,6 @@ let update (api: ISessionApiCmds) (msg: SessionMsg) (model: SessionPageModel) =
     | SignIn (Finished loginError) ->
         { model with Errors = "Misslyckades att logga in" :: model.Errors }, Cmd.none
 
-        
-open Fable.React.Props
-open Fulma
-
-
 type SessionProps =
     { Model : SessionPageModel
       Dispatch : Dispatch<Msg> }
@@ -64,75 +57,129 @@ let view = Utils.elmishView "Session" (fun (props: SessionProps) ->
 
     let emailInput =
         let isValid, emailStr = model.Email |> StringInput.tryValid
-        Field.div []
-            [ Label.label [] [ str "Email" ]
-              Control.div 
-                  [ Control.HasIconLeft; Control.HasIconRight ] 
-                  [ yield Input.email [ Input.Value emailStr
-                                        Input.Placeholder "Email" 
-                                        Input.OnChange (fun ev -> ev.Value |> ChangeEmail |> SessionMsg |> dispatch) 
-                                        Input.Props [ Required true ] ] 
-                    yield Icon.icon 
-                        [ Icon.Size IsSmall; Icon.IsLeft ] 
-                        [ Fa.i [ Fa.Solid.Envelope ] [] ] 
-                    if not isValid then yield Icon.icon [ Icon.Size IsSmall; Icon.IsRight ] 
-                                                        [ Fa.i [ Fa.Solid.ExclamationTriangle] [] ]
-                    if not isValid then yield Help.help [ Help.Color IsDanger ] [ str "Ogiltig epostadress"] ]]
+        Bulma.field.div [
+            Bulma.label "Email"
+            Bulma.control.div [
+                control.hasIconsLeft
+                control.hasIconsRight
+                prop.children [
+                    Bulma.input.email [
+                        prop.valueOrDefault emailStr
+                        prop.placeholder "Email"
+                        prop.onChange (fun value -> value |> ChangeEmail |> SessionMsg |> dispatch)
+                        prop.required true
+                    ]
+                    Bulma.icon [
+                        icon.isSmall
+                        icon.isLeft
+                        prop.children [
+                            Html.i [
+                                prop.className "fas fa-envelope"
+                            ]
+                        ]
+                    ]
+                    if not isValid then Bulma.icon [
+                        icon.isSmall
+                        icon.isRight
+                        prop.children [
+                            Html.i [
+                                prop.className "fas fa-exclamation-triangle"
+                            ]
+                        ]
+                    ]
+                    if not isValid then Bulma.help [
+                        color.isDanger
+                        prop.text "Ogiltig epostadress"
+                    ]
+                ]
+            ]
+        ]
 
     let passwordInput =
         let isValid, pwStr = model.Password |> StringInput.tryValid
-        Field.div []
-            [ Label.label [] [ str "Lösenord" ]
-              Control.div 
-                  [ Control.HasIconLeft; Control.HasIconRight ] 
-                  [ yield Input.password [ Input.Value pwStr
-                                           Input.Placeholder "Lösenord" 
-                                           Input.OnChange (fun ev -> ev.Value |> ChangePassword |> SessionMsg |> dispatch) 
-                                           Input.Props [ Required true ] ] 
-                    yield Icon.icon 
-                        [ Icon.Size IsSmall; Icon.IsLeft ] 
-                        [ Fa.i [ Fa.Solid.Key ] [] ] 
-                    if not isValid then yield Icon.icon [ Icon.Size IsSmall; Icon.IsRight ]
-                                                        [ Fa.i [ Fa.Solid.ExclamationTriangle] [] ]
-                    if not isValid then yield Help.help [ Help.Color IsDanger ] [ str "Ange ett lösenord"] ]]
-    
-    let running = Deferred.inProgress model.LoginStatus
+        Bulma.field.div [
+            Bulma.label "Lösenord"
+            Bulma.control.div [
+                control.hasIconsLeft
+                control.hasIconsRight
+                prop.children [
+                    Bulma.input.password [
+                        prop.valueOrDefault pwStr
+                        prop.placeholder "Lösenord"
+                        prop.onChange (fun value -> value |> ChangePassword |> SessionMsg |> dispatch)
+                        prop.required true
+                    ]
+                    Bulma.icon [
+                        icon.isSmall
+                        icon.isLeft
+                        prop.children [
+                            Html.i [
+                                prop.className "fas fa-key"
+                            ]
+                        ]
+                    ]
+                    if not isValid then Bulma.icon [
+                        icon.isSmall
+                        icon.isRight
+                        prop.children [
+                            Html.i [
+                                prop.className "fas fa-exclamation-triangle"
+                            ]
+                        ]
+                    ]
+                    if not isValid then Bulma.help [
+                        color.isDanger
+                        prop.text "Ange ett lösenord"
+                    ]
+                ]
+            ]
+        ]
 
-    let submitButton text =
-        Button.button              
-            [ Button.OnClick (fun ev -> ev.preventDefault(); (SignIn (AsyncOperationStatus.Start())) |> SessionMsg |> dispatch )
-              Button.Disabled (model.IsInvalid || running) ] 
-            [ str text ]
+    let running = Deferred.resolved model.LoginStatus
+
+    let submitButton (text: string) =
+        Bulma.button.button [
+            prop.onClick (fun ev -> ev.preventDefault(); (Start()) |> SignIn |> SessionMsg |> dispatch)
+            prop.disabled (model.IsInvalid || running)
+            prop.text text
+        ]
 
     let errorView =
-        let errorFor item = 
+        let errorFor item =
             item
-            |> ViewComponents.apiErrorMsg (fun _ -> SessionMsg.ClearErrors |> SessionMsg |> dispatch) 
+            |> SharedViews.apiErrorMsg (fun _ -> SessionMsg.ClearErrors |> SessionMsg |> dispatch)
 
         model.Errors |> List.map errorFor
 
     let hasErrors = model.Errors |> List.isEmpty |> not
 
-    Hero.hero
-        [ Hero.IsFullHeight
-          Hero.CustomClass "login-img" ] 
-        [ Hero.body []
-            [ Container.container
-                []
-                [ 
-                    yield Column.column 
-                        [ Column.Width (Screen.All, Column.Is6); Column.Offset (Screen.All, Column.Is6)]
-                        [ 
-                            form [] 
-                                [ Box.box' [] 
-                                    [ Field.div [] 
-                                        [ emailInput 
-                                          passwordInput
-                                          submitButton "Logga in" ] ] ] 
-                        ] 
-                    if hasErrors then yield Section.section [] errorView
-                ] 
+    Bulma.hero [
+        hero.isFullHeight
+        prop.children (
+            Bulma.heroBody [
+                Bulma.container [
+                    Bulma.column [
+                        column.is6
+                        column.isOffset6
+                        prop.children [
+                            Html.form [
+                                Bulma.box [
+                                    Bulma.field.div [
+                                        prop.children [
+                                            emailInput
+                                            passwordInput
+                                            submitButton "Logga in"
+                                        ]
+                                    ]
+                                ]
+                            ]
+                        ]
+                    ]
+                    if hasErrors then Bulma.section errorView
+                ]
             ]
-        ]
         )
-        
+    ]
+)
+
+
