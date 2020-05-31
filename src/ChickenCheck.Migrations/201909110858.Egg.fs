@@ -8,11 +8,11 @@ type CreateEggTable() =
     override __.Up() =
         base.Execute(@"
             CREATE TABLE [Egg]
-            ( ChickenId UNIQUEIDENTIFIER NOT NULL
-            , Date Date NOT NULL
-            , EggCount INT NOT NULL
-            , Created DateTime2(0) NOT NULL
-            , LastModified DateTime2(0) NOT NULL
+            ( ChickenId TEXT NOT NULL
+            , Date TEXT NOT NULL
+            , EggCount INTEGER NOT NULL
+            , Created TEXT NOT NULL
+            , LastModified TEXT NOT NULL
             , FOREIGN KEY (ChickenId) REFERENCES Chicken(Id)
             )")
         

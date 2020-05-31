@@ -14,7 +14,7 @@ open Feliz.Bulma.PageLoader
 let init token (api: IChickenApiCmds) =
     { Chickens = HasNotStartedYet
       Errors = []
-      CurrentDate = Date.today }, api.GetAllChickensWithEggs(token, Date.today)
+      CurrentDate = Date.today }, api.GetAllChickens(token, Date.today)
 
 let toMsg = ChickenMsg >> Cmd.ofMsg
 
@@ -48,10 +48,10 @@ let decreaseEggCount id model = changeEggCount model id EggCount.decrease
 
 let update token (api: IChickenApiCmds) (msg: ChickenMsg) (model: ChickensPageModel) : ChickensPageModel * Cmd<Msg>=
     match msg with
-    | GetAllChickensWithEggs (Start date) ->
-        model, api.GetAllChickensWithEggs(token, date)
+    | GetAllChickens (Start date) ->
+        model, api.GetAllChickens(token, date)
         
-    | GetAllChickensWithEggs (Finished chickens) ->
+    | GetAllChickens (Finished chickens) ->
         let buildModel { Chicken = chicken; OnDate = onDateCount; Total = totalCount } =
             chicken.Id,
             { Id = chicken.Id
@@ -71,10 +71,10 @@ let update token (api: IChickenApiCmds) (msg: ChickenMsg) (model: ChickensPageMo
     | AddError msg ->
         { model with Errors = msg :: model.Errors }, Cmd.none
         
-    | GetEggCountOnDate (Start (date)) ->
-        model, api.GetEggCountOnDate(token, date)
+    | GetEggCount (Start (date, chickens)) ->
+        model, api.GetEggCount(token, date, chickens)
 
-    | GetEggCountOnDate (Finished (date, countByChicken)) -> 
+    | GetEggCount (Finished (date, countByChicken)) -> 
         if model.CurrentDate = date then
             if countByChicken |> Map.isEmpty then
                 model, 
@@ -97,8 +97,15 @@ let update token (api: IChickenApiCmds) (msg: ChickenMsg) (model: ChickensPageMo
     | ClearErrors -> 
         { model with Errors = [] }, Cmd.none
         
-    | ChangeDate date -> 
-        { model with CurrentDate = date }, api.GetEggCountOnDate(token, date)
+    | ChangeDate date ->
+        match model.Chickens with
+        | Deferred.InProgress ->
+            model, Cmd.none
+        | Deferred.Resolved chickens ->
+            let chickenIds = chickens |> Map.keys
+            { model with CurrentDate = date }, api.GetEggCount(token, date, chickenIds)
+        | Deferred.HasNotStartedYet ->
+            { model with CurrentDate = date }, api.GetAllChickens(token, date) 
         
     | ChickenMsg.AddEgg (Start (id, date)) ->
         model

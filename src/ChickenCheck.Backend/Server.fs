@@ -3,7 +3,6 @@ open ChickenCheck.Backend
 open System
 open System.IO
 
-open ChickenCheck.Backend.SqlStore
 open Microsoft.AspNetCore
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Hosting

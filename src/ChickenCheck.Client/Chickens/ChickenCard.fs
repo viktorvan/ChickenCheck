@@ -7,8 +7,8 @@ open Feliz
 open Feliz.Bulma
 
 type ChickenCardProps =
-    { Name: String200
-      Breed: String200
+    { Name: string
+      Breed: string
       ImageUrl: ImageUrl option
       EggCountOnDate : EggCount
       IsLoading : bool
@@ -58,11 +58,11 @@ let view = elmishView "ChickenCard" (fun (props:ChickenCardProps) ->
             prop.children [
                 Bulma.title.h4 [
                     color.hasTextWhite
-                    prop.text props.Name.Value
+                    prop.text props.Name
                 ]
                 Bulma.subtitle.p [
                     color.hasTextWhite
-                    prop.text props.Breed.Value
+                    prop.text props.Breed
                 ]
             ]
         ]

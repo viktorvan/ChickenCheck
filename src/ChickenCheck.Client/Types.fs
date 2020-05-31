@@ -1,7 +1,5 @@
 namespace ChickenCheck.Client
 open ChickenCheck.Domain
-open Fable.Core.JsInterop
-open Fable.Core
 open FsToolkit.ErrorHandling
 
 type Deferred<'T> =
@@ -88,9 +86,9 @@ type SessionMsg =
     
 type ChickenDetails =
     { Id: ChickenId
-      Name : String200 
+      Name : string
       ImageUrl : ImageUrl option 
-      Breed : String200
+      Breed : string
       TotalEggCount : EggCount
       EggCountOnDate : EggCount
       IsLoading : bool }
@@ -99,8 +97,8 @@ type ChickensPageModel =
       CurrentDate : Date
       Errors : string list }
 type ChickenMsg =
-    | GetAllChickensWithEggs of AsyncOperationStatus<Date, GetAllChickensResponse list>
-    | GetEggCountOnDate of AsyncOperationStatus<Date, Date * Map<ChickenId, EggCount>>
+    | GetAllChickens of AsyncOperationStatus<Date, GetAllChickensResponse list>
+    | GetEggCount of AsyncOperationStatus<Date * ChickenId list, Date * Map<ChickenId, EggCount>>
     | ChangeDate of Date
     | AddEgg of AsyncOperationStatus<ChickenId * Date, ChickenId * Date>
     | RemoveEgg of AsyncOperationStatus<ChickenId * Date, ChickenId * Date>
@@ -131,8 +129,8 @@ type Msg =
 
 open Elmish
 type IChickenApiCmds =
-    abstract GetAllChickensWithEggs : SecurityToken * Date -> Cmd<Msg> 
-    abstract GetEggCountOnDate : SecurityToken * Date -> Cmd<Msg> 
+    abstract GetAllChickens : SecurityToken * Date -> Cmd<Msg> 
+    abstract GetEggCount : SecurityToken * Date * ChickenId list -> Cmd<Msg> 
     abstract AddEgg: SecurityToken * ChickenId * Date -> Cmd<Msg> 
     abstract RemoveEgg: SecurityToken * ChickenId * Date -> Cmd<Msg>
 
@@ -148,7 +146,7 @@ module StringInput =
     let inline tryValid input =
         match input with
         | StringInput.Valid a ->
-            let value = (^a : (member Value : string) a)
+            let value = (^a : (member Val : string) a)
             true, value
         | StringInput.Invalid value -> 
             false, value

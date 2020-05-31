@@ -1,13 +1,12 @@
 ﻿// Learn more about F# at http://fsharp.org
 
 open System
+open Microsoft.Data.Sqlite
 open SimpleMigrations
 open SimpleMigrations.DatabaseProvider
 open SimpleMigrations.Console
 open Argu
 open System.Reflection
-open System.Data.SqlClient
-
 
 type CLIArguments =
     | ConnectionString of connectionString : string
@@ -31,9 +30,9 @@ let main argv =
         match args.TryGetResult ConnectionString with
         | Some connectionString ->
             let migrationAssembly = Assembly.GetEntryAssembly()
-            use connection = new SqlConnection(connectionString)
+            use connection = new SqliteConnection(connectionString)
             connection.Open()
-            let provider = MssqlDatabaseProvider(connection)
+            let provider = SqliteDatabaseProvider(connection)
             let migrator = SimpleMigrator(migrationAssembly, provider)
             let consoleRunner = ConsoleRunner(migrator)
             match args.TryGetResult To with

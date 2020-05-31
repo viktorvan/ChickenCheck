@@ -13,7 +13,7 @@ let private eggCountViews chickens =
                 Html.div [
                     Html.p [
                         prop.classes [ "heading" ]
-                        prop.text chicken.Name.Value
+                        prop.text chicken.Name
                     ]
                     Bulma.title.p chicken.TotalEggCount.Value
                 ]

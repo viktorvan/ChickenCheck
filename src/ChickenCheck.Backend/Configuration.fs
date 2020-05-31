@@ -34,7 +34,9 @@ let config =
         let appConfig = AppConfig(configRoot)
 
         match appConfig.Get<Config>() with
-        | Ok config -> config
+        | Ok config ->
+            {| ConnectionString = Database.ConnectionString.create config.ConnectionString
+               TokenSecret = config.TokenSecret |}
         | Error msg ->
             match msg with
             | BadValue (name, msg) -> invalidArg name msg

@@ -17,13 +17,13 @@ type ChickenApiCmds(api: IChickenApi) =
     let getAllChickensWithEggs token date =
         try
             api.GetAllChickensWithEggs(SecureRequest.create token date)
-            |> handleAuthError (Finished >> GetAllChickensWithEggs >> ChickenMsg)
+            |> handleAuthError (Finished >> GetAllChickens >> ChickenMsg)
         with exn ->
             handleApiError exn
-    let getEggCountOnDate token date =
+    let getEggCountOnDate token date chickens =
         try
-            api.GetEggCountOnDate(SecureRequest.create token date)
-            |> handleAuthError (fun res -> Finished (date, res) |> GetEggCountOnDate |> ChickenMsg)
+            api.GetEggCount(SecureRequest.create token (date, chickens))
+            |> handleAuthError (fun res -> Finished (date, res) |> GetEggCount |> ChickenMsg)
         with exn ->
             handleApiError exn
             
@@ -43,12 +43,12 @@ type ChickenApiCmds(api: IChickenApi) =
             
     interface IChickenApiCmds with
     
-        member __.GetAllChickensWithEggs(token, date) =
+        member __.GetAllChickens(token, date) =
             getAllChickensWithEggs token date 
             |> Cmd.OfAsync.result
                 
-        member __.GetEggCountOnDate(token, date) =
-            getEggCountOnDate token date
+        member __.GetEggCount(token, date, chickens) =
+            getEggCountOnDate token date chickens
             |> Cmd.OfAsync.result
         member __.AddEgg(token, id, date) =
             addEgg token id date

@@ -20,7 +20,7 @@ group Backend
     nuget Fable.Remoting.Server
     nuget Microsoft.AspNetCore.Cryptography.KeyDerivation
     nuget FSharpPlus
-    nuget System.Data.SqlClient
+    nuget Microsoft.Data.Sqlite
     nuget Dapper
     nuget FsConfig
     nuget Microsoft.Extensions.Configuration.UserSecrets 
@@ -64,7 +64,7 @@ group Migrations
 
     nuget Argu
     nuget Simple.Migrations
-    nuget System.Data.SqlClient 
+    nuget Microsoft.Data.Sqlite
 
 group Tests
     source https://www.nuget.org/api/v2

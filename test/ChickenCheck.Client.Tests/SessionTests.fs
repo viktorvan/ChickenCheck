@@ -13,19 +13,13 @@ open FsToolkit.ErrorHandling
 
 let token = 
     "6cf0fb82-b683-46fc-aea7-40dac558d7ce" 
-    |> String1000.create "token"
-    |> Result.okValue
-    |> SecurityToken
+    |> SecurityToken.create
 
 let userId = 
     Guid.NewGuid()
     |> UserId.create
-    |> Result.okValue
 
-let username =
-    "Testnamn"
-    |> String200.create "username"
-    |> Result.okValue
+let username = "Testnamn"
 
 let session = 
     { Token = token
@@ -60,7 +54,7 @@ let mockCmds = MockCmds()
 let mockApi =
     { CreateSession = failwith "notImplemented"
       GetAllChickensWithEggs = failwith "notImplemented"
-      GetEggCountOnDate = failwith "notImplemented"
+      GetEggCount = failwith "notImplemented"
       AddEgg = failwith "notImplemented"
       RemoveEgg = failwith "notImplemented" }
 

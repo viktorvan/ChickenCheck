@@ -23,6 +23,7 @@ module List =
         loop input 0 [] []
         
 module Map =
+    let keys map = map |> Map.toList |> List.map fst
     let values map = map |> Map.toList |> List.map snd
     
     let change key f map =

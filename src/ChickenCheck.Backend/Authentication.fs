@@ -7,10 +7,13 @@ open Microsoft.IdentityModel.Tokens
 open System.Text
 open System
 open FsToolkit.ErrorHandling
+open System.Security.Cryptography
+open Microsoft.AspNetCore.Cryptography.KeyDerivation
 
 let private securityKey (secret: string) = secret |> Encoding.UTF8.GetBytes |> SymmetricSecurityKey
 
-let generateToken = 
+
+let generateToken =
     fun tokenSecret username ->
         let claims = [| Claim(JwtRegisteredClaimNames.Sub, username) |]
         let expires = Nullable(DateTime.UtcNow.AddDays(7.0))
@@ -19,22 +22,20 @@ let generateToken =
 
         let token =
             JwtSecurityToken(
-                issuer = "chickencheck",
-                audience = "chickencheck",
+                issuer = "activeautomation",
+                audience = "activeautomation",
                 claims = claims,
                 expires = expires,
                 notBefore = notBefore,
                 signingCredentials = signingCredentials)
         JwtSecurityTokenHandler().WriteToken(token)
-        |> String1000.create "security token"
-        |> Result.defaultWith (fun () -> invalidArg "token" "invalid token length")
-        |> ChickenCheck.Domain.SecurityToken 
+        |> SecurityToken.create
 
 let private validateToken tokenSecret (SecurityToken token) =
     let tokenValidationParameters =
         let validationParams = TokenValidationParameters()
-        validationParams.ValidAudience <- "chickencheck"
-        validationParams.ValidIssuer <- "chickencheck"
+        validationParams.ValidAudience <- "activeautomation"
+        validationParams.ValidIssuer <- "activeautomation"
         validationParams.RequireExpirationTime <- true
         validationParams.ValidateLifetime <- true
         validationParams.ValidateIssuerSigningKey <- true
@@ -42,14 +43,15 @@ let private validateToken tokenSecret (SecurityToken token) =
         validationParams.IssuerSigningKey <- securityKey tokenSecret
         validationParams
     try
-        JwtSecurityTokenHandler().ValidateToken(token.Value, tokenValidationParameters, ref null) 
-        |> ignore 
+        JwtSecurityTokenHandler().ValidateToken(token, tokenValidationParameters, ref null)
+        |> ignore
         |> Ok
-    with 
-        | :? SecurityTokenInvalidLifetimeException | :? SecurityTokenExpiredException -> 
+    with
+        | :? SecurityTokenInvalidLifetimeException | :? SecurityTokenExpiredException ->
             UserTokenExpired |> Error
         | exn ->
             exn.Message |> TokenInvalid |> Error
+
 
 type Validate<'T> = SecureRequest<'T> -> Result<'T, AuthenticationError>
 let validate<'T> tokenSecret : Validate<'T> =
@@ -57,3 +59,45 @@ let validate<'T> tokenSecret : Validate<'T> =
         request.Token
         |> validateToken tokenSecret
         |> Result.map (fun _ -> request.Content)
+
+
+module PasswordHash =
+    let toBase64String = System.Convert.ToBase64String
+
+    let private getSalt() =
+        let salt : byte [] = Array.zeroCreate 16
+        use rng = RandomNumberGenerator.Create()
+        rng.GetBytes(salt)
+        salt
+
+    let private getHash salt pw =
+        KeyDerivation.Pbkdf2
+            ( password = pw
+            , salt = salt
+            , prf = KeyDerivationPrf.HMACSHA1
+            , iterationCount = 10000
+            , numBytesRequested = 256/8 )
+
+    let create =
+        fun (pw:Password) ->
+            let salt = getSalt ()
+            let hash = getHash salt pw.Val
+
+            { Hash = hash
+              Salt = salt }
+
+    let verify =
+        fun (hash, pw:Password) ->
+            let actual = getHash hash.Salt pw.Val
+            actual = hash.Hash
+
+
+type ITokenService =
+    abstract VerifyPasswordHash: PasswordHash * Password -> bool
+    abstract GenerateUserToken: string -> ChickenCheck.Domain.SecurityToken
+
+type TokenService(tokenSecret) =
+    interface ITokenService with
+        member this.VerifyPasswordHash(hash,pw) = PasswordHash.verify(hash, pw)
+        member this.GenerateUserToken(username) = generateToken tokenSecret username
+

@@ -1,5 +1,0 @@
-group Console
-FsToolkit.ErrorHandling
-System.IdentityModel.Tokens.Jwt
-Microsoft.AspNetCore.Cryptography.KeyDerivation
-Argu

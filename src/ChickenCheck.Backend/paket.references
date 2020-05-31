@@ -5,7 +5,7 @@ Fable.Remoting.Giraffe
 Microsoft.AspNetCore.Cryptography.KeyDerivation
 FSharpPlus
 Dapper
-System.Data.SqlClient
+Microsoft.Data.Sqlite
 FsConfig
 Microsoft.Extensions.Configuration.UserSecrets
 Microsoft.ApplicationInsights.AspNetCore

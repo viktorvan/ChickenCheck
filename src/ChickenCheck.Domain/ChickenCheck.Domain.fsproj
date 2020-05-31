@@ -7,7 +7,6 @@
   <ItemGroup>
     <Compile Include="Extensions.fs" />
     <Compile Include="Types.fs" />
-    <Compile Include="ChickenCommandHandler.fs" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>
