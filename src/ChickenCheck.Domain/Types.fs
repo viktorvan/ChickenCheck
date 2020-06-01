@@ -105,6 +105,7 @@ module UserId =
     let create guid =
         if guid = Guid.Empty then ("UserId", "empty guid") ||> invalidArg |> raise
         else UserId guid
+    let parse = Guid.Parse >> create
     let value (UserId guid) = guid
     
 module ChickenId =

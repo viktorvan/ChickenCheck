@@ -21,7 +21,7 @@ let view = Utils.elmishView "Navbar" (fun props ->
                 ]
                 Bulma.navbarBurger [
                     prop.onClick (fun _ -> dispatch ToggleMenu)
-                    prop.className [ (model.IsMenuExpanded, "is-active"); (true, "navbar-burger") ]
+                    prop.className [ if model.IsMenuExpanded then "is-active"; "navbar-burger" ]
                     prop.children (List.replicate 3 (Html.span []))
                 ]
             ]

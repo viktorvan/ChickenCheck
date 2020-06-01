@@ -76,7 +76,7 @@ type StringInput<'a> =
 type SessionPageModel =
     { Email : StringInput<Email>
       Password : StringInput<Password>
-      LoginStatus : Deferred<Result<unit, LoginError>>
+      LoginStatus : Deferred<LoginError>
       Errors : string list }
 type SessionMsg =
     | ChangeEmail of string

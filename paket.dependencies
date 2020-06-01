@@ -38,24 +38,13 @@ group Client
     nuget Fable.Elmish.React ~> 3
     nuget Fable.Elmish.HMR ~> 4
     nuget Fable.Elmish.Browser ~> 3
-    nuget Fable.React ~> 5
+    nuget Fable.React 
     nuget fstoolkit.errorhandling
     nuget Fable.Remoting.Client ~> 5
     nuget Fable.SimpleJson ~> 3
     nuget Feliz
     nuget Feliz.Bulma
     nuget Feliz.Bulma.PageLoader
-
-group Console
-    source https://api.nuget.org/v3/index.json
-    framework: netcoreapp2.2
-    storage: none
-
-    nuget FSharp.Core 4.7.0
-    nuget FsToolkit.ErrorHandling
-    nuget System.IdentityModel.Tokens.Jwt
-    nuget Microsoft.AspNetCore.Cryptography.KeyDerivation
-    nuget Argu
 
 group Migrations
     source https://api.nuget.org/v3/index.json
@@ -68,13 +57,25 @@ group Migrations
 
 group Tests
     source https://www.nuget.org/api/v2
-    framework: netcoreapp2.2
+    framework: netcoreapp3.1
     storage: none
 
     nuget FSharp.Core 4.7.0
     nuget Expecto
     nuget Unquote
     nuget Fable.Elmish ~> 3
+    
+group ApiTests
+    source https://www.nuget.org/api/v2
+    framework: netcoreapp3.1
+    storage: none
+    
+    nuget FSharp.Core 4.7.0
+    nuget Expecto
+    nuget Unquote
+    nuget Fable.Elmish ~> 3
+    nuget Simple.Migrations
+    nuget Microsoft.Data.Sqlite
 
 group Build
 

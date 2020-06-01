@@ -1,4 +1,4 @@
-module ChickenCheck.Client.Tests.SessionTests
+module ChickenCheck.UnitTests.SessionTests
 
 open ChickenCheck.Client
 open ChickenCheck.Client.ApiCommands
@@ -7,7 +7,7 @@ open Swensen.Unquote
 open System
 open Expecto
 open ChickenCheck.Domain
-open ChickenCheck.Client.Tests
+open ChickenCheck.UnitTests
 open TestHelpers
 open FsToolkit.ErrorHandling
 
@@ -52,11 +52,11 @@ type MockCmds() =
 let mockCmds = MockCmds()
 
 let mockApi =
-    { CreateSession = failwith "notImplemented"
-      GetAllChickensWithEggs = failwith "notImplemented"
-      GetEggCount = failwith "notImplemented"
-      AddEgg = failwith "notImplemented"
-      RemoveEgg = failwith "notImplemented" }
+    { CreateSession = fun _ -> failwith "notImplemented"
+      GetAllChickensWithEggs = fun _ -> failwith "notImplemented"
+      GetEggCount = fun _ -> failwith "notImplemented"
+      AddEgg = fun _ -> failwith "notImplemented"
+      RemoveEgg = fun _ -> failwith "notImplemented" }
 
 [<Tests>]
 let tests =
@@ -64,13 +64,15 @@ let tests =
         test "Start SignIn sets LoginStatus to in progress" {
             let msg = SignIn (Start ())
             let model, _ = Session.update mockCmds msg validModel
-            model =! { validModel with LoginStatus = InProgress }
+            model.LoginStatus =! InProgress
         }
+        
         test "Start SignIn should call Login cmd" {
             let msg = SignIn (Start ())
             let _, _ = Session.update mockCmds msg validModel
             mockCmds.ActiveLogin =! Some (email, password)
         }
+        
         [ { validModel with Email = StringInput.Empty }
           { validModel with Email = StringInput.Invalid "abc" }
           { validModel with Password = StringInput.Empty }
@@ -84,16 +86,24 @@ let tests =
             |> Expect.throwsWithMessage "tried to submit invalid form"
         })
         |> testList "Submit with invalid models"
+        
         test "On SignIn Finished Sets LoginStatus = Resolved" {
             let msg = SignIn (Finished (LoginError.PasswordIncorrect))
             let newModel, _ = Session.update mockCmds msg validModel
-            newModel =! { validModel with LoginStatus = Resolved (Ok ()) }
+            newModel.LoginStatus =! Resolved LoginError.PasswordIncorrect
         }
+        
         testList "sessionApiCmds" [
             testAsync "SessionCmds.createSession returns SignedIn on success" {
-                let api = { mockApi with CreateSession = fun (email,pw) -> AsyncResult.retn session  }
+                let api = { mockApi with CreateSession = fun _ -> AsyncResult.retn session  }
                 let! result = SessionApiCmds.createSession api email password
                 result =! SignedIn session
+            }
+            testAsync "SessionCmds.createSession returns LoginError on error" {
+                let api = { mockApi with CreateSession = fun _ -> async { return Error LoginError.PasswordIncorrect } }
+                let! result = SessionApiCmds.createSession api email password
+                let expected = (LoginError.PasswordIncorrect |> Finished |> SignIn |> SessionMsg)
+                result =! expected
             }
         ]
     ]

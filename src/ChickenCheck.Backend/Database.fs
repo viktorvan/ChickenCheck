@@ -53,7 +53,7 @@ let inline private throwOnParsingError result =
 
 
 type private UserEntity =
-    { Id: Guid
+    { Id: string
       Name: string
       Email: string
       PasswordHash: string
@@ -67,7 +67,7 @@ let getUserByEmail (conn: ConnectionString) : Email -> Async<User option> =
             let salt = entity.Salt |> toByteArray
             let! email = entity.Email |> Email.create
             let name = entity.Name |> String.notNullOrEmpty
-            let id = entity.Id |> UserId.create
+            let id = entity.Id |> UserId.parse
             return
                 { User.Id = id
                   Name = name
@@ -127,7 +127,7 @@ let getAllChickens (conn: ConnectionString) =
 
 type private EggCountEntity =
     { ChickenId: string
-      EggCount: int option } 
+      EggCount: int64 option } 
     
 module private EggCountEntity =
     let toDomain (entity: EggCountEntity) =
@@ -135,10 +135,10 @@ module private EggCountEntity =
             entity.ChickenId
             |> ChickenId.parse
         let eggsOrZero = 
-            Option.defaultValue 0 entity.EggCount 
+            Option.defaultValue 0L entity.EggCount |> int
             |> EggCount.create
         chickenId, eggsOrZero
-
+        
 let getEggCount (conn: ConnectionString) =
     let sql = """
             SELECT c.Id AS ChickenId, Sum(e.EggCount) AS EggCount 
@@ -147,15 +147,22 @@ let getEggCount (conn: ConnectionString) =
                                   AND e.Date = @date
             WHERE e.ChickenId in @chickenIds
             GROUP BY c.Id"""
+            
+    let toDomain (entity: EggCountEntity list) =
+        entity
+        |> List.map EggCountEntity.toDomain
+        |> Map.ofList
 
-    fun { Date.Year = year; Month = month; Day = day } (chickenIds: ChickenId list) ->
+    fun (chickenIds: ChickenId list) { Date.Year = year; Month = month; Day = day } ->
         let dateTime = System.DateTime(year, month, day)
+        let chickenStringIds = chickenIds |> List.map (fun (ChickenId id) -> id.ToString())
         async {
             use! connection = getConnection conn
-            let! result = query connection sql !{| date = dateTime; chickenIds = chickenIds |}
+            let! entities = query connection sql !{| date = dateTime; chickenIds = chickenStringIds |}
+            let result = toDomain entities
             return 
-                result 
-                |> Seq.map EggCountEntity.toDomain 
+                chickenIds 
+                |> Seq.map (fun id -> id, Map.tryFindWithDefault EggCount.zero id result)
                 |> Map.ofSeq
         }
         
@@ -168,9 +175,10 @@ let getTotalEggCount (conn: ConnectionString) =
             GROUP BY c.Id"""
 
     fun chickenIds ->
+        let chickenStringIds = chickenIds |> List.map (fun (c:ChickenId) -> c.Value.ToString())
         async {
             use! connection = getConnection conn
-            let! result = query connection sql !{| chickenIds = chickenIds |}
+            let! result = query connection sql !{| chickenIds = chickenStringIds |}
             return 
                 result 
                 |> Seq.map EggCountEntity.toDomain 
@@ -193,20 +201,14 @@ let addEgg (conn: ConnectionString) =
             , Created
             , LastModified
             )
-            VALUES 
-            ( @chickenId
-            , @date
-            , 1
-            , date('now')
-            , date('now')
-            )
+            SELECT @chickenId, @date, 1 , date('now') , date('now')
             WHERE (SELECT Changes() = 0);"""
 
     fun (ChickenId id) date ->
         let date = Date.toDateTime date
         async {
             use! connection = getConnection conn
-            let! _ = execute connection sql !{| date = date; chickenId = id |}
+            let! _ = execute connection sql !{| date = date; chickenId = id.ToString() |}
             return ()
         }
 
@@ -228,7 +230,7 @@ let removeEgg (conn: ConnectionString) =
         let date = Date.toDateTime date
         async {
             use! connection = getConnection conn
-            let! _ = execute connection sql !{| chickenId = id; date = date |}
+            let! _ = execute connection sql !{| chickenId = id.ToString(); date = date |}
             return ()
         }
 
@@ -240,7 +242,7 @@ type UserStore(connectionString) =
 
 type IChickenStore =
     abstract GetAllChickens: unit -> Async<Chicken list>
-    abstract GetEggCount: Date -> ChickenId list -> Async<Map<ChickenId, EggCount>>
+    abstract GetEggCount: ChickenId list -> Date -> Async<Map<ChickenId, EggCount>>
     abstract GetTotalEggCount: ChickenId list -> Async<Map<ChickenId, EggCount>>
     abstract AddEgg: ChickenId -> Date -> Async<unit>
     abstract RemoveEgg: ChickenId -> Date -> Async<unit>
@@ -249,7 +251,7 @@ type IChickenStore =
 type ChickenStore(connectionString) =
     interface IChickenStore with
         member this.GetAllChickens () = getAllChickens connectionString ()
-        member this.GetEggCount date chickens  = getEggCount connectionString date chickens
+        member this.GetEggCount chickens date  = getEggCount connectionString chickens date
         member this.GetTotalEggCount(chickens: ChickenId list) = getTotalEggCount connectionString chickens
         member this.AddEgg chicken date = addEgg connectionString chicken date
         member this.RemoveEgg chicken date = removeEgg connectionString chicken date

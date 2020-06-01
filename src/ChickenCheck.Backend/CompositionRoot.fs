@@ -74,7 +74,7 @@ let createSession (email, pw) =
 let getAllChickens date =
     Workflows.getAllChickens chickenStore date
     
-let getEggCount (date, chickens) =
+let getEggCount (chickens, date) =
     Workflows.getEggCount chickenStore date chickens
     
 let addEgg (date, chicken) =

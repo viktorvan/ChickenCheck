@@ -1,4 +1,4 @@
-module ChickenCheck.Client.Tests.TestHelpers
+module ChickenCheck.UnitTests.TestHelpers
 
 open Swensen.Unquote
 open Expecto
@@ -23,8 +23,8 @@ let toAction3 f arg1 arg2 arg3 =
     fun _ -> f arg1 arg2 arg3 |> ignore
 
 module Expect =
-    let throwsWithType<'texn> f =
-        Expect.throwsT<'texn>
+    let throwsWithType<'texn when 'texn :> exn> f =
+        Expect.throwsT<'texn> 
             f
             "Should throw with expected type"
 

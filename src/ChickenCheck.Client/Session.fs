@@ -41,12 +41,14 @@ let update (api: ISessionApiCmds) (msg: SessionMsg) (model: SessionPageModel) =
     | SignIn (Start ()) ->
         match model.Email, model.Password with
         | (StringInput.Valid email, StringInput.Valid password) ->
-            model, api.Login(email, password) 
+            { model with LoginStatus = InProgress }, api.Login(email, password) 
 
         | _ -> failwith "Application error, tried to submit invalid form"
     
     | SignIn (Finished loginError) ->
-        { model with Errors = "Misslyckades att logga in" :: model.Errors }, Cmd.none
+        { model with
+            LoginStatus = Resolved loginError
+            Errors = "Misslyckades att logga in" :: model.Errors }, Cmd.none
 
 type SessionProps =
     { Model : SessionPageModel

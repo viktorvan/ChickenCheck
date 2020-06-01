@@ -26,15 +26,15 @@ let createSession (tokenService: ITokenService) (userDb: Database.IUserStore) =
         
 let getAllChickens (chickenStore: Database.IChickenStore) =
     let toChickenWithEggCount (countOnDate, totalCount) chicken =
-        let onDate = Map.find chicken.Id countOnDate 
-        let total = Map.find chicken.Id totalCount
+        let onDate = Map.tryFindWithDefault EggCount.zero chicken.Id countOnDate 
+        let total = Map.tryFindWithDefault EggCount.zero chicken.Id totalCount
         { Chicken = chicken
           OnDate = onDate
           Total = total }
         
-    let getEggCounts date chickenIds =
+    let getEggCounts chickenIds date  =
         async {
-            let! eggCountA = chickenStore.GetEggCount date chickenIds |> Async.StartChild
+            let! eggCountA = chickenStore.GetEggCount chickenIds date |> Async.StartChild
             let! totalEggCountA = chickenStore.GetTotalEggCount chickenIds |> Async.StartChild
             
             let! eggCount = eggCountA
@@ -47,7 +47,7 @@ let getAllChickens (chickenStore: Database.IChickenStore) =
             let! chickens = chickenStore.GetAllChickens()
             let chickenIds = chickens |> List.map (fun c -> c.Id)
             
-            let! eggCounts = getEggCounts date chickenIds
+            let! eggCounts = getEggCounts chickenIds date 
             
             return
                 chickens
@@ -55,8 +55,8 @@ let getAllChickens (chickenStore: Database.IChickenStore) =
         }
         
 let getEggCount (chickenStore: Database.IChickenStore) =
-    fun date chickens ->
-        chickenStore.GetEggCount date chickens
+    fun chickens date  ->
+        chickenStore.GetEggCount chickens date
         
 let addEgg (chickenStore: Database.IChickenStore) =
     fun chicken date ->

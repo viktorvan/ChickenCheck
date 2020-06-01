@@ -29,9 +29,8 @@ let serverPath = src @@ "ChickenCheck.Backend"
 let serverProj = serverPath @@ "ChickenCheck.Backend.fsproj"
 let clientPath = src @@ "ChickenCheck.Client"
 let migrationsPath = src @@ "ChickenCheck.Migrations"
-let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.Client.Tests"
-let connectionString = "Data Source=.;Initial Catalog=ChickenCheck;User ID=sa;Password=hWfQm@s62[CJX9ypxRd8"
-
+let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.UnitTests"
+let connectionString = sprintf "Data Source=%s/database.db" serverPath
 
 let srcCodeGlob =
     !! ( src  @@ "**/*.fs")
