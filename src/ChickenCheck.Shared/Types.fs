@@ -1,4 +1,4 @@
-﻿namespace ChickenCheck.Domain
+﻿namespace ChickenCheck.Shared
 
 open System
 
@@ -36,24 +36,24 @@ type Chicken =
       ImageUrl : ImageUrl option 
       Breed : string }
 type EggCount = EggCount of int
-type Date = 
+type NotFutureDate = 
     { Year: int
       Month: int
       Day: int }
 
 type ConnectionString = ConnectionString of string
 
-type GetAllChickensResponse =
+type ChickenWithEggCount =
     { Chicken: Chicken
-      OnDate: EggCount
-      Total: EggCount }
+      Count: NotFutureDate * EggCount
+      TotalCount: EggCount }
 
 type IChickenApi =
     { CreateSession: (Email * Password) -> AsyncResult<Session, LoginError> 
-      GetAllChickensWithEggs: SecureRequest<Date> -> AsyncResult<GetAllChickensResponse list, AuthenticationError>
-      GetEggCount: SecureRequest<Date * ChickenId list> -> AsyncResult<Map<ChickenId, EggCount>, AuthenticationError>
-      AddEgg: SecureRequest<ChickenId * Date> -> AsyncResult<unit, AuthenticationError> 
-      RemoveEgg: SecureRequest<ChickenId * Date> -> AsyncResult<unit, AuthenticationError> }
+      GetAllChickensWithEggs: SecureRequest<NotFutureDate> -> AsyncResult<ChickenWithEggCount list, AuthenticationError>
+      GetEggCount: SecureRequest<NotFutureDate * ChickenId list> -> AsyncResult<Map<ChickenId, EggCount>, AuthenticationError>
+      AddEgg: SecureRequest<ChickenId * NotFutureDate> -> AsyncResult<unit, AuthenticationError> 
+      RemoveEgg: SecureRequest<ChickenId * NotFutureDate> -> AsyncResult<unit, AuthenticationError> }
     
 // types - implementation
         
@@ -140,21 +140,22 @@ module EggCount =
     let value (EggCount num) = num
 
     let toString (EggCount num) = num.ToString()
-    
-module Date =
+        
+module NotFutureDate =
     let create (date: DateTime) =
-        { Year = date.Year
-          Month = date.Month
-          Day = date.Day }
-          
-    let today = create DateTime.Today
-    
+        let tomorrow = DateTime.UtcNow.AddDays(1.)
+        if (date >= tomorrow) then 
+            invalidArg "date" "cannot be in the future"
+        else 
+            { Year = date.Year
+              Month = date.Month
+              Day = date.Day }
     let toDateTime { Year = year; Month = month; Day = day } = DateTime(year, month, day)
-
-    let addDays numDays date =
+    let today = create DateTime.Today
+    let addDays days date =
         date
         |> toDateTime
-        |> (fun dt -> dt.AddDays numDays)
+        |> (fun dt -> dt.AddDays(days))
         |> create
 
 module Route =
@@ -180,6 +181,6 @@ type EggCount with
     member this.Increase() = this |> EggCount.increase
     member this.Decrease() = this |> EggCount.decrease
 
-type Date with
-    member this.ToDateTime() = Date.toDateTime this
+type NotFutureDate with
+    member this.ToDateTime() = NotFutureDate.toDateTime this
 

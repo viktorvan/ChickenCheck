@@ -1,8 +1,9 @@
 module ChickenCheck.Client.Chickens
 
 open ChickenCheck.Client
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 open Elmish
+open Elmish.React
 open FsToolkit.ErrorHandling
 open ChickenCheck.Client.Utils
 open ChickenCheck.Client.ChickenCard
@@ -11,10 +12,10 @@ open Feliz.Bulma
 open Feliz.Bulma.PageLoader
 
 
-let init token (api: IChickenApiCmds) =
-    { Chickens = HasNotStartedYet
+let init date =
+    { Chickens = InProgress
       Errors = []
-      CurrentDate = Date.today }, api.GetAllChickens(token, Date.today)
+      CurrentDate = date }
 
 let toMsg = ChickenMsg >> Cmd.ofMsg
 
@@ -52,7 +53,7 @@ let update token (api: IChickenApiCmds) (msg: ChickenMsg) (model: ChickensPageMo
         model, api.GetAllChickens(token, date)
         
     | GetAllChickens (Finished chickens) ->
-        let buildModel { Chicken = chicken; OnDate = onDateCount; Total = totalCount } =
+        let buildModel { Chicken = chicken; Count = (_, onDateCount); TotalCount = totalCount } =
             chicken.Id,
             { Id = chicken.Id
               Name = chicken.Name
@@ -62,8 +63,7 @@ let update token (api: IChickenApiCmds) (msg: ChickenMsg) (model: ChickensPageMo
               EggCountOnDate  = onDateCount
               IsLoading = false }
             
-        let newChickens =
-            chickens |> List.map buildModel |> Map.ofList 
+        let newChickens = chickens |> List.map buildModel |> Map.ofList
             
         { model with 
             Chickens = Deferred.Resolved newChickens }, Cmd.none
@@ -128,10 +128,7 @@ let update token (api: IChickenApiCmds) (msg: ChickenMsg) (model: ChickensPageMo
 type ChickensProps =
     { Model: ChickensPageModel; Dispatch: Dispatch<Msg> }
     
-let view = elmishView "Chickens" (fun (props:ChickensProps) ->
-    let model = props.Model
-    let dispatch = props.Dispatch
-
+let view = (fun model dispatch ->
     let header =
         Html.p [
             text.hasTextCentered
@@ -151,30 +148,14 @@ let view = elmishView "Chickens" (fun (props:ChickensProps) ->
     let chickenListView = 
         let cardViewRows (chickens: ChickenDetails list) = 
             let cardView (chicken: ChickenDetails) =
-                let card =
-                    ChickenCard.view
-                        { Name = chicken.Name
-                          Breed = chicken.Breed
-                          ImageUrl = chicken.ImageUrl
-                          EggCountOnDate = chicken.EggCountOnDate
-                          IsLoading = chicken.IsLoading
-                          AddEgg = fun () -> Start (chicken.Id, model.CurrentDate) |> ChickenMsg.AddEgg |> ChickenMsg |> props.Dispatch
-                          RemoveEgg = fun () -> Start (chicken.Id, model.CurrentDate) |> ChickenMsg.RemoveEgg |> ChickenMsg |> props.Dispatch }
+                let card = lazyView2 ChickenCard.view (chicken, model.CurrentDate) dispatch
                 
-                [ 
-                    Bulma.column [
-                        column.is4
-                        prop.classes [ "is-hidden-touch" ]
-                        prop.children [ card ] 
-                    ]
-                    Bulma.column [
-                        column.is12
-                        prop.classes [ "is-hidden-desktop" ]
-                        prop.children [ card ] 
-                    ]
+                Bulma.column [
+                    column.is4
+                    prop.children [ card ] 
                 ]
                 
-            let cardViewRow details = List.collect cardView details
+            let cardViewRow rowChickens = List.map cardView rowChickens
             
             chickens
             |> List.sortBy (fun c -> c.Name)
@@ -186,16 +167,16 @@ let view = elmishView "Chickens" (fun (props:ChickensProps) ->
             chickens
             |> Map.values
             |> cardViewRows
-            |> List.map (Bulma.columns) 
+            |> List.map Bulma.columns 
             |> Bulma.container)
         |> Deferred.defaultValue Html.none
 
     let view' =
         Bulma.section [
             header
-            DatePicker.view { CurrentDate = model.CurrentDate; OnChangeDate = (ChangeDate >> ChickenMsg >> dispatch) }
+            lazyView2 DatePicker.view model.CurrentDate dispatch
             chickenListView
-            Statistics.view model
+            lazyView Statistics.view model
         ]
             
     Html.div [

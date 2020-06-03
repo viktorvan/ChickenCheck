@@ -13,7 +13,7 @@
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ChickenCheck.Client\ChickenCheck.Client.fsproj" />
-    <ProjectReference Include="..\..\src\ChickenCheck.Domain\ChickenCheck.Domain.fsproj" />
+    <ProjectReference Include="..\..\src\ChickenCheck.Shared\ChickenCheck.Shared.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

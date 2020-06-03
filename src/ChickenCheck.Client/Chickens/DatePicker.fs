@@ -1,15 +1,15 @@
 module ChickenCheck.Client.DatePicker
 
 open ChickenCheck.Client
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 open Fable.React
 open System
 open Feliz
 open Feliz.Bulma
 
 type DatePickerProps =
-    { CurrentDate : Date
-      OnChangeDate : Date -> unit }
+    { CurrentDate : NotFutureDate
+      OnChangeDate : NotFutureDate -> unit }
       
 let private icon faIcon =
     Bulma.icon [
@@ -21,41 +21,53 @@ let private icon faIcon =
 let private iconLeft = icon "fa-caret-left"
 let private iconRight = icon "fa-caret-right"
 
-let view = Utils.elmishView "DatePicker" (fun (props : DatePickerProps) ->
-    let onDateSet date =
-        props.OnChangeDate date
-    let onDateChange delta =    
-        onDateSet (Date.addDays delta props.CurrentDate)
-    let previousDate _ = onDateChange -1.
-    let nextDate _ = onDateChange 1.
+let view = (fun currentDate dispatch ->
+    let onDateSet date = (ChangeDate >> ChickenMsg >> dispatch) date
 
     let parseDate (ev: Browser.Types.Event) =
         ev.Value
         |> DateTime.Parse
-        |> Date.create
-
-    let dateButton onClick icon =
+        |> NotFutureDate.create
+        
+    let dateButton icon isDisabled onClick =
         Bulma.button.a [
             color.isLink
             button.isLarge
             prop.onClick onClick
+            prop.disabled isDisabled
             prop.children [ icon ]
         ]
+
+    let previousDateButton =
+        let onClick = 
+            let previousDate = currentDate |> NotFutureDate.addDays -1.
+            fun _ -> onDateSet previousDate
+        dateButton iconLeft false onClick
+        
+    let nextDateButton =
+        if currentDate = NotFutureDate.today then
+            dateButton iconRight true ignore
+        else
+            let onClick =
+                let nextDate = currentDate |> NotFutureDate.addDays 1.
+                fun _ -> onDateSet nextDate
+            dateButton iconRight false onClick
+        
     Bulma.level [
         level.isMobile
         prop.children [
-            Bulma.levelItem [ dateButton previousDate iconLeft ]
+            Bulma.levelItem [ previousDateButton ]
             Bulma.levelItem [
                 Bulma.field.div [
                     prop.style [ style.width (length.percent 100) ]
                     prop.children [
                         Bulma.input.date [
                             prop.onChange (parseDate >> onDateSet)
-                            prop.value (props.CurrentDate.ToDateTime().ToString("yyyy-MM-dd"))
+                            prop.value (currentDate.ToDateTime().ToString("yyyy-MM-dd"))
                         ]
                     ]
                 ]
             ]
-            Bulma.levelItem [ dateButton nextDate iconRight ]
+            Bulma.levelItem [ nextDateButton ]
         ]
     ])

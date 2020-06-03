@@ -3,7 +3,7 @@ module ChickenCheck.Backend.Workflows
 open ChickenCheck.Backend.Authentication
 open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 
 let createSession (tokenService: ITokenService) (userDb: Database.IUserStore) =
     let (|Valid|Invalid|) (hash, password) =
@@ -25,13 +25,6 @@ let createSession (tokenService: ITokenService) (userDb: Database.IUserStore) =
         }
         
 let getAllChickens (chickenStore: Database.IChickenStore) =
-    let toChickenWithEggCount (countOnDate, totalCount) chicken =
-        let onDate = Map.tryFindWithDefault EggCount.zero chicken.Id countOnDate 
-        let total = Map.tryFindWithDefault EggCount.zero chicken.Id totalCount
-        { Chicken = chicken
-          OnDate = onDate
-          Total = total }
-        
     let getEggCounts chickenIds date  =
         async {
             let! eggCountA = chickenStore.GetEggCount chickenIds date |> Async.StartChild
@@ -42,7 +35,7 @@ let getAllChickens (chickenStore: Database.IChickenStore) =
             return eggCount, totalEggCount
         }
           
-    fun (date: Date) ->
+    fun (date: NotFutureDate) ->
         async {
             let! chickens = chickenStore.GetAllChickens()
             let chickenIds = chickens |> List.map (fun c -> c.Id)
@@ -51,7 +44,7 @@ let getAllChickens (chickenStore: Database.IChickenStore) =
             
             return
                 chickens
-                |> List.map (toChickenWithEggCount eggCounts)
+                |> List.map (ChickenWithEggCount.create date eggCounts)
         }
         
 let getEggCount (chickenStore: Database.IChickenStore) =
@@ -59,10 +52,10 @@ let getEggCount (chickenStore: Database.IChickenStore) =
         chickenStore.GetEggCount chickens date
         
 let addEgg (chickenStore: Database.IChickenStore) =
-    fun chicken date ->
+    fun chicken (date: NotFutureDate) ->
         chickenStore.AddEgg chicken date
         
 let removeEgg (chickenStore: Database.IChickenStore) =
-    fun chicken date ->
+    fun chicken (date: NotFutureDate) ->
         chickenStore.RemoveEgg chicken date
     

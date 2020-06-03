@@ -1,8 +1,7 @@
 module ChickenCheck.Client.ChickenCard
 
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 open ChickenCheck.Client
-open Utils
 open Feliz
 open Feliz.Bulma
 
@@ -15,7 +14,10 @@ type ChickenCardProps =
       AddEgg : unit -> unit
       RemoveEgg : unit -> unit }
       
-let view = elmishView "ChickenCard" (fun (props:ChickenCardProps) ->
+let view = (fun (chicken, currentDate) dispatch ->
+    
+    let addEgg = fun () -> Start (chicken.Id, currentDate) |> ChickenMsg.AddEgg |> ChickenMsg |> dispatch
+    let removeEgg = fun () -> Start (chicken.Id, currentDate) |> ChickenMsg.RemoveEgg |> ChickenMsg |> dispatch
     
     let eggIcons =
         let eggIcon = 
@@ -25,7 +27,7 @@ let view = elmishView "ChickenCard" (fun (props:ChickenCardProps) ->
                 prop.onClick (fun ev ->
                     ev.cancelBubble <- true
                     ev.stopPropagation()
-                    props.RemoveEgg())
+                    removeEgg())
                 prop.children [
                     Html.i [
                         prop.classes [ "fa-5x fas fa-egg" ]
@@ -35,7 +37,7 @@ let view = elmishView "ChickenCard" (fun (props:ChickenCardProps) ->
 
         let eggsForCount eggCount =
 
-            if props.IsLoading then
+            if chicken.IsLoading then
                 [ SharedViews.loading ]
             else
                 [ for _ in 1..eggCount do
@@ -50,7 +52,7 @@ let view = elmishView "ChickenCard" (fun (props:ChickenCardProps) ->
             columns.isVCentered
             columns.isMobile
             prop.style [ style.height (length.px 200) ]
-            prop.children (eggsForCount props.EggCountOnDate.Value)
+            prop.children (eggsForCount chicken.EggCountOnDate.Value)
         ]
 
     let header =
@@ -58,18 +60,18 @@ let view = elmishView "ChickenCard" (fun (props:ChickenCardProps) ->
             prop.children [
                 Bulma.title.h4 [
                     color.hasTextWhite
-                    prop.text props.Name
+                    prop.text chicken.Name
                 ]
                 Bulma.subtitle.p [
                     color.hasTextWhite
-                    prop.text props.Breed
+                    prop.text chicken.Breed
                 ]
             ]
         ]
 
     let cardBackgroundStyle =
         let imageUrlStr =
-            props.ImageUrl
+            chicken.ImageUrl
             |> Option.map (ImageUrl.value)
             |> Option.defaultValue ""
             
@@ -80,7 +82,7 @@ let view = elmishView "ChickenCard" (fun (props:ChickenCardProps) ->
         ]
         
     Bulma.card [
-        prop.onClick (fun _ -> props.AddEgg())
+        prop.onClick (fun _ -> addEgg())
         cardBackgroundStyle
         prop.children [
             Bulma.cardHeader header

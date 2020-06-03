@@ -1,7 +1,5 @@
 module ChickenCheck.Client.Utils
 
-open Fable.React
-
 let private isDevelopment =
     #if DEBUG
     true
@@ -13,11 +11,9 @@ module Log =
     let developmentMessage str =
         if isDevelopment
         then Browser.Dom.console.log(str)
-    let developmentError (error: exn) =
+    let developmentError str =
+        if isDevelopment
+        then Browser.Dom.console.error(str)
+    let developmentException (error: exn) =
         if isDevelopment
         then Browser.Dom.console.error(error)
-
-
-let inline elmishView name render = FunctionComponent.Of(render, name, equalsButFunctions)
-
-

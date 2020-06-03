@@ -1,11 +1,11 @@
 module ChickenCheck.Client.Statistics 
 
-open Utils
 open Feliz
 open Feliz.Bulma
+open ChickenCheck.Shared
 
 
-let private eggCountViews chickens =
+let private eggCountViews (chickens: Map<ChickenId, ChickenDetails>) =
     let eggCountView (chicken: ChickenDetails) =
         Bulma.levelItem [
             text.hasTextCentered
@@ -38,7 +38,7 @@ let view' chickens =
         eggCountViews chickens
     ]
     
-let view = elmishView "Statistics" (fun (model: ChickensPageModel) -> 
+let view = (fun (model: ChickensPageModel) -> 
     model.Chickens
     |> Deferred.map(view')
     |> Deferred.defaultValue Html.none

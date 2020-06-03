@@ -5,13 +5,15 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="TestDb.fs" />
     <Compile Include="WorkflowTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
     <ProjectReference Include="..\..\src\ChickenCheck.Backend\ChickenCheck.Backend.fsproj" />
     <ProjectReference Include="..\..\src\ChickenCheck.Migrations\ChickenCheck.Migrations.fsproj" />
-    <ProjectReference Include="..\..\src\ChickenCheck.Domain\ChickenCheck.Domain.fsproj" />
+    <ProjectReference Include="..\..\src\ChickenCheck.Shared\ChickenCheck.Shared.fsproj" />
+    <ProjectReference Include="..\ChickenCheck.UnitTests\ChickenCheck.UnitTests.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

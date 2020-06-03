@@ -1,6 +1,6 @@
 ﻿module ChickenCheck.Backend.Authentication
 
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 open System.Security.Claims
 open System.IdentityModel.Tokens.Jwt
 open Microsoft.IdentityModel.Tokens
@@ -94,7 +94,7 @@ module PasswordHash =
 
 type ITokenService =
     abstract VerifyPasswordHash: PasswordHash * Password -> bool
-    abstract GenerateUserToken: string -> ChickenCheck.Domain.SecurityToken
+    abstract GenerateUserToken: string -> ChickenCheck.Shared.SecurityToken
 
 type TokenService(tokenSecret) =
     interface ITokenService with

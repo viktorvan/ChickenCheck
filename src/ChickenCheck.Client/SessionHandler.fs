@@ -1,8 +1,8 @@
 module ChickenCheck.Client.SessionHandler
 
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 
-let expired = new Event<unit>()
+let expired = Event<unit>()
 
 open Fable.SimpleJson
 let store (session : Session) =

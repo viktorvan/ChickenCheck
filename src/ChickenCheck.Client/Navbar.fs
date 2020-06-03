@@ -4,14 +4,11 @@ open Elmish
 open Feliz
 open Feliz.Bulma
 
-
 type NavbarProps =
     { Model: Model
       Dispatch: Dispatch<Msg> }
 
-let view = Utils.elmishView "Navbar" (fun props ->
-    let dispatch = props.Dispatch
-    let model = props.Model
+let view = (fun model dispatch ->
     Bulma.navbar [
         color.isInfo
         prop.children [
@@ -27,7 +24,7 @@ let view = Utils.elmishView "Navbar" (fun props ->
             ]
             Bulma.navbarMenu [
                 Bulma.navbarEnd.a [
-                    prop.onClick (fun _ -> dispatch Signout)
+                    prop.onClick (fun _ -> dispatch Logout)
                     prop.children [
                         Bulma.navbarItem.div [
                             prop.text "sign out"

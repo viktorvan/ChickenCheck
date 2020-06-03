@@ -43,6 +43,7 @@ group Client
     nuget Fable.Remoting.Client ~> 5
     nuget Fable.SimpleJson ~> 3
     nuget Feliz
+    nuget Feliz.Router
     nuget Feliz.Bulma
     nuget Feliz.Bulma.PageLoader
 

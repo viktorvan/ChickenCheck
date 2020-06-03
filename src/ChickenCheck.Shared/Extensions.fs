@@ -1,4 +1,4 @@
-namespace ChickenCheck.Domain
+namespace ChickenCheck.Shared
 
 module Async =
     let retn x = async { return x }

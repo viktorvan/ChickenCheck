@@ -10,7 +10,6 @@
         <Compile Include="Utils.fs" />
         <Compile Include="NotFound.fs" />
         <Compile Include="Logger.fs" />
-        <Compile Include="Router.fs" />
         <Compile Include="Types.fs" />
         <Compile Include="ApiCommands.fs" />
         <Compile Include="SessionHandler.fs" />
@@ -26,10 +25,10 @@
         <Compile Include="Client.fs" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\ChickenCheck.Domain\ChickenCheck.Domain.fsproj" />
+      <EmbeddedResource Remove="Session\**" />
     </ItemGroup>
     <ItemGroup>
-      <EmbeddedResource Remove="Session\**" />
+      <ProjectReference Include="..\ChickenCheck.Shared\ChickenCheck.Shared.fsproj" />
     </ItemGroup>
     <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

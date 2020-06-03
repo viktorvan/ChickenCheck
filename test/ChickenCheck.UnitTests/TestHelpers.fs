@@ -1,11 +1,7 @@
 module ChickenCheck.UnitTests.TestHelpers
 
-open Swensen.Unquote
 open Expecto
-open ChickenCheck.Domain
-open ChickenCheck.Client
-open Elmish
-open System
+open ChickenCheck.Shared
 
 module Result =
     let okValue res =
@@ -23,6 +19,9 @@ let toAction3 f arg1 arg2 arg3 =
     fun _ -> f arg1 arg2 arg3 |> ignore
 
 module Expect =
+    let fail msg =
+        Expect.isTrue false msg
+        
     let throwsWithType<'texn when 'texn :> exn> f =
         Expect.throwsT<'texn> 
             f

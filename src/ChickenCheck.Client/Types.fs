@@ -1,5 +1,5 @@
 namespace ChickenCheck.Client
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 open FsToolkit.ErrorHandling
 
 type Deferred<'T> =
@@ -20,7 +20,8 @@ module Deferred =
         | Resolved value -> Resolved (transform value)
 
     /// Returns whether the `Deferred<'T>` value has been resolved or not.
-    let resolved = function
+    let resolved value =
+        match value with
         | HasNotStartedYet -> false
         | InProgress -> false
         | Resolved _ -> true
@@ -76,13 +77,13 @@ type StringInput<'a> =
 type SessionPageModel =
     { Email : StringInput<Email>
       Password : StringInput<Password>
-      LoginStatus : Deferred<LoginError>
+      LoginStatus : Deferred<Result<unit,LoginError>>
       Errors : string list }
 type SessionMsg =
     | ChangeEmail of string
     | ChangePassword of string
     | ClearErrors
-    | SignIn of AsyncOperationStatus<unit, LoginError>
+    | Login of AsyncOperationStatus<unit, Result<Session, LoginError>>
     
 type ChickenDetails =
     { Id: ChickenId
@@ -94,45 +95,52 @@ type ChickenDetails =
       IsLoading : bool }
 type ChickensPageModel =
     { Chickens : Deferred<Map<ChickenId, ChickenDetails>>
-      CurrentDate : Date
+      CurrentDate : NotFutureDate
       Errors : string list }
 type ChickenMsg =
-    | GetAllChickens of AsyncOperationStatus<Date, GetAllChickensResponse list>
-    | GetEggCount of AsyncOperationStatus<Date * ChickenId list, Date * Map<ChickenId, EggCount>>
-    | ChangeDate of Date
-    | AddEgg of AsyncOperationStatus<ChickenId * Date, ChickenId * Date>
-    | RemoveEgg of AsyncOperationStatus<ChickenId * Date, ChickenId * Date>
+    | GetAllChickens of AsyncOperationStatus<NotFutureDate, ChickenWithEggCount list>
+    | GetEggCount of AsyncOperationStatus<NotFutureDate * ChickenId list, NotFutureDate * Map<ChickenId, EggCount>>
+    | ChangeDate of NotFutureDate
+    | AddEgg of AsyncOperationStatus<ChickenId * NotFutureDate, ChickenId * NotFutureDate>
+    | RemoveEgg of AsyncOperationStatus<ChickenId * NotFutureDate, ChickenId * NotFutureDate>
     | AddError of string
     | ClearErrors
 
 [<RequireQualifiedAccess>]
+type Url =
+    | Chickens of NotFutureDate
+    | Login
+    | Logout
+    | NotFound
+    
+[<RequireQualifiedAccess>]
 type Page =
-    | Signin of SessionPageModel
+    | Login of SessionPageModel
     | Chickens of ChickensPageModel
-    | Loading
     | NotFound
 
 type Model =
-    { CurrentRoute: Router.Route option
+    { CurrentUrl: Url
+      CurrentPage: Page
       Session: Deferred<Session>
-      IsMenuExpanded: bool
-      ActivePage: Page }
+      IsMenuExpanded: bool }
       
 type Msg =
+    | UrlChanged of Url
     | ToggleMenu
     | SessionMsg of SessionMsg
     | ChickenMsg of ChickenMsg
-    | SignedIn of Session
-    | Signout
+    | LoggedIn of Session
+    | Logout
     | ApiError of string
     | LoginFailed of AuthenticationError
 
 open Elmish
 type IChickenApiCmds =
-    abstract GetAllChickens : SecurityToken * Date -> Cmd<Msg> 
-    abstract GetEggCount : SecurityToken * Date * ChickenId list -> Cmd<Msg> 
-    abstract AddEgg: SecurityToken * ChickenId * Date -> Cmd<Msg> 
-    abstract RemoveEgg: SecurityToken * ChickenId * Date -> Cmd<Msg>
+    abstract GetAllChickens : SecurityToken * NotFutureDate -> Cmd<Msg> 
+    abstract GetEggCount : SecurityToken * NotFutureDate * ChickenId list -> Cmd<Msg> 
+    abstract AddEgg: SecurityToken * ChickenId * NotFutureDate -> Cmd<Msg> 
+    abstract RemoveEgg: SecurityToken * ChickenId * NotFutureDate -> Cmd<Msg>
 
 type ISessionApiCmds =
     abstract Login : Email * Password -> Cmd<Msg>

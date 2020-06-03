@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <RootNamespace>ChickenCheck.Shared</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Extensions.fs" />

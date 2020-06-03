@@ -6,7 +6,7 @@ open Elmish
 open Swensen.Unquote
 open System
 open Expecto
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 open ChickenCheck.UnitTests
 open TestHelpers
 open FsToolkit.ErrorHandling
@@ -62,13 +62,13 @@ let mockApi =
 let tests =
     testList "Session.update" [
         test "Start SignIn sets LoginStatus to in progress" {
-            let msg = SignIn (Start ())
+            let msg = Login (Start ())
             let model, _ = Session.update mockCmds msg validModel
             model.LoginStatus =! InProgress
         }
         
         test "Start SignIn should call Login cmd" {
-            let msg = SignIn (Start ())
+            let msg = Login (Start ())
             let _, _ = Session.update mockCmds msg validModel
             mockCmds.ActiveLogin =! Some (email, password)
         }
@@ -81,28 +81,28 @@ let tests =
               Email = StringInput.Empty
               Password = StringInput.Empty } ]
         |> List.map (fun model -> test "Submit should throw if model is invalid" {
-            let msg = SignIn (Start ())
+            let msg = Login (Start ())
             toAction3 Session.update mockCmds msg model
             |> Expect.throwsWithMessage "tried to submit invalid form"
         })
         |> testList "Submit with invalid models"
         
         test "On SignIn Finished Sets LoginStatus = Resolved" {
-            let msg = SignIn (Finished (LoginError.PasswordIncorrect))
+            let msg = Login (Finished (Error LoginError.PasswordIncorrect))
             let newModel, _ = Session.update mockCmds msg validModel
-            newModel.LoginStatus =! Resolved LoginError.PasswordIncorrect
+            newModel.LoginStatus =! Resolved (Error LoginError.PasswordIncorrect)
         }
         
         testList "sessionApiCmds" [
             testAsync "SessionCmds.createSession returns SignedIn on success" {
                 let api = { mockApi with CreateSession = fun _ -> AsyncResult.retn session  }
                 let! result = SessionApiCmds.createSession api email password
-                result =! SignedIn session
+                result =! LoggedIn session
             }
             testAsync "SessionCmds.createSession returns LoginError on error" {
                 let api = { mockApi with CreateSession = fun _ -> async { return Error LoginError.PasswordIncorrect } }
                 let! result = SessionApiCmds.createSession api email password
-                let expected = (LoginError.PasswordIncorrect |> Finished |> SignIn |> SessionMsg)
+                let expected = (Error LoginError.PasswordIncorrect |> Finished |> Login |> SessionMsg)
                 result =! expected
             }
         ]

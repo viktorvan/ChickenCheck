@@ -13,7 +13,7 @@ open Giraffe
 open Fable.Remoting.Server
 open Fable.Remoting.Giraffe
 open Microsoft.AspNetCore.Http
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 
 let tryGetEnv = System.Environment.GetEnvironmentVariable >> function null | "" -> None | x -> Some x
 let publicPath = tryGetEnv "public_path" |> Option.defaultValue "../../output/server/public" |> Path.GetFullPath

@@ -1,6 +1,6 @@
 module ChickenCheck.Client.ApiCommands
 
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 open Elmish
 
 type ChickenApiCmds(api: IChickenApi) =
@@ -63,9 +63,8 @@ module SessionApiCmds =
     let createSession api email pw =
         async {
             try
-                match! api.CreateSession(email,pw) with
-                | Ok session -> return SignedIn session
-                | Error loginError -> return loginError |> (Finished >> SignIn >> SessionMsg)
+                let! result = api.CreateSession(email,pw)
+                return result |> (Finished >> Login >> SessionMsg)
             with exn ->
                 return ApiError exn.Message
         }

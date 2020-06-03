@@ -1,6 +1,6 @@
 ﻿module ChickenCheck.Backend.CompositionRoot
 
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
 open System
@@ -29,38 +29,6 @@ let runSecure (workflow: 'TRequest -> Async<'TResult>) (req: SecureRequest<'TReq
         let! validatedReq = validateToken req
         return! workflow validatedReq
     }
-
-//module Chicken =
-//    let getEggsOnDate = SqlChickenStore.getEggCountOnDate connectionString
-//    let getTotalEggCount = SqlChickenStore.getTotalEggCount connectionString
-//    let getAllChickens = SqlChickenStore.getChickens connectionString
-//        
-//    let private toChickenWithEggCount (countOnDate) (totalCount) chicken =
-//        let onDate = Map.find chicken.Id countOnDate 
-//        let total = Map.find chicken.Id totalCount
-//        { Chicken = chicken
-//          OnDate = onDate
-//          Total = total }
-//        
-//    let getAllChickensWithEggs date =
-//        async {
-//            let! chickens = getAllChickens()
-//            let! eggCountOnDate = getEggsOnDate date 
-//            let! totalEggCount = getTotalEggCount()
-//            return chickens |> List.map (toChickenWithEggCount eggCountOnDate totalEggCount) 
-//        }
-//        
-//    let addEgg =
-//        Commands.AddEgg.Create
-//        >> ChickenCommandHandler.handleAddEgg
-//        >> Events.ChickenEvent
-//        >> appendEvent
-//        
-//    let removeEgg =
-//        Commands.RemoveEgg.Create
-//        >> ChickenCommandHandler.handleRemoveEgg
-//        >> Events.ChickenEvent
-//        >> appendEvent
         
 // services
 let tokenService = Authentication.TokenService config.TokenSecret 

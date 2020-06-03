@@ -1,7 +1,7 @@
 [<RequireQualifiedAccess>]
 module ChickenCheck.Backend.Database
 
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 open System
 open Microsoft.Data.Sqlite
 open FsToolkit.ErrorHandling
@@ -78,8 +78,9 @@ let getUserByEmail (conn: ConnectionString) : Email -> Async<User option> =
     fun (Email email) ->
         async {
             let sql =
-                """SELECT TOP 2 Id, Name, Email, PasswordHash, Salt FROM [USER]
-                WHERE Email = @Email"""
+                """SELECT Id, Name, Email, PasswordHash, Salt FROM [USER]
+                WHERE Email = @Email
+                LIMIT 2"""
             use! conn = getConnection conn
             let! result = querySingle<UserEntity> conn sql !{| Email = email |}
             return result |> Option.map toDomain
@@ -153,7 +154,7 @@ let getEggCount (conn: ConnectionString) =
         |> List.map EggCountEntity.toDomain
         |> Map.ofList
 
-    fun (chickenIds: ChickenId list) { Date.Year = year; Month = month; Day = day } ->
+    fun (chickenIds: ChickenId list) { Year = year; Month = month; Day = day } ->
         let dateTime = System.DateTime(year, month, day)
         let chickenStringIds = chickenIds |> List.map (fun (ChickenId id) -> id.ToString())
         async {
@@ -205,7 +206,7 @@ let addEgg (conn: ConnectionString) =
             WHERE (SELECT Changes() = 0);"""
 
     fun (ChickenId id) date ->
-        let date = Date.toDateTime date
+        let date = NotFutureDate.toDateTime date
         async {
             use! connection = getConnection conn
             let! _ = execute connection sql !{| date = date; chickenId = id.ToString() |}
@@ -227,7 +228,7 @@ let removeEgg (conn: ConnectionString) =
             AND EggCount < 1;"""
 
     fun (ChickenId id) date ->
-        let date = Date.toDateTime date
+        let date = NotFutureDate.toDateTime date
         async {
             use! connection = getConnection conn
             let! _ = execute connection sql !{| chickenId = id.ToString(); date = date |}
@@ -242,10 +243,10 @@ type UserStore(connectionString) =
 
 type IChickenStore =
     abstract GetAllChickens: unit -> Async<Chicken list>
-    abstract GetEggCount: ChickenId list -> Date -> Async<Map<ChickenId, EggCount>>
+    abstract GetEggCount: ChickenId list -> NotFutureDate -> Async<Map<ChickenId, EggCount>>
     abstract GetTotalEggCount: ChickenId list -> Async<Map<ChickenId, EggCount>>
-    abstract AddEgg: ChickenId -> Date -> Async<unit>
-    abstract RemoveEgg: ChickenId -> Date -> Async<unit>
+    abstract AddEgg: ChickenId -> NotFutureDate -> Async<unit>
+    abstract RemoveEgg: ChickenId -> NotFutureDate -> Async<unit>
     
     
 type ChickenStore(connectionString) =

@@ -5,7 +5,7 @@ VisualStudioVersion = 15.0.26124.0
 MinimumVisualStudioVersion = 15.0.26124.0
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{46C289FB-92C3-4A38-9CBD-A641FE443DB0}"
 EndProject
-Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ChickenCheck.Domain", "src\ChickenCheck.Domain\ChickenCheck.Domain.fsproj", "{AC256D72-0C98-4354-942C-47C14C0FEDB5}"
+Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ChickenCheck.Shared", "src\ChickenCheck.Shared\ChickenCheck.Shared.fsproj", "{AC256D72-0C98-4354-942C-47C14C0FEDB5}"
 EndProject
 Project("{F2A71F9B-5D33-465A-A702-920D77279786}") = "ChickenCheck.Backend", "src\ChickenCheck.Backend\ChickenCheck.Backend.fsproj", "{ADCC7153-8CAD-41B6-8953-F09AB17C964C}"
 EndProject

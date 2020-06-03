@@ -1,80 +1,106 @@
 module Client
 
+open ChickenCheck.Shared
 open Elmish
 open Elmish.React
-open Elmish.Navigation
-open Elmish.UrlParser
 open ChickenCheck.Client
-open ChickenCheck.Client.Router
 open CompositionRoot
 open Feliz
 open Feliz.Bulma
+open Feliz.Router
 open Feliz.Bulma.PageLoader
 
 
 // defines the initial state and initial command (= side-effect) of the application
-let private init (optRoute : Router.Route option) =
-    let session = SessionHandler.tryGet() 
-    let model = 
-        { CurrentRoute = None
-          ActivePage = Page.Loading
-          IsMenuExpanded = false
-          Session = session |> Option.map Resolved |> Option.defaultValue HasNotStartedYet }
-
+let private init () =
+    let session = SessionHandler.tryGet()
+    let initialUrl = parseUrl (Router.currentUrl())
+    let defaultState =
+        { CurrentUrl = initialUrl
+          CurrentPage = Page.Login (Session.init())
+          Session = HasNotStartedYet
+          IsMenuExpanded = false }
+          
     match session with
-    | Some _ -> Routing.setRoute optRoute model
-    | None -> Routing.setRoute (SessionRoute.Signin |> Session |> Some) model
+    | Some session ->
+        let defaultState = { defaultState with Session = Resolved session }
+            
+        match initialUrl with
+        | Url.Chickens date -> 
+            { defaultState with
+                CurrentPage = Page.Chickens (Chickens.init date) }, GetAllChickens (Start date) |> ChickenMsg |> Cmd.ofMsg
+        | Url.Login ->
+            { defaultState with
+                CurrentPage = Page.Login (Session.init()) }, Cmd.none
+        | Url.Logout ->
+            { defaultState with Session = HasNotStartedYet }, Router.navigate("login", HistoryMode.ReplaceState)
+        | Url.NotFound ->
+            { defaultState with CurrentPage = Page.NotFound }, Cmd.none
+    | None ->
+            defaultState, Router.navigate("login", HistoryMode.ReplaceState)
 
 // The update function computes the next state of the application based on the current state and the incoming events/messages
 // It can also run side-effects (encoded as commands) like calling the server via Http.
 // these commands in turn, can dispatch messages to which the update function will react.
 let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
-    match msg with
-    | SessionMsg msg -> Session.handle msg model 
-
-    | ChickenMsg msg -> Chickens.handle msg model 
-
-    | ToggleMenu -> { model with IsMenuExpanded = not model.IsMenuExpanded }, Cmd.none
+    match msg, model.CurrentPage with
+    | UrlChanged nextUrl,_ ->
+        let show page = { model with CurrentPage = page; CurrentUrl = nextUrl }
         
-    | SignedIn session ->
+        match nextUrl with
+        | Url.Chickens date -> show (Page.Chickens (Chickens.init date)), Cmd.none
+        | Url.Login -> show (Page.Login (Session.init())), Cmd.none
+        | Url.Logout -> { model with Session = HasNotStartedYet }, Router.navigate("/")
+        | Url.NotFound -> show Page.NotFound, Cmd.none
+        
+    | SessionMsg msg, Page.Login pageModel -> 
+        let (pageModel, cmds) = Session.update sessionCmds msg pageModel 
+        { model with CurrentPage = Page.Login pageModel }, cmds
+
+    | ChickenMsg msg, Page.Chickens pageModel ->
+        model.Session
+        |> Deferred.map (fun session ->
+            let (pageModel, cmds) = Chickens.update session.Token chickenCmds msg pageModel
+            { model with CurrentPage = Page.Chickens pageModel }, cmds)
+        |> Deferred.defaultValue (model, Cmd.none)
+
+    | ToggleMenu, _ -> { model with IsMenuExpanded = not model.IsMenuExpanded }, Cmd.none
+        
+    | LoggedIn session, _ ->
         SessionHandler.store session
-        { model with 
-            Session = Deferred.Resolved session
-            ActivePage = Session.init() |> Page.Signin }
-        |> Routing.setRoute (Router.ChickenRoute.Chickens |> Router.Chicken |> Some) 
+        { model with Session = Deferred.Resolved session }, Router.navigate("/")
 
-    | Signout ->
+    | Logout, _ ->
         SessionHandler.delete()
-        { model with
-            Session = HasNotStartedYet
-            ActivePage = Session.init() |> Page.Signin }, 
-        Router.SessionRoute.Signout |> Router.Session |> Router.newUrl
+        { model with Session = HasNotStartedYet }, Router.navigate("/")
         
-    | ApiError _ ->
+    | ApiError _, _ ->
         failwith "not implemented"
         
-    | LoginFailed _ -> 
+    | LoginFailed _, _ -> 
         failwith "not implemented"
+        
+    | msg, page -> 
+        sprintf "Unhandled msg: %A, page: %A" msg page |> Utils.Log.developmentError
+        model, Cmd.none
 
-let view model dispatch =
-    let loadingPage =             
-        PageLoader.pageLoader [
-            pageLoader.isInfo
-            pageLoader.isActive
-        ]
-
-    let pageHtml (page : Page) =
-        match page with
-        | Page.Signin pageModel -> Session.view { Model = pageModel; Dispatch = dispatch }
-        | Page.Chickens pageModel -> Chickens.view { Model = pageModel; Dispatch = dispatch }
+let view (model: Model) dispatch =
+    let activePage =
+        match model.CurrentPage with
+        | Page.Login pageModel -> lazyView2 Session.view pageModel dispatch 
+        | Page.Chickens pageModel -> lazyView2 Chickens.view pageModel dispatch
         | Page.NotFound -> lazyView NotFound.view model
-        | Page.Loading -> loadingPage
 
     let isLoggedIn = Deferred.resolved model.Session
 
-    Html.div [
-        if isLoggedIn then Navbar.view { Model = model; Dispatch = dispatch }
-        Html.div [ pageHtml model.ActivePage ]
+    Router.router [
+        Router.onUrlChanged (parseUrl >> UrlChanged >> dispatch)
+        Router.application [
+            Html.div [
+                if isLoggedIn then lazyView2 Navbar.view model dispatch
+                Html.div [ activePage ]
+            ]
+        ]
     ]
 
 
@@ -83,11 +109,8 @@ open Elmish.Debug
 open Elmish.HMR
 #endif
 
-let setRoute route model = Routing.setRoute route model
-
 Program.mkProgram init update view
 |> Program.withSubscription Authentication.handleExpiredToken
-|> Program.toNavigable (parseHash Router.pageParser) setRoute
 #if DEBUG
 |> Program.withConsoleTrace
 #endif

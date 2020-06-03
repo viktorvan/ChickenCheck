@@ -1,7 +1,7 @@
 module ChickenCheck.Client.Session
 
 open Elmish
-open ChickenCheck.Domain
+open ChickenCheck.Shared
 open Feliz
 open Feliz.Bulma
 
@@ -38,24 +38,22 @@ let update (api: ISessionApiCmds) (msg: SessionMsg) (model: SessionPageModel) =
     | SessionMsg.ClearErrors -> 
         { model with Errors = [] }, Cmd.none
 
-    | SignIn (Start ()) ->
+    | Login (Start ()) ->
         match model.Email, model.Password with
         | (StringInput.Valid email, StringInput.Valid password) ->
             { model with LoginStatus = InProgress }, api.Login(email, password) 
 
         | _ -> failwith "Application error, tried to submit invalid form"
     
-    | SignIn (Finished loginError) ->
+    | Login (Finished (Ok session)) ->
+        { model with LoginStatus = Resolved (Ok ()) }, LoggedIn session |> Cmd.ofMsg
+        
+    | Login (Finished (Error loginError)) ->
         { model with
-            LoginStatus = Resolved loginError
+            LoginStatus = Resolved (Error loginError)
             Errors = "Misslyckades att logga in" :: model.Errors }, Cmd.none
 
-type SessionProps =
-    { Model : SessionPageModel
-      Dispatch : Dispatch<Msg> }
-let view = Utils.elmishView "Session" (fun (props: SessionProps) ->
-    let model = props.Model
-    let dispatch = props.Dispatch
+let view = (fun (model:SessionPageModel) dispatch->
 
     let emailInput =
         let isValid, emailStr = model.Email |> StringInput.tryValid
@@ -137,12 +135,12 @@ let view = Utils.elmishView "Session" (fun (props: SessionProps) ->
             ]
         ]
 
-    let running = Deferred.resolved model.LoginStatus
+    let running() = Deferred.resolved model.LoginStatus
 
     let submitButton (text: string) =
         Bulma.button.button [
-            prop.onClick (fun ev -> ev.preventDefault(); (Start()) |> SignIn |> SessionMsg |> dispatch)
-            prop.disabled (model.IsInvalid || running)
+            prop.onClick (fun ev -> ev.preventDefault(); (Start()) |> Login |> SessionMsg |> dispatch)
+            prop.disabled (model.IsInvalid || running())
             prop.text text
         ]
 
