@@ -67,83 +67,10 @@ module DeferredResult =
         | Resolved (Ok value) -> Some value
         | Resolved (Error _) -> None
 
-
-
 type StringInput<'a> =
     | Valid of 'a
     | Invalid of string
     | Empty
-    
-type SessionPageModel =
-    { Email : StringInput<Email>
-      Password : StringInput<Password>
-      LoginStatus : Deferred<Result<unit,LoginError>>
-      Errors : string list }
-type SessionMsg =
-    | ChangeEmail of string
-    | ChangePassword of string
-    | ClearErrors
-    | Login of AsyncOperationStatus<unit, Result<Session, LoginError>>
-    
-type ChickenDetails =
-    { Id: ChickenId
-      Name : string
-      ImageUrl : ImageUrl option 
-      Breed : string
-      TotalEggCount : EggCount
-      EggCountOnDate : EggCount
-      IsLoading : bool }
-type ChickensPageModel =
-    { Chickens : Deferred<Map<ChickenId, ChickenDetails>>
-      CurrentDate : NotFutureDate
-      Errors : string list }
-type ChickenMsg =
-    | GetAllChickens of AsyncOperationStatus<NotFutureDate, ChickenWithEggCount list>
-    | GetEggCount of AsyncOperationStatus<NotFutureDate * ChickenId list, NotFutureDate * Map<ChickenId, EggCount>>
-    | ChangeDate of NotFutureDate
-    | AddEgg of AsyncOperationStatus<ChickenId * NotFutureDate, ChickenId * NotFutureDate>
-    | RemoveEgg of AsyncOperationStatus<ChickenId * NotFutureDate, ChickenId * NotFutureDate>
-    | AddError of string
-    | ClearErrors
-
-[<RequireQualifiedAccess>]
-type Url =
-    | Chickens of NotFutureDate
-    | Login
-    | Logout
-    | NotFound
-    
-[<RequireQualifiedAccess>]
-type Page =
-    | Login of SessionPageModel
-    | Chickens of ChickensPageModel
-    | NotFound
-
-type Model =
-    { CurrentUrl: Url
-      CurrentPage: Page
-      Session: Deferred<Session>
-      IsMenuExpanded: bool }
-      
-type Msg =
-    | UrlChanged of Url
-    | ToggleMenu
-    | SessionMsg of SessionMsg
-    | ChickenMsg of ChickenMsg
-    | LoggedIn of Session
-    | Logout
-    | ApiError of string
-    | LoginFailed of AuthenticationError
-
-open Elmish
-type IChickenApiCmds =
-    abstract GetAllChickens : SecurityToken * NotFutureDate -> Cmd<Msg> 
-    abstract GetEggCount : SecurityToken * NotFutureDate * ChickenId list -> Cmd<Msg> 
-    abstract AddEgg: SecurityToken * ChickenId * NotFutureDate -> Cmd<Msg> 
-    abstract RemoveEgg: SecurityToken * ChickenId * NotFutureDate -> Cmd<Msg>
-
-type ISessionApiCmds =
-    abstract Login : Email * Password -> Cmd<Msg>
     
 module StringInput = 
     let inline create createFunc =

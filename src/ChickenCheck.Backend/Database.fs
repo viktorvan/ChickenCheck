@@ -51,41 +51,6 @@ let inline private throwOnParsingError result =
         |> invalidArg "entity"
     result |> Result.valueOr throw
 
-
-type private UserEntity =
-    { Id: string
-      Name: string
-      Email: string
-      PasswordHash: string
-      Salt: string }
-
-let getUserByEmail (conn: ConnectionString) : Email -> Async<User option> =
-    let toByteArray = Convert.FromBase64String
-    let toDomain (entity:UserEntity) =
-        result {
-            let hash = entity.PasswordHash |> toByteArray
-            let salt = entity.Salt |> toByteArray
-            let! email = entity.Email |> Email.create
-            let name = entity.Name |> String.notNullOrEmpty
-            let id = entity.Id |> UserId.parse
-            return
-                { User.Id = id
-                  Name = name
-                  Email = email
-                  PasswordHash = { Hash = hash; Salt = salt} }
-        } |> throwOnParsingError
-
-    fun (Email email) ->
-        async {
-            let sql =
-                """SELECT Id, Name, Email, PasswordHash, Salt FROM [USER]
-                WHERE Email = @Email
-                LIMIT 2"""
-            use! conn = getConnection conn
-            let! result = querySingle<UserEntity> conn sql !{| Email = email |}
-            return result |> Option.map toDomain
-        }
-        
 type private ChickenEntity =
     { Id: string
       Name: string
@@ -234,12 +199,6 @@ let removeEgg (conn: ConnectionString) =
             let! _ = execute connection sql !{| chickenId = id.ToString(); date = date |}
             return ()
         }
-
-type IUserStore =
-    abstract GetUserByEmail: Email -> Async<User option>
-type UserStore(connectionString) =
-    interface IUserStore with
-        member this.GetUserByEmail(email) = getUserByEmail connectionString email
 
 type IChickenStore =
     abstract GetAllChickens: unit -> Async<Chicken list>

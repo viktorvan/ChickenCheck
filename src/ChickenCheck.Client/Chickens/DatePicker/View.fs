@@ -1,16 +1,12 @@
-module ChickenCheck.Client.DatePicker
+module ChickenCheck.Client.DatePicker.View
 
-open ChickenCheck.Client
+open ChickenCheck.Client.Chickens
 open ChickenCheck.Shared
 open Fable.React
 open System
 open Feliz
 open Feliz.Bulma
 
-type DatePickerProps =
-    { CurrentDate : NotFutureDate
-      OnChangeDate : NotFutureDate -> unit }
-      
 let private icon faIcon =
     Bulma.icon [
         Html.i [
@@ -22,7 +18,7 @@ let private iconLeft = icon "fa-caret-left"
 let private iconRight = icon "fa-caret-right"
 
 let view = (fun currentDate dispatch ->
-    let onDateSet date = (ChangeDate >> ChickenMsg >> dispatch) date
+    let onDateSet date = (ChangeDate >> dispatch) date
 
     let parseDate (ev: Browser.Types.Event) =
         ev.Value

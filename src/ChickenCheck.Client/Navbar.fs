@@ -1,14 +1,35 @@
 module ChickenCheck.Client.Navbar
 
-open Elmish
+open ChickenCheck.Shared
 open Feliz
 open Feliz.Bulma
+open Feliz.Router
 
-type NavbarProps =
-    { Model: Model
-      Dispatch: Dispatch<Msg> }
+type NavbarMsg =
+    | ToggleMenu
+    | Logout
+    
+let private logInLink =
+    Bulma.navbarEnd.a [
+        prop.href (Router.format "/login")
+        prop.children [
+            Bulma.navbarItem.div [
+                prop.text "log in"
+            ]
+        ]
+    ]
+    
+let private logOutLink =
+    Bulma.navbarEnd.a [
+        prop.href (Router.format "logout")
+        prop.children [
+            Bulma.navbarItem.div [
+                prop.text "log out"
+            ]
+        ]
+    ]
 
-let view = (fun model dispatch ->
+let view user isMenuExpanded dispatch = 
     Bulma.navbar [
         color.isInfo
         prop.children [
@@ -18,19 +39,16 @@ let view = (fun model dispatch ->
                 ]
                 Bulma.navbarBurger [
                     prop.onClick (fun _ -> dispatch ToggleMenu)
-                    prop.className [ if model.IsMenuExpanded then "is-active"; "navbar-burger" ]
+                    prop.className [ if isMenuExpanded then "is-active"; "navbar-burger" ]
                     prop.children (List.replicate 3 (Html.span []))
                 ]
             ]
             Bulma.navbarMenu [
-                Bulma.navbarEnd.a [
-                    prop.onClick (fun _ -> dispatch Logout)
-                    prop.children [
-                        Bulma.navbarItem.div [
-                            prop.text "sign out"
-                        ]
-                    ]
-                ]
+                user
+                |> Deferred.map (function
+                    | Anonymous -> logInLink
+                    | ApiUser _ -> logOutLink)
+                |> Deferred.defaultValue logInLink
             ]
         ]
-    ])
+    ]

@@ -9,7 +9,6 @@
     <Compile Include="DapperOptionHandler.fs" />
     <Compile Include="Database.fs" />
     <Compile Include="Configuration.fs" />
-    <Compile Include="Authentication.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="Workflows.fs" />
     <Compile Include="CompositionRoot.fs" />

@@ -44,12 +44,12 @@ let srcGlob = src @@ "**/*.??proj"
 let testsGlob = __SOURCE_DIRECTORY__  @@ "test/**/*.??proj"
 
 let changelog = Fake.Core.Changelog.load "CHANGELOG.md"
-let semVersion = changelog.LatestEntry.SemVer.AsString
+let semVersion = changelog.LatestEntry.SemVer
 let fullVersion =
     if BuildServer.isLocalBuild then
-        semVersion
+        semVersion.AsString
     else
-        sprintf "%s.%s" semVersion TeamFoundation.Environment.BuildId
+        sprintf "%s.%s" (semVersion.AsString) TeamFoundation.Environment.BuildId
 
 //-----------------------------------------------------------------------------
 // Build Target Implementations
@@ -87,7 +87,7 @@ let installClient _ =
 let dotnetBuild ctx =
     let args =
         [
-            sprintf "/p:PackageVersion=%s" semVersion
+            sprintf "/p:PackageVersion=%s" semVersion.AsString
             "--no-restore"
         ]
     DotNet.build(fun c ->
@@ -118,17 +118,17 @@ let buildClient _ =
 let dotnetPublishServer ctx =
     let args =
         [
-            sprintf "/p:PackageVersion=%s" semVersion
-            "--no-restore"
-            "--no-build"
+            sprintf "/p:PackageVersion=%s" semVersion.AsString
         ]
     DotNet.publish(fun c ->
         { c with
             Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+            Runtime = Some "linux-arm64"
+            SelfContained = Some false
             Common =
                 c.Common
                 |> DotNet.Options.withAdditionalArgs args
-            OutputPath = outputDir @@ "Server" |> Some
+            OutputPath = Some (outputDir @@ "Server")
         }) serverProj
 
 let runUnitTests _ =
@@ -189,15 +189,23 @@ let watchTests _ =
     let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
     cancelEvent.Cancel <- true
 
-let gitTagBuild _ =
-    if BuildServer.isTFBuild then
-        let tag =
-            match TeamFoundation.Environment.BuildSourceBranchName with
-            | branch when branch = "master" -> sprintf "CI-%s" fullVersion
-            | branch -> sprintf "CI-%s-%s" fullVersion branch
+let getValidVersion existingTags version =
+    let nextVersions = Seq.initInfinite (fun i -> { version with Build = version.Build + bigint(i); Original = None})
+    let validVersions = Seq.skipWhile (fun (v: SemVerInfo) -> existingTags |> List.contains v.AsString) nextVersions
+    Seq.head validVersions
 
-        Git.Branches.tag "" tag
-        Git.Branches.pushTag "" "origin" tag
+let gitTagBuild _ =
+    let tag (version: SemVerInfo) =
+        match Git.Information.getBranchName "" with
+        | "master" -> version.AsString
+        | branch -> version.AsString + "-" + branch
+        
+    match Git.CommandHelper.runGitCommand "" "tag" with
+    | false, _,_ -> failwith "git error"
+    | true, existingTags, _ ->
+        let version = getValidVersion existingTags semVersion
+        tag version |> Git.Branches.tag ""
+        tag version |> Git.Branches.pushTag "" "origin"
 
 //-----------------------------------------------------------------------------
 // Build Target Declaration

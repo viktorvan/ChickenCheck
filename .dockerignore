@@ -1,0 +1,5 @@
+# ignore everything
+*
+
+# include output-folder
+!output

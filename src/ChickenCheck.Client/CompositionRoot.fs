@@ -1,43 +1,27 @@
 module ChickenCheck.Client.CompositionRoot
 
 open ChickenCheck.Client
-open ChickenCheck.Client.ApiCommands
+open ChickenCheck.Client.Chickens
 open ChickenCheck.Shared
 open Fable.Remoting.Client
-open Elmish
-
-
-let private getToken session =
-    match session with
-    | Resolved session -> session.Token
-    | HasNotStartedYet | InProgress ->
-        failwith "Cannot access api without token"
 
 let private chickenApi : IChickenApi =
     Remoting.createApi()
     |> Remoting.withRouteBuilder Route.builder
-    #if !DEBUG
-    |> Remoting.withBaseUrl "https://chickencheck-functions.azurewebsites.net"
-    #endif
     |> Remoting.buildProxy<IChickenApi>
+    
+let private chickenEditApi : IChickenEditApi =
+    Remoting.createApi()
+    |> Remoting.withRouteBuilder Route.builder
+    |> Remoting.buildProxy<IChickenEditApi>
 
-let sessionCmds = SessionApiCmds(chickenApi)
-let chickenCmds = ChickenApiCmds(chickenApi)
+let chickenCmds = ChickenApiCmds(chickenApi, chickenEditApi)
 
 let parseUrl urlString = 
-    let home = Url.Chickens NotFutureDate.today
     match urlString with
-    | [] -> home
-    | [ "login" ] -> Url.Login
-    | [ "logout" ] -> Url.Logout
-    | [ "chickens" ] -> home
+    | [] -> Url.Home
+    | [ "chickens" ] -> Url.Chickens NotFutureDate.today
 //    | [ "chickens"; Date ]
+    | [ "login" ] -> Url.LogIn None
+    | [ "logout" ] -> Url.LogOut
     | _ -> Url.NotFound
-
-module Authentication =
-    let handleExpiredToken _ =
-        let sub dispatch =
-            SessionHandler.expired.Publish.Add
-                (fun _ -> Logout |> dispatch)
-        Cmd.ofSub sub
-

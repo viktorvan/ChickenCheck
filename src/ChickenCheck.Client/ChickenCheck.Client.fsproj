@@ -11,16 +11,17 @@
         <Compile Include="NotFound.fs" />
         <Compile Include="Logger.fs" />
         <Compile Include="Types.fs" />
-        <Compile Include="ApiCommands.fs" />
-        <Compile Include="SessionHandler.fs" />
         <Compile Include="EventHelpers.fs" />
         <Compile Include="SharedViews.fs" />
-        <Compile Include="Session.fs" />
-        <Compile Include="Chickens/Statistics.fs" />
-        <Compile Include="Chickens\ChickenCard.fs" />
-        <Compile Include="Chickens/DatePicker.fs" />
-        <Compile Include="Chickens/Chickens.fs" />
+        <Compile Include="Chickens\Types.fs" />
+        <Compile Include="Chickens\Update.fs" />
+        <Compile Include="Chickens\Statistics\View.fs" />
+        <Compile Include="Chickens\ChickenCard\View.fs" />
+        <Compile Include="Chickens\DatePicker\View.fs" />
+        <Compile Include="Chickens\View.fs" />
         <Compile Include="Navbar.fs" />
+        <Compile Include="Model.fs" />
+        <Compile Include="Msg.fs" />
         <Compile Include="CompositionRoot.fs" />
         <Compile Include="Client.fs" />
     </ItemGroup>

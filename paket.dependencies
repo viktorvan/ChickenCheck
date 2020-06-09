@@ -1,9 +1,11 @@
+version 5.245.1
+
 group Domain
     source https://api.nuget.org/v3/index.json
     framework: netstandard2.0
     storage: none
 
-    nuget FSharp.Core 4.7.0
+    nuget FSharp.Core
     nuget FsToolkit.ErrorHandling
 
 group Backend
@@ -12,9 +14,10 @@ group Backend
     storage: none
 
     nuget Giraffe
-    nuget Fable.Remoting.Giraffe ~> 3
+    nuget Fable.Remoting.Giraffe
+    nuget Saturn 0.13.1
 
-    nuget FSharp.Core 4.7.0
+    nuget FSharp.Core
     nuget FsToolkit.ErrorHandling
     nuget System.IdentityModel.Tokens.Jwt
     nuget Fable.Remoting.Server
@@ -61,7 +64,7 @@ group Tests
     framework: netcoreapp3.1
     storage: none
 
-    nuget FSharp.Core 4.7.0
+    nuget FSharp.Core
     nuget Expecto
     nuget Unquote
     nuget Fable.Elmish ~> 3
@@ -71,7 +74,7 @@ group ApiTests
     framework: netcoreapp3.1
     storage: none
     
-    nuget FSharp.Core 4.7.0
+    nuget FSharp.Core
     nuget Expecto
     nuget Unquote
     nuget Fable.Elmish ~> 3

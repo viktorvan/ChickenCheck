@@ -9,3 +9,4 @@ Microsoft.Data.Sqlite
 FsConfig
 Microsoft.Extensions.Configuration.UserSecrets
 Microsoft.ApplicationInsights.AspNetCore
+Saturn

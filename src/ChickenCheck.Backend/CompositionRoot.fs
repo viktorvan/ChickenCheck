@@ -5,6 +5,7 @@ open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
 open System
 open FSharpPlus
+open Microsoft.Extensions.Logging
 
 module Result =
     let bindAsync fAsync argResult = 
@@ -13,31 +14,23 @@ module Result =
         | Error err -> Error err |> Async.retn
     
 let config = Configuration.config.Value
-let tokenSecret = Configuration.config.Value.TokenSecret
-
-let private validate<'T> token = 
-    token 
-    |> Authentication.validate<'T> tokenSecret 
 
 let getStatus() =
     let now = DateTime.Now
     now.ToString("yyyyMMdd HH:mm:ss") |> sprintf "Ok at %s" 
     
-let runSecure (workflow: 'TRequest -> Async<'TResult>) (req: SecureRequest<'TRequest>) =
-    let validateToken = Authentication.validate config.TokenSecret
-    asyncResult {
-        let! validatedReq = validateToken req
-        return! workflow validatedReq
-    }
-        
+let inline logErrors (logger: ILogger<IChickenApi>) (workflow: 'TRequest -> Async<'TResult>) =
+    try
+        logger.LogInformation (sprintf "%A" workflow)
+        workflow
+    with exn ->
+        logger.LogError(exn.Message)
+        reraise()
+    
 // services
-let tokenService = Authentication.TokenService config.TokenSecret 
-let userStore = Database.UserStore config.ConnectionString 
 let chickenStore = Database.ChickenStore config.ConnectionString
 
 // workflows
-let createSession (email, pw) =
-    Workflows.createSession tokenService userStore (email, pw)
     
 let getAllChickens date =
     Workflows.getAllChickens chickenStore date
@@ -51,10 +44,13 @@ let addEgg (date, chicken) =
 let removeEgg (date, chicken) =
     Workflows.removeEgg chickenStore date chicken
 
-let chickenApi : IChickenApi =
-    { CreateSession = createSession
-      GetAllChickensWithEggs = runSecure getAllChickens
-      GetEggCount = runSecure getEggCount
-      AddEgg = runSecure addEgg
-      RemoveEgg = runSecure removeEgg }
+let chickenApi logger : IChickenApi =
+    let inline logError workflow = logErrors logger workflow
+    { GetAllChickensWithEggs = getAllChickens |> logError
+      GetEggCount = getEggCount |> logError }
+    
+let chickenEditApi logger : IChickenEditApi =
+    let inline logError workflow = logErrors logger workflow
+    { AddEgg = addEgg |> logError
+      RemoveEgg = removeEgg |> logError }
     

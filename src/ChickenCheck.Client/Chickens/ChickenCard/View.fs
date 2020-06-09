@@ -1,33 +1,39 @@
-module ChickenCheck.Client.ChickenCard
+module ChickenCheck.Client.ChickenCard.View
 
 open ChickenCheck.Shared
 open ChickenCheck.Client
+open ChickenCheck.Client.Chickens
 open Feliz
 open Feliz.Bulma
 
-type ChickenCardProps =
-    { Name: string
-      Breed: string
-      ImageUrl: ImageUrl option
-      EggCountOnDate : EggCount
-      IsLoading : bool
-      AddEgg : unit -> unit
-      RemoveEgg : unit -> unit }
-      
-let view = (fun (chicken, currentDate) dispatch ->
+let view user (chicken, currentDate) dispatch =
+    let runIfLoggedIn user f =
+        user
+        |> Deferred.map (function
+            | Anonymous -> ignore
+            | ApiUser _ -> f) 
+        |> Deferred.defaultValue ignore
     
-    let addEgg = fun () -> Start (chicken.Id, currentDate) |> ChickenMsg.AddEgg |> ChickenMsg |> dispatch
-    let removeEgg = fun () -> Start (chicken.Id, currentDate) |> ChickenMsg.RemoveEgg |> ChickenMsg |> dispatch
+    let addEgg  =
+        let handleEvent (ev:Browser.Types.MouseEvent) =
+            ev.cancelBubble <- true
+            ev.stopPropagation()
+            Start (chicken.Id, currentDate) |> ChickenMsg.AddEgg |> dispatch
+        runIfLoggedIn user handleEvent
+    
+    let removeEgg  =
+        let handleEvent (ev:Browser.Types.MouseEvent) =
+            ev.cancelBubble <- true
+            ev.stopPropagation()
+            Start (chicken.Id, currentDate) |> ChickenMsg.RemoveEgg |> dispatch
+        runIfLoggedIn user handleEvent
     
     let eggIcons =
         let eggIcon = 
             Bulma.icon [
                 icon.isLarge
                 color.hasTextWhite
-                prop.onClick (fun ev ->
-                    ev.cancelBubble <- true
-                    ev.stopPropagation()
-                    removeEgg())
+                prop.onClick removeEgg
                 prop.children [
                     Html.i [
                         prop.classes [ "fa-5x fas fa-egg" ]
@@ -82,10 +88,10 @@ let view = (fun (chicken, currentDate) dispatch ->
         ]
         
     Bulma.card [
-        prop.onClick (fun _ -> addEgg())
+        prop.onClick addEgg
         cardBackgroundStyle
         prop.children [
             Bulma.cardHeader header
             Bulma.cardContent eggIcons
         ]
-    ])
+    ]

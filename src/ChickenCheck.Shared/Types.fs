@@ -5,29 +5,16 @@ open System
 // types
 
 type AsyncResult<'TResult, 'TError> = Async<Result<'TResult, 'TError>> 
-type LoginError =
-    | UserDoesNotExist
-    | PasswordIncorrect
-type AuthenticationError =
-    | UserTokenExpired
-    | TokenInvalid of string
 type Email = Email of string
-type SecurityToken = SecurityToken of string
-type SecureRequest<'T> = { Token: SecurityToken; Content: 'T }
 type Password = Password of string
-type PasswordHash = 
-    { Hash: byte[]
-      Salt: byte[] }
 type UserId = UserId of Guid
-type User =
+type ApiUser =
     { Id : UserId
       Name : string
-      Email : Email
-      PasswordHash : PasswordHash }
-type Session = 
-    { Token : SecurityToken
-      UserId : UserId 
-      Name : string }
+      Email : Email }
+type User =
+    | Anonymous
+    | ApiUser of ApiUser
 type ChickenId = ChickenId of Guid
 type ImageUrl = ImageUrl of string
 type Chicken = 
@@ -49,27 +36,16 @@ type ChickenWithEggCount =
       TotalCount: EggCount }
 
 type IChickenApi =
-    { CreateSession: (Email * Password) -> AsyncResult<Session, LoginError> 
-      GetAllChickensWithEggs: SecureRequest<NotFutureDate> -> AsyncResult<ChickenWithEggCount list, AuthenticationError>
-      GetEggCount: SecureRequest<NotFutureDate * ChickenId list> -> AsyncResult<Map<ChickenId, EggCount>, AuthenticationError>
-      AddEgg: SecureRequest<ChickenId * NotFutureDate> -> AsyncResult<unit, AuthenticationError> 
-      RemoveEgg: SecureRequest<ChickenId * NotFutureDate> -> AsyncResult<unit, AuthenticationError> }
+    { GetAllChickensWithEggs: NotFutureDate -> Async<ChickenWithEggCount list>
+      GetEggCount: NotFutureDate * ChickenId list -> Async<Map<ChickenId, EggCount>> }
+    
+type IChickenEditApi =
+    { AddEgg: ChickenId * NotFutureDate -> Async<unit> 
+      RemoveEgg: ChickenId * NotFutureDate -> Async<unit> }
+    
     
 // types - implementation
         
-module SecurityToken =
-    let create str =
-        if String.IsNullOrEmpty str then
-            invalidArg "SecurityToken" "SecurityToken cannot be empty"
-        else
-            SecurityToken str
-            
-module Session =
-    let create (user: User) token =
-        { Token = token
-          UserId = user.Id
-          Name = user.Name }
-    
 // domain - implementation
 [<AutoOpen>]
 module Helpers =
@@ -78,8 +54,6 @@ module Helpers =
         f x |> ignore
         x
         
-module SecureRequest =
-    let create token content = { Token = token; Content = content }
     
 module Email =
     let create (str: string) =

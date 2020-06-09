@@ -32,6 +32,8 @@ node_modules
 # database
 app_data
 database.db-journal
+database.db
+database-dev.db
 
 #vscode
 .vscode

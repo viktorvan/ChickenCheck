@@ -1,8 +1,10 @@
-module ChickenCheck.Client.Statistics 
+module ChickenCheck.Client.Statistics.View 
 
 open Feliz
 open Feliz.Bulma
 open ChickenCheck.Shared
+open ChickenCheck.Client
+open ChickenCheck.Client.Chickens
 
 
 let private eggCountViews (chickens: Map<ChickenId, ChickenDetails>) =
