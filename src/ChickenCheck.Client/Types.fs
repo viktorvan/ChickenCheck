@@ -89,3 +89,13 @@ module StringInput =
             false, ""
 
     let inline isValid input = input |> tryValid |> fst
+    
+type UserProfile = 
+    {
+        AccessToken: JWT
+        Name       : string
+        Email      : string
+        Picture    : string
+        UserId     : string
+    }
+and JWT = string

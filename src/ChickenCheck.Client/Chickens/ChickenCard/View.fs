@@ -1,4 +1,4 @@
-module ChickenCheck.Client.ChickenCard.View
+namespace ChickenCheck.Client.ChickenCard
 
 open ChickenCheck.Shared
 open ChickenCheck.Client
@@ -6,92 +6,78 @@ open ChickenCheck.Client.Chickens
 open Feliz
 open Feliz.Bulma
 
-let view user (chicken, currentDate) dispatch =
-    let runIfLoggedIn user f =
-        user
-        |> Deferred.map (function
-            | Anonymous -> ignore
-            | ApiUser _ -> f) 
-        |> Deferred.defaultValue ignore
-    
-    let addEgg  =
-        let handleEvent (ev:Browser.Types.MouseEvent) =
-            ev.cancelBubble <- true
-            ev.stopPropagation()
-            Start (chicken.Id, currentDate) |> ChickenMsg.AddEgg |> dispatch
-        runIfLoggedIn user handleEvent
-    
-    let removeEgg  =
-        let handleEvent (ev:Browser.Types.MouseEvent) =
-            ev.cancelBubble <- true
-            ev.stopPropagation()
-            Start (chicken.Id, currentDate) |> ChickenMsg.RemoveEgg |> dispatch
-        runIfLoggedIn user handleEvent
-    
-    let eggIcons =
-        let eggIcon = 
-            Bulma.icon [
-                icon.isLarge
-                color.hasTextWhite
-                prop.onClick removeEgg
+type ChickenCardProps =
+    { Chicken: ChickenDetails
+      CurrentDate: NotFutureDate
+      AddEgg: ChickenId * NotFutureDate -> unit
+      RemoveEgg: ChickenId * NotFutureDate -> unit }
+      
+module View =
+    let view name = Utils.elmishView name (fun props ->
+        let eggIcons =
+            let eggIcon = 
+                Bulma.icon [
+                    icon.isLarge
+                    color.hasTextWhite
+                    prop.onClick (fun _ -> props.RemoveEgg (props.Chicken.Id, props.CurrentDate))
+                    prop.children [
+                        Html.i [
+                            prop.classes [ "fa-5x fas fa-egg" ]
+                        ]
+                    ]
+                ]
+
+            let eggsForCount eggCount =
+
+                if props.Chicken.IsLoading then
+                    [ SharedViews.loading ]
+                else
+                    [ for _ in 1..eggCount do
+                        Bulma.column [
+                            column.is3
+                            prop.children eggIcon
+                        ]
+                    ]
+
+            Bulma.columns [
+                columns.isCentered
+                columns.isVCentered
+                columns.isMobile
+                prop.style [ style.height (length.px 200) ]
+                prop.children (eggsForCount props.Chicken.EggCountOnDate.Value)
+            ]
+
+        let header =
+            Bulma.text.div [
                 prop.children [
-                    Html.i [
-                        prop.classes [ "fa-5x fas fa-egg" ]
+                    Bulma.title.h4 [
+                        color.hasTextWhite
+                        prop.text props.Chicken.Name
+                    ]
+                    Bulma.subtitle.p [
+                        color.hasTextWhite
+                        prop.text props.Chicken.Breed
                     ]
                 ]
             ]
 
-        let eggsForCount eggCount =
-
-            if chicken.IsLoading then
-                [ SharedViews.loading ]
-            else
-                [ for _ in 1..eggCount do
-                    Bulma.column [
-                        column.is3
-                        prop.children eggIcon
-                    ]
-                ]
-
-        Bulma.columns [
-            columns.isCentered
-            columns.isVCentered
-            columns.isMobile
-            prop.style [ style.height (length.px 200) ]
-            prop.children (eggsForCount chicken.EggCountOnDate.Value)
-        ]
-
-    let header =
-        Bulma.text.div [
-            prop.children [
-                Bulma.title.h4 [
-                    color.hasTextWhite
-                    prop.text chicken.Name
-                ]
-                Bulma.subtitle.p [
-                    color.hasTextWhite
-                    prop.text chicken.Breed
-                ]
+        let cardBackgroundStyle =
+            let imageUrlStr =
+                props.Chicken.ImageUrl
+                |> Option.map (ImageUrl.value)
+                |> Option.defaultValue ""
+                
+            prop.style [
+                style.backgroundImage (sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrlStr)
+                style.backgroundRepeat.noRepeat
+                style.backgroundSize.cover
             ]
-        ]
-
-    let cardBackgroundStyle =
-        let imageUrlStr =
-            chicken.ImageUrl
-            |> Option.map (ImageUrl.value)
-            |> Option.defaultValue ""
             
-        prop.style [
-            style.backgroundImage (sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrlStr)
-            style.backgroundRepeat.noRepeat
-            style.backgroundSize.cover
-        ]
-        
-    Bulma.card [
-        prop.onClick addEgg
-        cardBackgroundStyle
-        prop.children [
-            Bulma.cardHeader header
-            Bulma.cardContent eggIcons
-        ]
-    ]
+        Bulma.card [
+            prop.onClick (fun _ -> props.AddEgg (props.Chicken.Id, props.CurrentDate))
+            cardBackgroundStyle
+            prop.children [
+                Bulma.cardHeader header
+                Bulma.cardContent eggIcons
+            ]
+        ])

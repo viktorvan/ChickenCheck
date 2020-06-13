@@ -109,6 +109,7 @@ let update (api: IChickenApiCmds) (msg: ChickenMsg) (model: ChickensPageModel) :
         |> increaseEggCount id, Cmd.none
         
     | ChickenMsg.AddEgg (Finished (Error (id, err))) ->
+        printfn "%s" err
         model
         |> setStopLoading id, Cmd.none
 

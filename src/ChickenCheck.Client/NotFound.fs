@@ -1,8 +1,6 @@
 module ChickenCheck.Client.NotFound
 
-open Fable.React
+open Feliz
 
 let view _ = 
-    div 
-        [ ]
-        [ str "Not found"]
+    Html.text "Not found"

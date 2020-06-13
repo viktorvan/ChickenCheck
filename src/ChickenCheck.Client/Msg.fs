@@ -1,10 +1,13 @@
 namespace ChickenCheck.Client
 
 open ChickenCheck.Client.Chickens
-open ChickenCheck.Client.Navbar
+open ChickenCheck.Shared
 
 type Msg =
     | UrlChanged of Url
-    | NavbarMsg of NavbarMsg
     | ChickenMsg of ChickenMsg
-
+    | ToggleMenu
+    | ShowLogin
+    | Logout
+    | LoggedIn
+    | LoadSettings of AsyncOperationStatus<unit,Result<AuthenticationSettings, string>>

@@ -1,11 +1,12 @@
 module ChickenCheck.Client.DatePicker.View
 
+open ChickenCheck.Client
 open ChickenCheck.Client.Chickens
 open ChickenCheck.Shared
-open Fable.React
 open System
 open Feliz
 open Feliz.Bulma
+open Elmish
 
 let private icon faIcon =
     Bulma.icon [
@@ -17,11 +18,11 @@ let private icon faIcon =
 let private iconLeft = icon "fa-caret-left"
 let private iconRight = icon "fa-caret-right"
 
-let view = (fun currentDate dispatch ->
-    let onDateSet date = (ChangeDate >> dispatch) date
+let view = Utils.elmishView "DatePicker" (fun (props: {| CurrentDate: NotFutureDate; Dispatch: Dispatch<ChickenMsg> |}) ->
+    let onDateSet date = (ChangeDate >> props.Dispatch) date
 
-    let parseDate (ev: Browser.Types.Event) =
-        ev.Value
+    let parseDate ev =
+        ev
         |> DateTime.Parse
         |> NotFutureDate.create
         
@@ -36,16 +37,16 @@ let view = (fun currentDate dispatch ->
 
     let previousDateButton =
         let onClick = 
-            let previousDate = currentDate |> NotFutureDate.addDays -1.
+            let previousDate = props.CurrentDate |> NotFutureDate.addDays -1.
             fun _ -> onDateSet previousDate
         dateButton iconLeft false onClick
         
     let nextDateButton =
-        if currentDate = NotFutureDate.today then
+        if props.CurrentDate = NotFutureDate.today then
             dateButton iconRight true ignore
         else
             let onClick =
-                let nextDate = currentDate |> NotFutureDate.addDays 1.
+                let nextDate = props.CurrentDate |> NotFutureDate.addDays 1.
                 fun _ -> onDateSet nextDate
             dateButton iconRight false onClick
         
@@ -59,7 +60,7 @@ let view = (fun currentDate dispatch ->
                     prop.children [
                         Bulma.input.date [
                             prop.onChange (parseDate >> onDateSet)
-                            prop.value (currentDate.ToDateTime().ToString("yyyy-MM-dd"))
+                            prop.value (props.CurrentDate.ToDateTime().ToString("yyyy-MM-dd"))
                         ]
                     ]
                 ]

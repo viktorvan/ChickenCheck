@@ -9,9 +9,10 @@ open Feliz.Bulma
 open Feliz.Bulma.PageLoader
 open ChickenCheck.Client.Chickens
 open Elmish
+open ChickenCheck.Client.ChickenCard
 
 
-let view user model (dispatch: Dispatch<ChickenMsg>) =
+let view = Utils.elmishView "Chickens" (fun (props: {| Model: ChickensPageModel; Dispatch: Dispatch<ChickenMsg>; User: User |}) ->
     let header =
         Html.p [
             text.hasTextCentered
@@ -22,16 +23,28 @@ let view user model (dispatch: Dispatch<ChickenMsg>) =
     let errorView =
         let errorFor item = 
             item
-            |> SharedViews.apiErrorMsg (fun _ -> ClearErrors |> dispatch) 
+            |> SharedViews.apiErrorMsg (fun _ -> ClearErrors |> props.Dispatch) 
 
-        model.Errors |> List.map errorFor
+        props.Model.Errors |> List.map errorFor
 
-    let hasErrors = model.Errors |> List.isEmpty |> not
+    let hasErrors = props.Model.Errors |> List.isEmpty |> not
+    
+    let runIfLoggedIn user f =
+        match user with
+        | (ApiUser _) -> f
+        | _ -> ignore
+    let addEgg = fun (id, date) -> Start (id,date) |> AddEgg |> props.Dispatch
+    let removeEgg = fun (id, date) -> Start (id,date) |> RemoveEgg |> props.Dispatch 
         
     let chickenListView = 
         let cardViewRows (chickens: ChickenDetails list) = 
             let cardView (chicken: ChickenDetails) =
-                let card = lazyView3 ChickenCard.View.view user (chicken, model.CurrentDate) dispatch
+                let cardProps =
+                    { Chicken = chicken
+                      CurrentDate = props.Model.CurrentDate
+                      AddEgg = runIfLoggedIn props.User addEgg
+                      RemoveEgg = runIfLoggedIn props.User removeEgg }
+                let card = ChickenCard.View.view (sprintf "ChickenCard-%O" chicken.Id.Value) cardProps
                 
                 Bulma.column [
                     column.is4
@@ -45,7 +58,7 @@ let view user model (dispatch: Dispatch<ChickenMsg>) =
             |> List.batchesOf 3
             |> List.map cardViewRow
 
-        model.Chickens
+        props.Model.Chickens
         |> Deferred.map (fun chickens ->
             chickens
             |> Map.values
@@ -54,19 +67,26 @@ let view user model (dispatch: Dispatch<ChickenMsg>) =
             |> Bulma.container)
         |> Deferred.defaultValue Html.none
 
+    let statistics =
+        props.Model.Chickens
+        |> Deferred.map (fun chickens ->
+            let props = {| Chickens = chickens |> Map.values |}
+            Statistics.View.view props)
+        |> Deferred.defaultValue Html.none 
+        
     let view' =
         Bulma.section [
             header
-            lazyView2 DatePicker.View.view model.CurrentDate dispatch
+            DatePicker.View.view {| CurrentDate = props.Model.CurrentDate; Dispatch = props.Dispatch |}
             chickenListView
-            lazyView Statistics.View.view model
+            statistics
         ]
             
     Html.div [
         PageLoader.pageLoader [
             pageLoader.isInfo
-            if not (model.Chickens |> Deferred.resolved) then pageLoader.isActive 
+            if not (props.Model.Chickens |> Deferred.resolved) then pageLoader.isActive 
         ]
         if hasErrors then Bulma.section errorView
         view'
-    ]
+    ])

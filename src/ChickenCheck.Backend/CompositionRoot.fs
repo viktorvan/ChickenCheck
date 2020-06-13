@@ -43,6 +43,9 @@ let addEgg (date, chicken) =
     
 let removeEgg (date, chicken) =
     Workflows.removeEgg chickenStore date chicken
+    
+let authenticationApi : ISettingsApi =
+    { AuthenticationSettings = fun () -> { Domain = config.Authentication.Domain; Audience = config.Authentication.Audience } }
 
 let chickenApi logger : IChickenApi =
     let inline logError workflow = logErrors logger workflow

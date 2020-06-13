@@ -22,6 +22,8 @@
         <Compile Include="Navbar.fs" />
         <Compile Include="Model.fs" />
         <Compile Include="Msg.fs" />
+        <Compile Include="LocalStorage.fs" />
+        <Compile Include="Authentication\Auth0.fs" />
         <Compile Include="CompositionRoot.fs" />
         <Compile Include="Client.fs" />
     </ItemGroup>

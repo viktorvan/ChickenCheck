@@ -34,6 +34,13 @@ type ChickenWithEggCount =
     { Chicken: Chicken
       Count: NotFutureDate * EggCount
       TotalCount: EggCount }
+    
+type AuthenticationSettings =
+    { Domain: string
+      Audience: string }
+
+type ISettingsApi =
+    { AuthenticationSettings: unit -> AuthenticationSettings }
 
 type IChickenApi =
     { GetAllChickensWithEggs: NotFutureDate -> Async<ChickenWithEggCount list>

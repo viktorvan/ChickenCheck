@@ -17,7 +17,8 @@ type Page =
     | NotFound
 
 type Model =
-    { User: Deferred<User>
+    { Settings: Deferred<AuthenticationSettings>
+      User: User
       CurrentUrl: Url
       CurrentPage: Page
       IsMenuExpanded: bool }

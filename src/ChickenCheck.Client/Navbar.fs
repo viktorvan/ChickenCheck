@@ -4,11 +4,8 @@ open ChickenCheck.Shared
 open Feliz
 open Feliz.Bulma
 open Feliz.Router
+open Utils
 
-type NavbarMsg =
-    | ToggleMenu
-    | Logout
-    
 let private logInLink =
     Bulma.navbarEnd.a [
         prop.href (Router.format "/login")
@@ -29,7 +26,10 @@ let private logOutLink =
         ]
     ]
 
-let view user isMenuExpanded dispatch = 
+    
+let view = elmishView "Navbar" (fun (props: {| IsMenuExpanded: bool
+                                               User: User
+                                               ToggleMenu: unit -> unit |}) ->
     Bulma.navbar [
         color.isInfo
         prop.children [
@@ -38,17 +38,21 @@ let view user isMenuExpanded dispatch =
                     prop.text "ChickenCheck"
                 ]
                 Bulma.navbarBurger [
-                    prop.onClick (fun _ -> dispatch ToggleMenu)
-                    prop.className [ if isMenuExpanded then "is-active"; "navbar-burger" ]
-                    prop.children (List.replicate 3 (Html.span []))
+                    prop.onClick (fun _ -> props.ToggleMenu())
+                    navbarItem.hasDropdown
+                    if props.IsMenuExpanded then navbarBurger.isActive
+                    prop.children [
+                        yield! List.replicate 3 (Html.span []) 
+                    ]
                 ]
             ]
             Bulma.navbarMenu [
-                user
-                |> Deferred.map (function
+                if props.IsMenuExpanded then navbarMenu.isActive
+                prop.children [
+                    match props.User with
                     | Anonymous -> logInLink
-                    | ApiUser _ -> logOutLink)
-                |> Deferred.defaultValue logInLink
+                    | ApiUser _ -> logOutLink
+                ]
             ]
         ]
-    ]
+    ])
