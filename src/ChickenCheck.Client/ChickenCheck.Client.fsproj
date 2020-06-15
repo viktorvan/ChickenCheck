@@ -11,6 +11,7 @@
         <Compile Include="NotFound.fs" />
         <Compile Include="Logger.fs" />
         <Compile Include="Types.fs" />
+        <Compile Include="Contexts.fs" />
         <Compile Include="EventHelpers.fs" />
         <Compile Include="SharedViews.fs" />
         <Compile Include="Chickens\Types.fs" />
@@ -24,6 +25,7 @@
         <Compile Include="Msg.fs" />
         <Compile Include="LocalStorage.fs" />
         <Compile Include="Authentication\Auth0.fs" />
+        <Compile Include="Routing.fs" />
         <Compile Include="CompositionRoot.fs" />
         <Compile Include="Client.fs" />
     </ItemGroup>

@@ -1,6 +1,7 @@
 namespace ChickenCheck.Client
 open ChickenCheck.Shared
 open FsToolkit.ErrorHandling
+open Feliz.Router
 
 type Deferred<'T> =
     | HasNotStartedYet
@@ -99,3 +100,20 @@ type UserProfile =
         UserId     : string
     }
 and JWT = string
+
+//[<RequireQualifiedAccess>]
+type Url =
+    | Home
+    | Chickens of NotFutureDate
+    | NotFound
+    | LogIn of Destination: Url option
+    | LogOut
+    with
+        member this.Href =
+            match this with
+            | Home -> Router.format "/"
+            | Chickens _ -> Router.format "/chickens"
+            | NotFound -> Router.format "/notfound"
+            | LogIn _ -> Router.format "/login"
+            | LogOut -> Router.format "/logout"
+    

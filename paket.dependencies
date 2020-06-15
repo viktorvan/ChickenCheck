@@ -49,6 +49,7 @@ group Client
     nuget Feliz.Router
     nuget Feliz.Bulma
     nuget Feliz.Bulma.PageLoader
+    nuget Feliz.UseElmish
 
 group Migrations
     source https://api.nuget.org/v3/index.json

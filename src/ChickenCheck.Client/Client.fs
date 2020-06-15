@@ -9,28 +9,6 @@ open Feliz
 open Feliz.Router
 open ChickenCheck.Client.Chickens
 
-module Routing =
-    let handleUrlChange nextUrl model =
-        
-        let show page = { model with CurrentPage = page; CurrentUrl = nextUrl }
-        let chickensPage date = show (Page.Chickens (ChickensPageModel.init date))
-        let getAllChickens date = GetAllChickens (Start date) |> ChickenMsg |> Cmd.ofMsg
-        
-        match nextUrl with
-        | Url.Home -> model, Router.navigate "/chickens"
-        | Url.Chickens date -> chickensPage date, getAllChickens date
-        | Url.NotFound -> show Page.NotFound, Cmd.none
-        | Url.LogIn destination ->
-            // auth log in
-            match destination with
-            | Some d ->
-                model, Router.navigate d
-            | None ->
-                model, Router.navigate "/chickens"
-        | Url.LogOut ->
-            // auth log out
-                { model with User = Anonymous }, Router.navigate "/chickens"
-            
 
 // defines the initial state and initial command (= side-effect) of the application
 let private init () =
@@ -39,8 +17,7 @@ let private init () =
         { Settings = HasNotStartedYet
           User = Anonymous
           CurrentUrl = initialUrl
-          CurrentPage = Page.Chickens (ChickensPageModel.init NotFutureDate.today)
-          IsMenuExpanded = false }
+          CurrentPage = Page.Chickens (ChickensPageModel.init NotFutureDate.today) }
           
     let goToChickens date =
         { defaultModel with
@@ -58,7 +35,6 @@ let private init () =
     | Url.LogOut ->
         // auth log out
         goToChickens NotFutureDate.today
-    
 
 // The update function computes the next state of the application based on the current state and the incoming events/messages
 // It can also run side-effects (encoded as commands) like calling the server via Http.
@@ -72,9 +48,6 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
         let (pageModel, cmds) = Chickens.Update.update chickenCmds msg pageModel
         { model with CurrentPage = Page.Chickens pageModel }, cmds |> Cmd.map ChickenMsg
 
-    | ToggleMenu, _ ->
-        { model with IsMenuExpanded = not model.IsMenuExpanded }, Cmd.none
-        
     | Logout,_ ->
         notImplemented()
         model, Cmd.none
@@ -89,14 +62,15 @@ let view (model: Model) dispatch =
         | Page.Chickens pageModel -> Chickens.View.view {| Model = pageModel; Dispatch = ChickenMsg >> dispatch; User = model.User |}
         | Page.NotFound -> lazyView NotFound.view model
 
-    let toggleMenu() = dispatch ToggleMenu
     Router.router [
         Router.onUrlChanged (parseUrl >> UrlChanged >> dispatch)
         Router.application [
-            Html.div [
-                Navbar.view {| User = model.User; IsMenuExpanded = model.IsMenuExpanded; ToggleMenu = toggleMenu |}
-                Html.div [ activePage ]
-            ]
+            React.contextProvider(Contexts.userContext, model.User, React.fragment [
+                Html.div [
+                    Navbar.navbar ()
+                    Html.div [ activePage ]
+                ]
+            ])
         ]
     ]
 
