@@ -14,11 +14,11 @@ type ChickenDetails =
       TotalEggCount : EggCount
       EggCountOnDate : EggCount
       IsLoading : bool }
-type ChickensPageModel =
+type Model =
     { Chickens : Deferred<Map<ChickenId, ChickenDetails>>
       CurrentDate : NotFutureDate
       Errors : string list }
-type ChickenMsg =
+type Msg =
     | GetAllChickens of AsyncOperationStatus<NotFutureDate, Result<ChickenWithEggCount list, string>>
     | GetEggCount of AsyncOperationStatus<NotFutureDate * ChickenId list, Result<NotFutureDate * Map<ChickenId, EggCount>, string>>
     | ChangeDate of NotFutureDate
@@ -29,14 +29,14 @@ type ChickenMsg =
     | NoOp
 
 type IChickenApiCmds =
-    abstract GetAllChickens : NotFutureDate -> Cmd<ChickenMsg> 
-    abstract GetEggCount : NotFutureDate * ChickenId list -> Cmd<ChickenMsg> 
-    abstract AddEgg: ChickenId * NotFutureDate -> Cmd<ChickenMsg> 
-    abstract RemoveEgg: ChickenId * NotFutureDate -> Cmd<ChickenMsg>
+    abstract GetAllChickens : NotFutureDate -> Cmd<Msg> 
+    abstract GetEggCount : NotFutureDate * ChickenId list -> Cmd<Msg> 
+    abstract AddEgg: ChickenId * NotFutureDate -> Cmd<Msg> 
+    abstract RemoveEgg: ChickenId * NotFutureDate -> Cmd<Msg>
     
 // Implementations
     
-module ChickensPageModel =
+module Model =
     let init date =
         { Chickens = InProgress
           Errors = []

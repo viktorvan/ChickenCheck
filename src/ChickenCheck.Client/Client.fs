@@ -7,7 +7,6 @@ open ChickenCheck.Client
 open CompositionRoot
 open Feliz
 open Feliz.Router
-open ChickenCheck.Client.Chickens
 
 
 // defines the initial state and initial command (= side-effect) of the application
@@ -17,11 +16,10 @@ let private init () =
         { Settings = HasNotStartedYet
           User = Anonymous
           CurrentUrl = initialUrl
-          CurrentPage = Page.Chickens (ChickensPageModel.init NotFutureDate.today) }
+          CurrentPage = Page.Chickens NotFutureDate.today }
           
     let goToChickens date =
-        { defaultModel with
-            CurrentPage = Page.Chickens (ChickensPageModel.init date) }, GetAllChickens (Start date) |> ChickenMsg |> Cmd.ofMsg
+        { defaultModel with CurrentPage = Page.Chickens date }, Cmd.none
     match initialUrl with
     | Url.Home -> goToChickens NotFutureDate.today
     | Url.Chickens date ->
@@ -43,10 +41,6 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
     match msg, model.CurrentPage with
     | UrlChanged nextUrl, _ -> 
         Routing.handleUrlChange nextUrl model
-        
-    | ChickenMsg msg, Page.Chickens pageModel ->
-        let (pageModel, cmds) = Chickens.Update.update chickenCmds msg pageModel
-        { model with CurrentPage = Page.Chickens pageModel }, cmds |> Cmd.map ChickenMsg
 
     | Logout,_ ->
         notImplemented()
@@ -59,8 +53,8 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
 let view (model: Model) dispatch =
     let activePage =
         match model.CurrentPage with
-        | Page.Chickens pageModel -> Chickens.View.view {| Model = pageModel; Dispatch = ChickenMsg >> dispatch; User = model.User |}
-        | Page.NotFound -> lazyView NotFound.view model
+        | Page.Chickens date -> Chickens.chickens date chickenCmds ()
+        | Page.NotFound -> NotFound.view model
 
     Router.router [
         Router.onUrlChanged (parseUrl >> UrlChanged >> dispatch)

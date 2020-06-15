@@ -29,24 +29,29 @@ let update msg model =
     | ToggleMenu -> { model with IsMenuExpanded = not model.IsMenuExpanded }, Cmd.none
 
 let navbar =
-    React.functionComponent
-        ("Navbar",
-         fun () ->
-             let user = React.useContext (userContext)
-             let model, dispatch = React.useElmish (init, update, [||])
-             Bulma.navbar
-                 [ color.isInfo
-                   prop.children
-                       [ Bulma.navbarBrand.div
-                           [ Bulma.navbarItem.div [ prop.text "ChickenCheck" ]
-                             Bulma.navbarBurger
-                                 [ prop.onClick (fun _ -> dispatch ToggleMenu)
-                                   navbarItem.hasDropdown
-                                   if model.IsMenuExpanded then navbarBurger.isActive
-                                   prop.children [ yield! List.replicate 3 (Html.span []) ] ] ]
-                         Bulma.navbarMenu
-                             [ if model.IsMenuExpanded then navbarMenu.isActive
-                               prop.children
-                                   [ match user with
-                                     | Anonymous -> logInLink
-                                     | ApiUser _ -> logOutLink ] ] ] ])
+    React.functionComponent("Navbar",
+        fun () ->
+            let user = React.useContext (userContext)
+            let model, dispatch = React.useElmish (init, update, [| |])
+            Bulma.navbar [ 
+                color.isInfo
+                prop.children [ 
+                    Bulma.navbarBrand.div [ 
+                        Bulma.navbarItem.div [ prop.text "ChickenCheck" ]
+                        Bulma.navbarBurger [ 
+                            prop.onClick (fun _ -> dispatch ToggleMenu)
+                            navbarItem.hasDropdown
+                            if model.IsMenuExpanded then navbarBurger.isActive
+                            prop.children [ yield! List.replicate 3 (Html.span []) ] 
+                        ] 
+                    ]
+                    Bulma.navbarMenu [ 
+                        if model.IsMenuExpanded then navbarMenu.isActive
+                        prop.children [ 
+                            match user with
+                            | Anonymous -> logInLink
+                            | ApiUser _ -> logOutLink 
+                        ] 
+                    ] 
+                ] 
+            ])

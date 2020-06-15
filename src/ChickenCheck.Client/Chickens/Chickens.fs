@@ -1,18 +1,21 @@
-module ChickenCheck.Client.Chickens.View
+module ChickenCheck.Client.Chickens
 
 open ChickenCheck.Client
 open ChickenCheck.Shared
-open Elmish.React
 open FsToolkit.ErrorHandling
 open Feliz
 open Feliz.Bulma
 open Feliz.Bulma.PageLoader
 open ChickenCheck.Client.Chickens
 open Elmish
-open ChickenCheck.Client.ChickenCard
+open Contexts
+open Feliz.UseElmish
 
+let init date = fun () -> Model.init date, Start date |> GetAllChickens |> Cmd.ofMsg
 
-let view = Utils.elmishView "Chickens" (fun (props: {| Model: ChickensPageModel; Dispatch: Dispatch<ChickenMsg>; User: User |}) ->
+let render initDate api () =
+    let user = React.useContext (userContext)
+    let model, dispatch = React.useElmish(init initDate, Update.update api, [| |])
     let header =
         Html.p [
             text.hasTextCentered
@@ -23,28 +26,29 @@ let view = Utils.elmishView "Chickens" (fun (props: {| Model: ChickensPageModel;
     let errorView =
         let errorFor item = 
             item
-            |> SharedViews.apiErrorMsg (fun _ -> ClearErrors |> props.Dispatch) 
+            |> SharedViews.apiErrorMsg (fun _ -> ClearErrors |> dispatch) 
 
-        props.Model.Errors |> List.map errorFor
+        model.Errors |> List.map errorFor
 
-    let hasErrors = props.Model.Errors |> List.isEmpty |> not
+    let hasErrors = model.Errors |> List.isEmpty |> not
     
     let runIfLoggedIn user f =
         match user with
         | (ApiUser _) -> f
         | _ -> ignore
-    let addEgg = fun (id, date) -> Start (id,date) |> AddEgg |> props.Dispatch
-    let removeEgg = fun (id, date) -> Start (id,date) |> RemoveEgg |> props.Dispatch 
         
     let chickenListView = 
         let cardViewRows (chickens: ChickenDetails list) = 
             let cardView (chicken: ChickenDetails) =
+                let addEgg = runIfLoggedIn user (fun () -> Start (chicken.Id, model.CurrentDate) |> AddEgg |> dispatch)
+                let removeEgg = runIfLoggedIn user (fun () -> Start (chicken.Id, model.CurrentDate) |> RemoveEgg |> dispatch)
+ 
                 let cardProps =
-                    { Chicken = chicken
-                      CurrentDate = props.Model.CurrentDate
-                      AddEgg = runIfLoggedIn props.User addEgg
-                      RemoveEgg = runIfLoggedIn props.User removeEgg }
-                let card = ChickenCard.View.view (sprintf "ChickenCard-%O" chicken.Id.Value) cardProps
+                    {| Chicken = chicken
+                       CurrentDate = model.CurrentDate
+                       AddEgg = addEgg
+                       RemoveEgg = removeEgg |}
+                let card = ChickenCard.chickenCard cardProps
                 
                 Bulma.column [
                     column.is4
@@ -58,7 +62,7 @@ let view = Utils.elmishView "Chickens" (fun (props: {| Model: ChickensPageModel;
             |> List.batchesOf 3
             |> List.map cardViewRow
 
-        props.Model.Chickens
+        model.Chickens
         |> Deferred.map (fun chickens ->
             chickens
             |> Map.values
@@ -68,16 +72,16 @@ let view = Utils.elmishView "Chickens" (fun (props: {| Model: ChickensPageModel;
         |> Deferred.defaultValue Html.none
 
     let statistics =
-        props.Model.Chickens
+        model.Chickens
         |> Deferred.map (fun chickens ->
             let props = {| Chickens = chickens |> Map.values |}
-            Statistics.View.view props)
+            Statistics.statistics props)
         |> Deferred.defaultValue Html.none 
         
-    let view' =
+    let view =
         Bulma.section [
             header
-            DatePicker.View.view {| CurrentDate = props.Model.CurrentDate; Dispatch = props.Dispatch |}
+            DatePicker.datePicker {| CurrentDate = model.CurrentDate; ChangeDate = ChangeDate >> dispatch |}
             chickenListView
             statistics
         ]
@@ -85,8 +89,9 @@ let view = Utils.elmishView "Chickens" (fun (props: {| Model: ChickensPageModel;
     Html.div [
         PageLoader.pageLoader [
             pageLoader.isInfo
-            if not (props.Model.Chickens |> Deferred.resolved) then pageLoader.isActive 
+            if not (model.Chickens |> Deferred.resolved) then pageLoader.isActive 
         ]
         if hasErrors then Bulma.section errorView
-        view'
-    ])
+        view
+    ]
+let chickens initDate api = React.memo("Chickens", render initDate api)

@@ -1,4 +1,4 @@
-module ChickenCheck.Client.DatePicker.View
+module ChickenCheck.Client.DatePicker
 
 open ChickenCheck.Client
 open ChickenCheck.Client.Chickens
@@ -18,8 +18,9 @@ let private icon faIcon =
 let private iconLeft = icon "fa-caret-left"
 let private iconRight = icon "fa-caret-right"
 
-let view = Utils.elmishView "DatePicker" (fun (props: {| CurrentDate: NotFutureDate; Dispatch: Dispatch<ChickenMsg> |}) ->
-    let onDateSet date = (ChangeDate >> props.Dispatch) date
+let render (props: {| CurrentDate: NotFutureDate 
+                      ChangeDate: NotFutureDate -> unit |}) =
+    let onDateSet date = props.ChangeDate date
 
     let parseDate ev =
         ev
@@ -67,4 +68,6 @@ let view = Utils.elmishView "DatePicker" (fun (props: {| CurrentDate: NotFutureD
             ]
             Bulma.levelItem [ nextDateButton ]
         ]
-    ])
+    ]
+    
+let datePicker = React.memo("Datepicker", render)

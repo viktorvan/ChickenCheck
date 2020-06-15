@@ -5,7 +5,7 @@ open ChickenCheck.Shared
 
 type Msg =
     | UrlChanged of Url
-    | ChickenMsg of ChickenMsg
+    | ChickenMsg of Msg
     | ShowLogin
     | Logout
     | LoggedIn

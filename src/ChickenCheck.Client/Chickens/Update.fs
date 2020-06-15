@@ -35,7 +35,7 @@ let increaseEggCount id model = changeEggCount model id EggCount.increase
     
 let decreaseEggCount id model = changeEggCount model id EggCount.decrease
 
-let update (api: IChickenApiCmds) (msg: ChickenMsg) (model: ChickensPageModel) : ChickensPageModel * Cmd<ChickenMsg>=
+let update (api: IChickenApiCmds) (msg: Msg) (model: Model) : Model * Cmd<Msg>=
     match msg with
     | GetAllChickens (Start date) ->
         model, api.GetAllChickens(date)
@@ -95,34 +95,36 @@ let update (api: IChickenApiCmds) (msg: ChickenMsg) (model: ChickensPageModel) :
             model, Cmd.none
         | Deferred.Resolved chickens ->
             let chickenIds = chickens |> Map.keys
-            { model with CurrentDate = date }, api.GetEggCount(date, chickenIds)
+            let clearEggCount chickens = chickens |> Map.map (fun _ c -> { c with EggCountOnDate = EggCount.zero })
+            let newChickens = clearEggCount chickens
+            { model with CurrentDate = date; Chickens = Resolved newChickens }, api.GetEggCount(date, chickenIds)
         | Deferred.HasNotStartedYet ->
             { model with CurrentDate = date }, api.GetAllChickens(date) 
         
-    | ChickenMsg.AddEgg (Start (id, date)) ->
+    | Msg.AddEgg (Start (id, date)) ->
         model
         |> setStartLoading id, api.AddEgg (id, date)
 
-    | ChickenMsg.AddEgg (Finished (Ok (id, date))) ->
+    | Msg.AddEgg (Finished (Ok (id, date))) ->
         model
         |> setStopLoading id
         |> increaseEggCount id, Cmd.none
         
-    | ChickenMsg.AddEgg (Finished (Error (id, err))) ->
+    | Msg.AddEgg (Finished (Error (id, err))) ->
         printfn "%s" err
         model
         |> setStopLoading id, Cmd.none
 
-    | ChickenMsg.RemoveEgg (Start (id, date)) -> 
+    | Msg.RemoveEgg (Start (id, date)) -> 
         model
         |> setStartLoading id, api.RemoveEgg (id, date)
 
-    | ChickenMsg.RemoveEgg (Finished (Ok (id, date))) ->
+    | Msg.RemoveEgg (Finished (Ok (id, date))) ->
         model
         |> setStopLoading id
         |> decreaseEggCount id, Cmd.none
         
-    | ChickenMsg.RemoveEgg (Finished (Error (id, date))) -> 
+    | Msg.RemoveEgg (Finished (Error (id, date))) -> 
         model
         |> setStopLoading id, Cmd.none
     

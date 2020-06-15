@@ -7,7 +7,7 @@ open ChickenCheck.Shared
     
 [<RequireQualifiedAccess>]
 type Page =
-    | Chickens of ChickensPageModel
+    | Chickens of NotFutureDate
     | NotFound
 
 type Model =
