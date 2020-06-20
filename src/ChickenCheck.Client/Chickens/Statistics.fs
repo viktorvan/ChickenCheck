@@ -1,12 +1,16 @@
-module ChickenCheck.Client.Statistics
+module ChickenCheck.Client.Chickens.Statistics
 
 open Feliz
 open Feliz.Bulma
 open ChickenCheck.Shared
-open ChickenCheck.Client.Chickens
+open ChickenCheck.Client
 
-let eggCountViews (chickens: ChickenDetails list) =
-    let eggCountView (chicken: ChickenDetails) =
+type Chicken =
+    { Name: string
+      EggCount: EggCount }
+
+let eggCountViews (chickens: Chicken list) =
+    let eggCountView (chicken: Chicken) =
         Bulma.levelItem [
             text.hasTextCentered
             prop.children [
@@ -15,7 +19,7 @@ let eggCountViews (chickens: ChickenDetails list) =
                         prop.classes [ "heading" ]
                         prop.text chicken.Name
                     ]
-                    Bulma.title.p chicken.TotalEggCount.Value
+                    Bulma.title.p chicken.EggCount.Value
                 ]
             ]
         ]
@@ -26,16 +30,18 @@ let eggCountViews (chickens: ChickenDetails list) =
     |> Bulma.level
         
 
-let render (props: {| Chickens: ChickenDetails list |}) =
+let render (props: {| Chickens: Chicken list |}) =
     let header = 
-        Bulma.text.p [
-            Bulma.size.isSize2
+        Bulma.subtitle.h3 [
             text.hasTextCentered
             prop.text "Hur mycket har de värpt totalt?"
         ]
     Bulma.container [
-        header
-        eggCountViews props.Chickens
+        prop.style [ style.marginTop (length.px 10) ]
+        prop.children [
+            header
+            eggCountViews props.Chickens
+        ]
     ]
     
-let statistics = React.memo("ChickenStatistics", render)
+let statistics = Utils.memo "ChickenStatistics" render

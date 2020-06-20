@@ -1,11 +1,18 @@
-module ChickenCheck.Client.ChickenCard
+module ChickenCheck.Client.Chickens.ChickenCard
 
 open ChickenCheck.Shared
 open ChickenCheck.Client
-open ChickenCheck.Client.Chickens
 open Feliz
 open Feliz.Bulma
       
+type Model =
+    { Id: ChickenId
+      Name: string
+      Breed: string
+      ImageUrl: ImageUrl option
+      IsLoading: bool
+      EggCount: EggCount
+      CurrentDate: NotFutureDate }
     
 [<AutoOpen>]
 module private Helpers =
@@ -42,26 +49,26 @@ module private Helpers =
             columns.isVCentered
             columns.isMobile
             prop.style [ style.height (length.px 200) ]
-            prop.children (eggsForCount chicken.EggCountOnDate.Value)
+            prop.children (eggsForCount chicken.EggCount.Value)
         ]
         
-    let header chicken =
+    let header (model: Model) =
         Bulma.text.div [
             prop.children [
                 Bulma.title.h4 [
                     color.hasTextWhite
-                    prop.text chicken.Name
+                    prop.text model.Name
                 ]
                 Bulma.subtitle.p [
                     color.hasTextWhite
-                    prop.text chicken.Breed
+                    prop.text model.Breed
                 ]
             ]
         ]
         
-    let cardBackgroundStyle chicken =
+    let cardBackgroundStyle (model: Model) =
         let imageUrlStr =
-            chicken.ImageUrl
+            model.ImageUrl
             |> Option.map (ImageUrl.value)
             |> Option.defaultValue ""
             
@@ -71,8 +78,7 @@ module private Helpers =
             style.backgroundSize.cover
         ]
     
-    let render (props: {| Chicken: ChickenDetails
-                          CurrentDate: NotFutureDate
+    let render (props: {| Model: Model
                           AddEgg: unit -> unit
                           RemoveEgg: unit -> unit |}) =
 
@@ -81,12 +87,13 @@ module private Helpers =
                 ev.preventDefault()
                 ev.stopPropagation()
                 props.AddEgg())
-            cardBackgroundStyle props.Chicken
+            cardBackgroundStyle props.Model
             prop.children [
-                Bulma.cardHeader (header props.Chicken)
-                Bulma.cardContent (eggIcons props.Chicken props.RemoveEgg)
+                Bulma.cardHeader (header props.Model)
+                Bulma.cardContent (eggIcons props.Model props.RemoveEgg)
             ]
         ]
       
+      
         
-let chickenCard = React.memo("ChickenCard", render, withKey = fun props -> props.Chicken.Id.Value.ToString())
+let chickenCard = Utils.memoWithKey "ChickenCard" render (fun props -> props.Model.Id.Value.ToString())

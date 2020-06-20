@@ -14,12 +14,12 @@
         <Compile Include="Contexts.fs" />
         <Compile Include="EventHelpers.fs" />
         <Compile Include="SharedViews.fs" />
-        <Compile Include="Chickens\Types.fs" />
         <Compile Include="Chickens\DatePicker.fs" />
         <Compile Include="Chickens\Statistics.fs" />
+        <Compile Include="Chickens\Types.fs" />
         <Compile Include="Chickens\ChickenCard.fs" />
-        <Compile Include="Chickens\Update.fs" />
-        <Compile Include="Chickens\Chickens.fs" />
+<!--        <Compile Include="Chickens\ChickenCardComponent.fs" />-->
+        <Compile Include="Chickens\Render.fs" />
         <Compile Include="Navbar.fs" />
         <Compile Include="Model.fs" />
         <Compile Include="Msg.fs" />

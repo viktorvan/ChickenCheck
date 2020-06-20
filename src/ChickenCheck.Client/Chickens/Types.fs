@@ -4,20 +4,6 @@ open ChickenCheck.Client
 open ChickenCheck.Shared
 open Elmish
 
-// Types
-
-type ChickenDetails =
-    { Id: ChickenId
-      Name : string
-      ImageUrl : ImageUrl option 
-      Breed : string
-      TotalEggCount : EggCount
-      EggCountOnDate : EggCount
-      IsLoading : bool }
-type Model =
-    { Chickens : Deferred<Map<ChickenId, ChickenDetails>>
-      CurrentDate : NotFutureDate
-      Errors : string list }
 type Msg =
     | GetAllChickens of AsyncOperationStatus<NotFutureDate, Result<ChickenWithEggCount list, string>>
     | GetEggCount of AsyncOperationStatus<NotFutureDate * ChickenId list, Result<NotFutureDate * Map<ChickenId, EggCount>, string>>
@@ -26,7 +12,6 @@ type Msg =
     | RemoveEgg of AsyncOperationStatus<ChickenId * NotFutureDate, Result<ChickenId * NotFutureDate, ChickenId * string>>
     | AddError of string
     | ClearErrors
-    | NoOp
 
 type IChickenApiCmds =
     abstract GetAllChickens : NotFutureDate -> Cmd<Msg> 
@@ -34,16 +19,8 @@ type IChickenApiCmds =
     abstract AddEgg: ChickenId * NotFutureDate -> Cmd<Msg> 
     abstract RemoveEgg: ChickenId * NotFutureDate -> Cmd<Msg>
     
-// Implementations
-    
-module Model =
-    let init date =
-        { Chickens = InProgress
-          Errors = []
-          CurrentDate = date }
-
-type ChickenApiCmds(api: IChickenApi, editApi: IChickenEditApi) =
-    let getAllChickensWithEggs date =
+module ChickenApiCmds =
+    let getAllChickensWithEggs api date =
         async {
             try
                 let! result = api.GetAllChickensWithEggs(date)
@@ -51,7 +28,7 @@ type ChickenApiCmds(api: IChickenApi, editApi: IChickenEditApi) =
             with exn ->
                 return Error exn.Message |> Finished |> GetAllChickens
         }
-    let getEggCountOnDate date chickens =
+    let getEggCountOnDate api date chickens =
         async {
             try
                 let! result = api.GetEggCount(date, chickens)
@@ -60,7 +37,7 @@ type ChickenApiCmds(api: IChickenApi, editApi: IChickenEditApi) =
                 return (Error exn.Message |> Finished |> GetAllChickens)
         }
             
-    let addEgg id date =
+    let addEgg editApi id date =
         async {
             try
                 let! _ = editApi.AddEgg(id, date)
@@ -69,7 +46,7 @@ type ChickenApiCmds(api: IChickenApi, editApi: IChickenEditApi) =
                 return Error (id, exn.Message) |> Finished |> AddEgg
         }
             
-    let removeEgg id date =
+    let removeEgg editApi id date =
         async {
             try
                 let! _ = editApi.RemoveEgg(id, date)
@@ -77,22 +54,23 @@ type ChickenApiCmds(api: IChickenApi, editApi: IChickenEditApi) =
             with exn ->
                 return Error (id, exn.Message) |> Finished |> RemoveEgg
         }
+        
+type ChickenApiCmds(api: IChickenApi, editApi: IChickenEditApi) =
             
     interface IChickenApiCmds with
     
         member __.GetAllChickens(date) =
-            getAllChickensWithEggs date 
+            ChickenApiCmds.getAllChickensWithEggs api date 
             |> Cmd.OfAsync.result
                 
         member __.GetEggCount(date, chickens) =
-            getEggCountOnDate date chickens
+            ChickenApiCmds.getEggCountOnDate api date chickens
             |> Cmd.OfAsync.result
         member __.AddEgg(id, date) =
-            addEgg id date
+            ChickenApiCmds.addEgg editApi id date
             |> Cmd.OfAsync.result
         
         member __.RemoveEgg(id, date) = 
-            removeEgg id date
+            ChickenApiCmds.removeEgg editApi id date
             |> Cmd.OfAsync.result
             
-

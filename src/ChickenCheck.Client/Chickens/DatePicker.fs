@@ -1,12 +1,10 @@
-module ChickenCheck.Client.DatePicker
+module ChickenCheck.Client.Chickens.DatePicker
 
 open ChickenCheck.Client
-open ChickenCheck.Client.Chickens
 open ChickenCheck.Shared
 open System
 open Feliz
 open Feliz.Bulma
-open Elmish
 
 let private icon faIcon =
     Bulma.icon [
@@ -70,4 +68,4 @@ let render (props: {| CurrentDate: NotFutureDate
         ]
     ]
     
-let datePicker = React.memo("Datepicker", render)
+let datePicker = Utils.memo "Datepicker" render

@@ -53,7 +53,7 @@ let update (msg : Msg) (model : Model) : Model * Cmd<Msg> =
 let view (model: Model) dispatch =
     let activePage =
         match model.CurrentPage with
-        | Page.Chickens date -> Chickens.chickens date chickenCmds ()
+        | Page.Chickens date -> Chickens.Render.chickens date chickenCmds ()
         | Page.NotFound -> NotFound.view model
 
     Router.router [
@@ -67,7 +67,6 @@ let view (model: Model) dispatch =
             ])
         ]
     ]
-
 
 #if DEBUG
 open Elmish.Debug
