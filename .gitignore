@@ -53,3 +53,5 @@ infrastructure.sh
 local.settings.json
 
 tmp.fsx
+
+**/build

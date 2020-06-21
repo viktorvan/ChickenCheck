@@ -8,5 +8,7 @@ Dapper
 Microsoft.Data.Sqlite
 FsConfig
 Microsoft.Extensions.Configuration.UserSecrets
-Microsoft.ApplicationInsights.AspNetCore
 Saturn
+Saturn.Extensions.Turbolinks
+Feliz.ViewEngine
+Feliz.Bulma.ViewEngine

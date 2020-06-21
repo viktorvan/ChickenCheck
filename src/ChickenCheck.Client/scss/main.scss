@@ -15,11 +15,3 @@ $fa-font-path: "~@fortawesome/fontawesome-free/webfonts/";
 
 @import '~bulma/bulma.sass';
 @import "~bulma-pageloader/dist/css/bulma-pageloader.sass";
-
-.login-img { 
-    background: url(/Images/Signin1.jpg) no-repeat center center fixed; 
-    background-size: cover;
-    text-align: center;
-    text-justify: center;
-    // background-color: #999;
-}

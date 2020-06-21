@@ -1,10 +1,8 @@
-module ChickenCheck.Client.Chickens.DatePicker
-
-open ChickenCheck.Client
+module ChickenCheck.Backend.Views.DatePicker
 open ChickenCheck.Shared
 open System
-open Feliz
-open Feliz.Bulma
+open Feliz.ViewEngine
+open Feliz.Bulma.ViewEngine
 
 let private icon faIcon =
     Bulma.icon [
@@ -16,38 +14,36 @@ let private icon faIcon =
 let private iconLeft = icon "fa-caret-left"
 let private iconRight = icon "fa-caret-right"
 
-let render (props: {| CurrentDate: NotFutureDate 
-                      ChangeDate: NotFutureDate -> unit |}) =
-    let onDateSet date = props.ChangeDate date
+let layout (currentDate: NotFutureDate) =
 
     let parseDate ev =
         ev
         |> DateTime.Parse
         |> NotFutureDate.create
         
-    let dateButton icon isDisabled onClick =
+    let dateButton icon isDisabled =
         Bulma.button.a [
             color.isLink
             button.isLarge
-            prop.onClick onClick
+//            prop.onClick onClick
             prop.disabled isDisabled
             prop.children [ icon ]
         ]
 
     let previousDateButton =
-        let onClick = 
-            let previousDate = props.CurrentDate |> NotFutureDate.addDays -1.
-            fun _ -> onDateSet previousDate
-        dateButton iconLeft false onClick
+//        let onClick = 
+//            let previousDate = props.CurrentDate |> NotFutureDate.addDays -1.
+//            fun _ -> onDateSet previousDate
+        dateButton iconLeft false 
         
     let nextDateButton =
-        if props.CurrentDate = NotFutureDate.today then
-            dateButton iconRight true ignore
+        if currentDate = NotFutureDate.today then
+            dateButton iconRight true 
         else
-            let onClick =
-                let nextDate = props.CurrentDate |> NotFutureDate.addDays 1.
-                fun _ -> onDateSet nextDate
-            dateButton iconRight false onClick
+//            let onClick =
+//                let nextDate = currentDate |> NotFutureDate.addDays 1.
+//                fun _ -> onDateSet nextDate
+            dateButton iconRight false 
         
     Bulma.level [
         level.isMobile
@@ -58,8 +54,8 @@ let render (props: {| CurrentDate: NotFutureDate
                     prop.style [ style.width (length.percent 100) ]
                     prop.children [
                         Bulma.input.date [
-                            prop.onChange (parseDate >> onDateSet)
-                            prop.value (props.CurrentDate.ToDateTime().ToString("yyyy-MM-dd"))
+//                            prop.onChange (parseDate >> onDateSet)
+                            prop.value (currentDate.ToDateTime().ToString("yyyy-MM-dd"))
                         ]
                     ]
                 ]
@@ -67,5 +63,3 @@ let render (props: {| CurrentDate: NotFutureDate
             Bulma.levelItem [ nextDateButton ]
         ]
     ]
-    
-let datePicker = Utils.memo "Datepicker" render

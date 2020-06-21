@@ -3,7 +3,6 @@ module ChickenCheck.Backend.Workflows
 open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
 open ChickenCheck.Shared
-
         
 let getAllChickens (chickenStore: Database.IChickenStore) =
     let getEggCounts chickenIds date  =

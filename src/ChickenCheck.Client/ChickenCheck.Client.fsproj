@@ -7,30 +7,7 @@
 
     </PropertyGroup>
     <ItemGroup>
-        <Compile Include="Utils.fs" />
-        <Compile Include="NotFound.fs" />
-        <Compile Include="Logger.fs" />
-        <Compile Include="Types.fs" />
-        <Compile Include="Contexts.fs" />
-        <Compile Include="EventHelpers.fs" />
-        <Compile Include="SharedViews.fs" />
-        <Compile Include="Chickens\DatePicker.fs" />
-        <Compile Include="Chickens\Statistics.fs" />
-        <Compile Include="Chickens\Types.fs" />
-        <Compile Include="Chickens\ChickenCard.fs" />
-<!--        <Compile Include="Chickens\ChickenCardComponent.fs" />-->
-        <Compile Include="Chickens\Render.fs" />
-        <Compile Include="Navbar.fs" />
-        <Compile Include="Model.fs" />
-        <Compile Include="Msg.fs" />
-        <Compile Include="LocalStorage.fs" />
-        <Compile Include="Authentication\Auth0.fs" />
-        <Compile Include="Routing.fs" />
-        <Compile Include="CompositionRoot.fs" />
-        <Compile Include="Client.fs" />
-    </ItemGroup>
-    <ItemGroup>
-      <EmbeddedResource Remove="Session\**" />
+        <Compile Include="App.fs" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\ChickenCheck.Shared\ChickenCheck.Shared.fsproj" />

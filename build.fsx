@@ -37,11 +37,11 @@ let srcCodeGlob =
     ++ ( src  @@ "**/*.fsx")
 
 let testsCodeGlob =
-    !! (__SOURCE_DIRECTORY__  @@ "test/**/*.fs")
-    ++ (__SOURCE_DIRECTORY__  @@ "test/**/*.fsx")
+    !! (rootPath  @@ "test/**/*.fs")
+    ++ (rootPath  @@ "test/**/*.fsx")
 
 let srcGlob = src @@ "**/*.??proj"
-let testsGlob = __SOURCE_DIRECTORY__  @@ "test/**/*.??proj"
+let testsGlob = rootPath  @@ "test/**/*.??proj"
 
 let changelog = Fake.Core.Changelog.load "CHANGELOG.md"
 let semVersion = changelog.LatestEntry.SemVer
@@ -79,10 +79,10 @@ let runMigrations _ =
 
 let installClient _ =
     printfn "Node version:"
-    Common.node "--version" __SOURCE_DIRECTORY__
-    printfn "Yarn version:"
-    Common.yarn "--version" __SOURCE_DIRECTORY__
-    Common.yarn "install --frozen-lockfile" __SOURCE_DIRECTORY__
+    Common.node "--version" rootPath
+    printfn "npm version:"
+    Common.npm "--version" rootPath
+    Common.npm "install" rootPath
 
 let dotnetBuild ctx =
     let args =
@@ -110,10 +110,19 @@ let updateChangeLog  _ =
     changelog.Entries |> Seq.iter (printEntry sb)
     Printf.bprintf sb "        ]\n"
 
-    File.writeString false (clientPath @@ "ChangeLog.fs") (sb.ToString())
+    File.writeString false (serverPath @@ "ChangeLog.fs") (sb.ToString())
 
-let buildClient _ =
-    Common.yarn "webpack-cli -p" __SOURCE_DIRECTORY__
+let compileFable _ =
+    let cmd = sprintf "fable-splitter -o %s/build" clientPath
+    Common.npx cmd clientPath
+
+let bundleClient _ =
+    [ outputDir ]
+    |> Shell.cleanDirs
+    let registerScriptBundle _ = () // TODO implement
+    Common.npx "webpack --config webpack.prod.js" rootPath
+    registerScriptBundle()
+
 
 let dotnetPublishServer ctx =
     let args =
@@ -155,7 +164,10 @@ let watchApp _ =
 
     let server() = Common.DotNetWatch "run" serverPath
 
-    let client() = Common.yarn "webpack-dev-server --config webpack.config.js" clientPath
+    let client() = 
+        let cmd = sprintf "fable-splitter -o %s/build --watch" clientPath
+        Common.npx cmd clientPath
+        Common.npx "webpack --config webpack.dev.js" rootPath
 
     let functions() = ()
 
@@ -216,7 +228,8 @@ Target.create "DotnetRestore" dotnetRestore
 Target.create "RunMigrations" runMigrations
 Target.create "InstallClient" installClient
 Target.create "DotnetBuild" dotnetBuild
-Target.create "BuildClient" buildClient
+Target.create "CompileFable" compileFable
+Target.create "BundleClient" bundleClient
 Target.create "UpdateChangeLog" updateChangeLog
 Target.create "RunUnitTests" runUnitTests
 Target.create "WatchApp" watchApp
@@ -236,12 +249,14 @@ Target.create "CreateRelease" ignore
 "Clean" ?=> "DotnetRestore"
 "Clean" ?=> "InstallClient"
 "Clean" ==> "Package"
-"UpdateChangeLog" ==> "BuildClient"
+"UpdateChangeLog" ==> "dotnetBuild"
 
 "DotnetRestore" ==> "RunMigrations" ==> "DotNetBuild"
 
 "DotnetRestore" <=> "InstallClient"
-    ==> "DotnetBuild" ==> "BuildClient"
+    ==> "CompileFable"
+    ==> "BundleClient"
+    ==> "DotnetBuild"
     ==> "RunUnitTests"
     ==> "Build"
     ==> "DotnetPublishServer"

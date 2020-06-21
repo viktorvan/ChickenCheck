@@ -39,16 +39,16 @@ type AuthenticationSettings =
     { Domain: string
       Audience: string }
 
-type ISettingsApi =
-    { AuthenticationSettings: unit -> AuthenticationSettings }
-
-type IChickenApi =
-    { GetAllChickensWithEggs: NotFutureDate -> Async<ChickenWithEggCount list>
-      GetEggCount: NotFutureDate * ChickenId list -> Async<Map<ChickenId, EggCount>> }
-    
-type IChickenEditApi =
-    { AddEgg: ChickenId * NotFutureDate -> Async<unit> 
-      RemoveEgg: ChickenId * NotFutureDate -> Async<unit> }
+//type ISettingsApi =
+//    { AuthenticationSettings: unit -> AuthenticationSettings }
+//
+//type IChickenApi =
+//    { GetAllChickensWithEggs: NotFutureDate -> Async<ChickenWithEggCount list>
+//      GetEggCount: NotFutureDate * ChickenId list -> Async<Map<ChickenId, EggCount>> }
+//    
+//type IChickenEditApi =
+//    { AddEgg: ChickenId * NotFutureDate -> Async<unit> 
+//      RemoveEgg: ChickenId * NotFutureDate -> Async<unit> }
     
     
 // types - implementation
@@ -131,6 +131,13 @@ module NotFutureDate =
             { Year = date.Year
               Month = date.Month
               Day = date.Day }
+            
+    let parse dateStr =
+        match DateTime.TryParse dateStr with
+        | true, date -> Some date
+        | false,_ -> None
+        |> Option.map create
+        
     let toDateTime { Year = year; Month = month; Day = day } = DateTime(year, month, day)
     let today = create DateTime.Today
     let addDays days date =

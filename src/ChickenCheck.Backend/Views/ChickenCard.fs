@@ -1,10 +1,9 @@
-module ChickenCheck.Client.Chickens.ChickenCard
+module ChickenCheck.Backend.Views.ChickenCard
 
 open ChickenCheck.Shared
-open ChickenCheck.Client
-open Feliz
-open Feliz.Bulma
-      
+open Feliz.ViewEngine
+open Feliz.Bulma.ViewEngine
+
 type Model =
     { Id: ChickenId
       Name: string
@@ -16,15 +15,15 @@ type Model =
     
 [<AutoOpen>]
 module private Helpers =
-    let eggIcons chicken removeEgg =
+    let eggIcons chicken =
         let eggIcon = 
             Bulma.icon [
                 icon.isLarge
                 color.hasTextWhite
-                prop.onClick (fun ev -> 
-                    ev.preventDefault()
-                    ev.stopPropagation()
-                    removeEgg())
+//                prop.onClick (fun ev -> 
+//                    ev.preventDefault()
+//                    ev.stopPropagation()
+//                    removeEgg())
                 prop.children [
                     Html.i [
                         prop.classes [ "fa-5x fas fa-egg" ]
@@ -35,7 +34,7 @@ module private Helpers =
         let eggsForCount eggCount =
 
             if chicken.IsLoading then
-                [ SharedViews.loading ]
+                [ Shared.loading ]
             else
                 [ for _ in 1..eggCount do
                     Bulma.column [
@@ -78,22 +77,19 @@ module private Helpers =
             style.backgroundSize.cover
         ]
     
-    let render (props: {| Model: Model
-                          AddEgg: unit -> unit
-                          RemoveEgg: unit -> unit |}) =
+let layout (model: Model) =
 
-        Bulma.card [
-            prop.onClick (fun ev ->
-                ev.preventDefault()
-                ev.stopPropagation()
-                props.AddEgg())
-            cardBackgroundStyle props.Model
-            prop.children [
-                Bulma.cardHeader (header props.Model)
-                Bulma.cardContent (eggIcons props.Model props.RemoveEgg)
-            ]
+    Bulma.card [
+//            prop.onClick (fun ev ->
+//                ev.preventDefault()
+//                ev.stopPropagation()
+//                props.AddEgg())
+        cardBackgroundStyle model
+        prop.children [
+            Bulma.cardHeader (header model)
+            Bulma.cardContent (eggIcons model)
         ]
-      
-      
-        
-let chickenCard = Utils.memoWithKey "ChickenCard" render (fun props -> props.Model.Id.Value.ToString())
+    ]
+  
+  
+    

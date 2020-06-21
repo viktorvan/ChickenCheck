@@ -11,6 +11,12 @@
     <Compile Include="Configuration.fs" />
     <Compile Include="Domain.fs" />
     <Compile Include="Workflows.fs" />
+    <Compile Include="Views\Shared.fs" />
+    <Compile Include="Views\Bundle.fs" />
+    <Compile Include="Views\App.fs" />
+    <Compile Include="Views\ChickenCard.fs" />
+    <Compile Include="Views\DatePicker.fs" />
+    <Compile Include="Views\Chickens.fs" />
     <Compile Include="CompositionRoot.fs" />
     <Compile Include="Server.fs" />
   </ItemGroup>

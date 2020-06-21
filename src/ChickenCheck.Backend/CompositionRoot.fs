@@ -19,7 +19,7 @@ let getStatus() =
     let now = DateTime.Now
     now.ToString("yyyyMMdd HH:mm:ss") |> sprintf "Ok at %s" 
     
-let inline logErrors (logger: ILogger<IChickenApi>) (workflow: 'TRequest -> Async<'TResult>) =
+let inline logErrors (logger: ILogger) (workflow: 'TRequest -> Async<'TResult>) =
     try
         logger.LogInformation (sprintf "%A" workflow)
         workflow
@@ -44,16 +44,16 @@ let addEgg (date, chicken) =
 let removeEgg (date, chicken) =
     Workflows.removeEgg chickenStore date chicken
     
-let authenticationApi : ISettingsApi =
-    { AuthenticationSettings = fun () -> { Domain = config.Authentication.Domain; Audience = config.Authentication.Audience } }
-
-let chickenApi logger : IChickenApi =
-    let inline logError workflow = logErrors logger workflow
-    { GetAllChickensWithEggs = getAllChickens |> logError
-      GetEggCount = getEggCount |> logError }
-    
-let chickenEditApi logger : IChickenEditApi =
-    let inline logError workflow = logErrors logger workflow
-    { AddEgg = addEgg |> logError
-      RemoveEgg = removeEgg |> logError }
-    
+//let authenticationApi : ISettingsApi =
+//    { AuthenticationSettings = fun () -> { Domain = config.Authentication.Domain; Audience = config.Authentication.Audience } }
+//
+//let chickenApi logger : IChickenApi =
+//    let inline logError workflow = logErrors logger workflow
+//    { GetAllChickensWithEggs = getAllChickens |> logError
+//      GetEggCount = getEggCount |> logError }
+//    
+//let chickenEditApi logger : IChickenEditApi =
+//    let inline logError workflow = logErrors logger workflow
+//    { AddEgg = addEgg |> logError
+//      RemoveEgg = removeEgg |> logError }
+//    

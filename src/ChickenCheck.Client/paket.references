@@ -1,10 +1,2 @@
 group Client
-Fable.Elmish.Debugger
-Fable.Elmish.HMR
-Fable.Remoting.Client
 FsToolkit.Errorhandling
-Feliz
-Feliz.Router
-Feliz.Bulma
-Feliz.Bulma.PageLoader
-Feliz.UseElmish

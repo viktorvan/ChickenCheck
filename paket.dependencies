@@ -15,7 +15,7 @@ group Backend
 
     nuget Giraffe
     nuget Fable.Remoting.Giraffe
-    nuget Saturn 0.13.1
+    nuget Saturn
 
     nuget FSharp.Core
     nuget FsToolkit.ErrorHandling
@@ -27,7 +27,9 @@ group Backend
     nuget Dapper
     nuget FsConfig
     nuget Microsoft.Extensions.Configuration.UserSecrets 
-    nuget Microsoft.ApplicationInsights.AspNetCore
+    nuget Saturn.Extensions.Turbolinks
+    nuget Feliz.ViewEngine
+    nuget Feliz.Bulma.ViewEngine
 
 
 group Client
@@ -36,20 +38,7 @@ group Client
     storage: none
 
     nuget Fable.Core ~> 3
-    nuget Fable.Elmish ~> 3
-    nuget Fable.Elmish.Debugger ~> 3
-    nuget Fable.Elmish.React ~> 3
-    nuget Fable.Elmish.HMR ~> 4
-    nuget Fable.Elmish.Browser ~> 3
-    nuget Fable.React 
     nuget fstoolkit.errorhandling
-    nuget Fable.Remoting.Client ~> 5
-    nuget Fable.SimpleJson ~> 3
-    nuget Feliz
-    nuget Feliz.Router
-    nuget Feliz.Bulma
-    nuget Feliz.Bulma.PageLoader
-    nuget Feliz.UseElmish
 
 group Migrations
     source https://api.nuget.org/v3/index.json

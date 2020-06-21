@@ -45,7 +45,8 @@ module Tools =
             failwith errorMsg
 
     let nodeTool = platformTool "node" "node.exe"
-    let yarnTool = platformTool "yarn" "yarn.cmd"
+    let npmTool = platformTool "npm" "npx.exe"
+    let npxTool = platformTool "npx" "npx.exe"
     let azCliTool = platformTool "az" "az.cmd"
 
     let runTool cmd args workingDir =
@@ -58,5 +59,6 @@ module Tools =
         |> ignore
 
 let node = Tools.runTool Tools.nodeTool
-let yarn = Tools.runTool Tools.yarnTool
+let npm = Tools.runTool Tools.npmTool
+let npx = Tools.runTool Tools.npxTool
 let az = Tools.runTool Tools.azCliTool
