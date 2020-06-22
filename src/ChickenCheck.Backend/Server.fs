@@ -50,23 +50,22 @@ let chickens : HttpHandler =
     handleContext 
         (fun ctx ->
             task {
-//                let maybeDate = ctx.TryGetQueryStringValue "date"
-//                let date = maybeDate |> Option.bind NotFutureDate.parse |> Option.defaultValue NotFutureDate.today
-//                let! chickensWithEggCounts = CompositionRoot.getAllChickens date
-//                let model =
-//                    chickensWithEggCounts
-//                    |> List.map (fun c ->
-//                        c.Chicken.Id, 
-//                        { Id = c.Chicken.Id
-//                          Name = c.Chicken.Name
-//                          ImageUrl = c.Chicken.ImageUrl
-//                          Breed = c.Chicken.Breed
-//                          TotalEggCount = c.TotalCount
-//                          EggCountOnDate = snd c.Count
-//                          IsLoading = false })
-//                    |> Map.ofList
-//                return! ctx.WriteHtmlStringAsync (Chickens.layout model date |> App.layout Anonymous)
-                return! ctx.WriteHtmlStringAsync (Feliz.ViewEngine.Html.p "test" |> App.layout Anonymous)
+               let maybeDate = ctx.TryGetQueryStringValue "date"
+               let date = maybeDate |> Option.bind NotFutureDate.parse |> Option.defaultValue NotFutureDate.today
+               let! chickensWithEggCounts = CompositionRoot.getAllChickens date
+               let model =
+                   chickensWithEggCounts
+                   |> List.map (fun c ->
+                       c.Chicken.Id, 
+                       { Id = c.Chicken.Id
+                         Name = c.Chicken.Name
+                         ImageUrl = c.Chicken.ImageUrl
+                         Breed = c.Chicken.Breed
+                         TotalEggCount = c.TotalCount
+                         EggCountOnDate = snd c.Count
+                         IsLoading = false })
+                   |> Map.ofList
+               return! ctx.WriteHtmlStringAsync (Chickens.layout model date |> App.layout Anonymous)
             })
 
 let defaultView = router {

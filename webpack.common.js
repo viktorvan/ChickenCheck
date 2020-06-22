@@ -1,7 +1,16 @@
-﻿var webpack = require('webpack');
+﻿const WebpackShellPlugin = require('webpack-shell-plugin');
+const path = require('path');
+var webpack = require('webpack');
 
 module.exports = {
+    plugins: [
+        new WebpackShellPlugin({
+            onBuildEnd: ['dotnet fsi ./generateBundle.fsx'],
+            dev: false
+        })
+    ],
     optimization: {
+        moduleIds: 'hashed',
         runtimeChunk: "single",
         splitChunks: {
             chunks: 'all',
@@ -15,7 +24,7 @@ module.exports = {
                         // or node_modules/packangeName
                         const packageName = module.context.match(/[\\/]node_modules[\\/](.*?)([\\/]|$)/)[1];
                         // npm package names are URL-safe, but some servers don't like @ symbols
-                        return `npm.${packageName.replace('@', '')}`;
+                        return `vendor.${packageName.replace('@', '')}`;
                     }
                 }
             }

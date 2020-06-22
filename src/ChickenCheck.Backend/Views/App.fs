@@ -1,5 +1,6 @@
 module ChickenCheck.Backend.Views.App
 
+open ChickenCheck.Backend
 open Feliz.ViewEngine
 open Feliz.Bulma.ViewEngine
 open ChickenCheck.Shared
@@ -47,7 +48,7 @@ let layout user content =
                 prop.rel "stylesheet" 
                 prop.href "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
             ]
-            Bundle.bundle
+            yield! Bundle.bundle
         ]
         Html.body [
             Bulma.navbar [ 

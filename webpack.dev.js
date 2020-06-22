@@ -2,13 +2,13 @@
 const merge = require('webpack-merge');
 const common = require('./webpack.common.js');
 const CONFIG = require('./webpack.CONFIG.js');
+var ManifestPlugin = require('webpack-manifest-plugin');
 
 console.log('Bundling for development');
 
 module.exports = merge(common, {
     mode: 'development',
     watch: true,
-
     // In development, split the JavaScript and CSS files in order to
     // have a faster HMR support. 
     entry: {
@@ -22,6 +22,10 @@ module.exports = merge(common, {
     },
 
     devtool: 'eval-source-map',
+
+    plugins: [
+        new ManifestPlugin(),
+    ],
 
     // - babel-loader: transforms JS to old syntax (compatible with old browsers)
     // - sass-loaders: transforms SASS/SCSS into JS

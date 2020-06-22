@@ -116,12 +116,12 @@ let compileFable _ =
     let cmd = sprintf "fable-splitter -o %s/build" clientPath
     Common.npx cmd clientPath
 
+
 let bundleClient _ =
-    [ outputDir ]
+
+    [ outputDir @@ "server/public" ]
     |> Shell.cleanDirs
-    let registerScriptBundle _ = () // TODO implement
     Common.npx "webpack --config webpack.prod.js" rootPath
-    registerScriptBundle()
 
 
 let dotnetPublishServer ctx =
@@ -164,9 +164,13 @@ let watchApp _ =
 
     let server() = Common.DotNetWatch "run" serverPath
 
-    let client() = 
+    let compileClient() = 
         let cmd = sprintf "fable-splitter -o %s/build --watch" clientPath
         Common.npx cmd clientPath
+
+    let bundleClient() =
+        Common.npx "webpack --config webpack.dev.js" rootPath
+    let bundleClient() =
         Common.npx "webpack --config webpack.dev.js" rootPath
 
     let functions() = ()
@@ -181,9 +185,9 @@ let watchApp _ =
             |> ignore
 
         System.Threading.Thread.Sleep 15000
-        openBrowser "http://localhost:8080"
+        openBrowser "https://localhost:8085"
 
-    [ server; client; functions; browser ]
+    [ server; compileClient; bundleClient; functions; browser ]
     |> Seq.iter (Common.invokeAsync >> Async.Catch >> Async.Ignore >> Async.Start)
     printfn "Press Ctrl+C (or Ctrl+Break) to stop..."
     let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
