@@ -1,4 +1,5 @@
 module ChickenCheck.Backend.Views.DatePicker
+open ChickenCheck.Backend
 open ChickenCheck.Shared
 open System
 open Feliz.ViewEngine
@@ -21,29 +22,29 @@ let layout (currentDate: NotFutureDate) =
         |> DateTime.Parse
         |> NotFutureDate.create
         
-    let dateButton icon isDisabled =
+    let dateButton icon isDisabled href =
         Bulma.button.a [
             color.isLink
             button.isLarge
-//            prop.onClick onClick
-            prop.disabled isDisabled
+            if isDisabled then prop.disabled true
+            prop.href href
             prop.children [ icon ]
         ]
 
     let previousDateButton =
-//        let onClick = 
-//            let previousDate = props.CurrentDate |> NotFutureDate.addDays -1.
-//            fun _ -> onDateSet previousDate
-        dateButton iconLeft false 
+        currentDate
+        |> NotFutureDate.addDays -1.0
+        |> Routing.chickensPage
+        |> dateButton iconLeft false
         
     let nextDateButton =
         if currentDate = NotFutureDate.today then
-            dateButton iconRight true 
+            dateButton iconRight true "#"
         else
-//            let onClick =
-//                let nextDate = currentDate |> NotFutureDate.addDays 1.
-//                fun _ -> onDateSet nextDate
-            dateButton iconRight false 
+            currentDate
+            |> NotFutureDate.addDays 1.0
+            |> Routing.chickensPage
+            |> dateButton iconRight false 
         
     Bulma.level [
         level.isMobile

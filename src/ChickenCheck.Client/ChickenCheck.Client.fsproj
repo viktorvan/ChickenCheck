@@ -7,7 +7,9 @@
 
     </PropertyGroup>
     <ItemGroup>
-        <Compile Include="App.fs" />
+        <Compile Include="TurboLinks.fs" />
+        <Compile Include="Chickens.fs" />
+        <Content Include="paket.references" />
     </ItemGroup>
     <ItemGroup>
       <ProjectReference Include="..\ChickenCheck.Shared\ChickenCheck.Shared.fsproj" />

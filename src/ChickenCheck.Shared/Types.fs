@@ -27,6 +27,7 @@ type NotFutureDate =
     { Year: int
       Month: int
       Day: int }
+    with override this.ToString() = sprintf "%i-%02i-%02i" this.Year this.Month this.Day
 
 type ConnectionString = ConnectionString of string
 
@@ -38,18 +39,6 @@ type ChickenWithEggCount =
 type AuthenticationSettings =
     { Domain: string
       Audience: string }
-
-//type ISettingsApi =
-//    { AuthenticationSettings: unit -> AuthenticationSettings }
-//
-//type IChickenApi =
-//    { GetAllChickensWithEggs: NotFutureDate -> Async<ChickenWithEggCount list>
-//      GetEggCount: NotFutureDate * ChickenId list -> Async<Map<ChickenId, EggCount>> }
-//    
-//type IChickenEditApi =
-//    { AddEgg: ChickenId * NotFutureDate -> Async<unit> 
-//      RemoveEgg: ChickenId * NotFutureDate -> Async<unit> }
-    
     
 // types - implementation
         
@@ -145,7 +134,7 @@ module NotFutureDate =
         |> toDateTime
         |> (fun dt -> dt.AddDays(days))
         |> create
-
+        
 module Route =
     let builder typeName methodName =
         sprintf "/api/%s/%s" typeName methodName

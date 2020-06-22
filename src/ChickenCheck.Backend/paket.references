@@ -9,6 +9,5 @@ Microsoft.Data.Sqlite
 FsConfig
 Microsoft.Extensions.Configuration.UserSecrets
 Saturn
-Saturn.Extensions.Turbolinks
 Feliz.ViewEngine
 Feliz.Bulma.ViewEngine

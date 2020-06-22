@@ -27,7 +27,6 @@ group Backend
     nuget Dapper
     nuget FsConfig
     nuget Microsoft.Extensions.Configuration.UserSecrets 
-    nuget Saturn.Extensions.Turbolinks
     nuget Feliz.ViewEngine
     nuget Feliz.Bulma.ViewEngine
 

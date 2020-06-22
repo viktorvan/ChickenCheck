@@ -1,5 +1,5 @@
 ﻿module.exports = {
-    jsEntry: './src/ChickenCheck.Client/build/App.js',
+    jsEntry: './src/ChickenCheck.Client/build/Chickens.js',
     cssEntry: './src/ChickenCheck.Client/scss/main.scss',
     outputDir: 'output/server/public',
     assetsDir: './src/ChickenCheck.Client/public',

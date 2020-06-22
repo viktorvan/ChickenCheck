@@ -50,33 +50,35 @@ let chickens : HttpHandler =
     handleContext 
         (fun ctx ->
             task {
-               let maybeDate = ctx.TryGetQueryStringValue "date"
-               let date = maybeDate |> Option.bind NotFutureDate.parse |> Option.defaultValue NotFutureDate.today
-               let! chickensWithEggCounts = CompositionRoot.getAllChickens date
-               let model =
-                   chickensWithEggCounts
-                   |> List.map (fun c ->
-                       c.Chicken.Id, 
-                       { Id = c.Chicken.Id
-                         Name = c.Chicken.Name
-                         ImageUrl = c.Chicken.ImageUrl
-                         Breed = c.Chicken.Breed
-                         TotalEggCount = c.TotalCount
-                         EggCountOnDate = snd c.Count
-                         IsLoading = false })
+                printfn "***path: %s%s\n" ctx.Request.Path.Value ctx.Request.QueryString.Value
+                let maybeDate = ctx.TryGetQueryStringValue "date"
+                let date = maybeDate |> Option.bind NotFutureDate.parse |> Option.defaultValue NotFutureDate.today
+                let! chickensWithEggCounts = CompositionRoot.getAllChickens date
+                let model =
+                    chickensWithEggCounts
+                    |> List.map (fun c ->
+                        c.Chicken.Id, 
+                        { Id = c.Chicken.Id
+                          Name = c.Chicken.Name
+                          ImageUrl = c.Chicken.ImageUrl
+                          Breed = c.Chicken.Breed
+                          TotalEggCount = c.TotalCount
+                          EggCountOnDate = snd c.Count
+                          IsLoading = false })
                    |> Map.ofList
                return! ctx.WriteHtmlStringAsync (Chickens.layout model date |> App.layout Anonymous)
             })
 
 let defaultView = router {
-//    get "/" (redirectTo false "/chickens")
+    get "/" (redirectTo false "/chickens")
     get "/index.html" (redirectTo false "/")
     get "/default.html" (redirectTo false "/")
 }
 
 let browserRouter = router {
     pipe_through browser
-//    forward "" defaultView
+    pipe_through Turbolinks.turbolinks
+    forward "" defaultView
     get "/chickens" chickens
 }
 
@@ -90,7 +92,6 @@ let app = application {
     use_static CompositionRoot.config.PublicPath
     memory_cache
     use_gzip
-    use_turbolinks
     logging ignore
 }
 

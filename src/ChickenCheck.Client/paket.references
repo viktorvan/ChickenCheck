@@ -1,2 +1,3 @@
 group Client
-FsToolkit.Errorhandling
+    FsToolkit.Errorhandling
+    Fable.Core
