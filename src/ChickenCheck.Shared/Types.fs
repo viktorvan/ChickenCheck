@@ -40,6 +40,10 @@ type AuthenticationSettings =
     { Domain: string
       Audience: string }
     
+type IChickensApi =
+    { AddEgg: ChickenId * NotFutureDate -> Async<unit>
+      RemoveEgg: ChickenId * NotFutureDate -> Async<unit> }
+      
 // types - implementation
         
 // domain - implementation
@@ -59,18 +63,6 @@ module Email =
         else str |> Email |> Ok
     let value (Email str) = str
 
-
-module Password =
-    let create str =
-        if String.IsNullOrWhiteSpace str then Error "Cannot be empty"
-        else str |> Password |> Ok
-
-    let value (Password str) = str
-
-module PasswordHash =   
-    let toByteArray = Convert.FromBase64String
-    let toBase64String = System.Convert.ToBase64String
-    
 module UserId =
     let create guid =
         if guid = Guid.Empty then ("UserId", "empty guid") ||> invalidArg |> raise
@@ -121,11 +113,18 @@ module NotFutureDate =
               Month = date.Month
               Day = date.Day }
             
-    let parse dateStr =
+    let tryParse dateStr =
         match DateTime.TryParse dateStr with
         | true, date -> Some date
         | false,_ -> None
         |> Option.map create
+        
+    let parse dateStr =
+        dateStr
+        |> tryParse
+        |> function
+            | Some d -> d
+            | None -> invalidArg "date" "Invalid date"
         
     let toDateTime { Year = year; Month = month; Day = day } = DateTime(year, month, day)
     let today = create DateTime.Today
@@ -134,17 +133,11 @@ module NotFutureDate =
         |> toDateTime
         |> (fun dt -> dt.AddDays(days))
         |> create
-        
-module Route =
-    let builder typeName methodName =
-        sprintf "/api/%s/%s" typeName methodName
 
 // Extensions
 type Email with
     member this.Val = Email.value this
 
-type Password with
-    member this.Val = Password.value this
 type UserId with
     member this.Value = UserId.value this
 
@@ -161,3 +154,11 @@ type EggCount with
 type NotFutureDate with
     member this.ToDateTime() = NotFutureDate.toDateTime this
 
+module Route =
+    let builder typeName methodName =
+        sprintf "/api/%s/%s" typeName methodName
+    
+module DataAttributes =
+    let [<Literal>] EggIcon = "data-egg-icon"
+    let [<Literal>] ChickenCard = "data-chicken-card"
+    let [<Literal>] CurrentDate = "data-current-date"

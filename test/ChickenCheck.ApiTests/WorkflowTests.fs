@@ -5,9 +5,7 @@ open ChickenCheck.Backend
 open Swensen.Unquote
 open Expecto
 open ChickenCheck.Shared
-open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
-open ChickenCheck.UnitTests.TestHelpers
 
 let testChicken1 = ChickenId.create (Guid.Parse("b65e8809-06dd-4338-a55e-418837072c0f"))
 let testChicken2 = ChickenId.create (Guid.Parse("dedc5301-b404-49f4-8d5c-7bfac10c6950"))
@@ -25,7 +23,7 @@ let withChickenStore f =
     async {
         let dbFile = Guid.NewGuid().ToString("N") + ".db"
         use testDb = new TestDb(dbFile)
-        return! f testDb.ChickenStore
+        return! f (testDb.ChickenStore :> Database.IChickenStore)
     }
     
 let testFixtureAsync setup =
@@ -50,37 +48,21 @@ let removeEggs chickenStore count date chickenId  =
         return ()
     }
     
-let getEggCountTests =
-    testList "GetEggCount" [
-        yield! testFixtureAsync withChickenStore [
-            "Without adding eggs, GetEggCount returns zero",
-            fun chickenStore ->
-                async {
-                    let! count = Workflows.getEggCount chickenStore [ testChicken1 ] date
-                    count.[testChicken1] =! EggCount.zero
-                }
-        ]
-        test "Throws an error when database call fails" {
-            let f = fun () -> Workflows.getEggCount mockDb [ testChicken1 ] date |> ignore
-            Expect.throwsWithType<Exception> f
-        }
-    ]
-    
 let addEggTests =
     testList "AddEgg" [
         yield! testFixtureAsync withChickenStore [
             "Adding eggs, increases count",
-            fun chickenStore ->
+            fun (chickenStore: Database.IChickenStore) ->
                 async {
                     // arrange
                     let! beforeCount = 
-                        Workflows.getEggCount chickenStore [ testChicken1 ] date
+                        chickenStore.GetEggCount [testChicken1] date
                         |> Async.map (fun x -> x.[testChicken1])
                     // act
                     do! addEggs chickenStore 3 date testChicken1
                     // assert
                     let! newCount = 
-                        Workflows.getEggCount chickenStore [ testChicken1 ] date
+                        chickenStore.GetEggCount [testChicken1] date
                         |> Async.map (fun x -> x.[testChicken1])
                     let added = newCount.Value - beforeCount.Value
                     added =! 3
@@ -89,7 +71,7 @@ let addEggTests =
             fun chickenStore ->
                 async {
                     do! addEggs chickenStore 1 date testChicken1 
-                    let! count = Workflows.getEggCount chickenStore [ testChicken1; testChicken2 ] date
+                    let! count = chickenStore.GetEggCount [ testChicken1; testChicken2 ] date
                     count.[testChicken1] =! EggCount.create(1)
                     count.[testChicken2] =! EggCount.zero
                 }
@@ -103,7 +85,7 @@ let removeEggTests =
             fun chickenStore ->
                 async {
                     do! Workflows.removeEgg chickenStore testChicken1 date
-                    let! count = Workflows.getEggCount chickenStore [ testChicken1 ] date
+                    let! count = chickenStore.GetEggCount [ testChicken1 ] date
                     count.[testChicken1] =! EggCount.zero
                 }
             "Removing egg decreases count",
@@ -111,7 +93,7 @@ let removeEggTests =
                 async {
                     do! addEggs chickenStore 3 date testChicken1 
                     do! removeEggs chickenStore 2 date testChicken1 
-                    let! count = Workflows.getEggCount chickenStore [ testChicken1 ] date
+                    let! count = chickenStore.GetEggCount [ testChicken1 ] date
                     count.[testChicken1] =! EggCount.create(1)
                 }
         ]
@@ -158,7 +140,6 @@ let getAllChickensTests =
             
 [<Tests>]
 let tests = testList "Workflows" [
-        getEggCountTests
         addEggTests
         removeEggTests
         getAllChickensTests

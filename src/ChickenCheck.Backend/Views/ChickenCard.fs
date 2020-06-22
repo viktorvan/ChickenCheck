@@ -1,29 +1,30 @@
 module ChickenCheck.Backend.Views.ChickenCard
 
+open ChickenCheck.Backend
 open ChickenCheck.Shared
 open Feliz.ViewEngine
 open Feliz.Bulma.ViewEngine
+open ChickenCheck.Backend.Views.Shared
 
 type Model =
     { Id: ChickenId
       Name: string
       Breed: string
       ImageUrl: ImageUrl option
-      IsLoading: bool
       EggCount: EggCount
       CurrentDate: NotFutureDate }
     
+let eggIconAttr (id: ChickenId) = prop.custom (DataAttributes.EggIcon, id.Value.ToString())
+let chickenCardAttr (id: ChickenId) = prop.custom (DataAttributes.ChickenCard, id.Value.ToString())
+    
 [<AutoOpen>]
 module private Helpers =
-    let eggIcons chicken =
+    let eggIcons model =
         let eggIcon = 
             Bulma.icon [
+                eggIconAttr model.Id
                 icon.isLarge
                 color.hasTextWhite
-//                prop.onClick (fun ev -> 
-//                    ev.preventDefault()
-//                    ev.stopPropagation()
-//                    removeEgg())
                 prop.children [
                     Html.i [
                         prop.classes [ "fa-5x fas fa-egg" ]
@@ -32,23 +33,26 @@ module private Helpers =
             ]
 
         let eggsForCount eggCount =
-
-            if chicken.IsLoading then
-                [ Shared.loading ]
-            else
-                [ for _ in 1..eggCount do
-                    Bulma.column [
-                        column.is3
-                        prop.children eggIcon
-                    ]
+            [ for _ in 1..eggCount do
+                Bulma.column [
+                    column.is3
+                    prop.id ("egg-icon-" + model.Id.Value.ToString())
+                    prop.children eggIcon
                 ]
+              Bulma.column [
+                  column.is3
+                  helpers.isHidden
+                  prop.id ("egg-icon-loader-" + model.Id.Value.ToString())
+                  prop.children Shared.loading
+              ]
+            ]
 
         Bulma.columns [
             columns.isCentered
             columns.isVCentered
             columns.isMobile
             prop.style [ style.height (length.px 200) ]
-            prop.children (eggsForCount chicken.EggCount.Value)
+            prop.children (eggsForCount model.EggCount.Value)
         ]
         
     let header (model: Model) =
@@ -80,14 +84,13 @@ module private Helpers =
 let layout (model: Model) =
 
     Bulma.card [
-//            prop.onClick (fun ev ->
-//                ev.preventDefault()
-//                ev.stopPropagation()
-//                props.AddEgg())
+        chickenCardAttr model.Id
         cardBackgroundStyle model
         prop.children [
             Bulma.cardHeader (header model)
-            Bulma.cardContent (eggIcons model)
+            Bulma.cardContent [ 
+                eggIcons model
+            ]
         ]
     ]
   

@@ -8,11 +8,13 @@
     </PropertyGroup>
     <ItemGroup>
         <Compile Include="TurboLinks.fs" />
+        <Compile Include="Types.fs" />
         <Compile Include="Chickens.fs" />
-        <Content Include="paket.references" />
+        <Compile Include="CompositionRoot.fs" /> 
+        <Compile Include="App.fs" />
     </ItemGroup>
     <ItemGroup>
-      <ProjectReference Include="..\ChickenCheck.Shared\ChickenCheck.Shared.fsproj" />
+        <ProjectReference Include="..\ChickenCheck.Shared\ChickenCheck.Shared.fsproj" />
     </ItemGroup>
     <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

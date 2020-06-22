@@ -19,6 +19,7 @@ group Backend
 
     nuget FSharp.Core
     nuget FsToolkit.ErrorHandling
+    nuget FsToolkit.ErrorHandling.TaskResult
     nuget System.IdentityModel.Tokens.Jwt
     nuget Fable.Remoting.Server
     nuget Microsoft.AspNetCore.Cryptography.KeyDerivation
@@ -30,7 +31,6 @@ group Backend
     nuget Feliz.ViewEngine
     nuget Feliz.Bulma.ViewEngine
 
-
 group Client
     source https://api.nuget.org/v3/index.json
     framework: netstandard2.0
@@ -38,6 +38,8 @@ group Client
 
     nuget Fable.Core ~> 3
     nuget fstoolkit.errorhandling
+    nuget Fable.Remoting.Client 5.10.2
+    nuget Fable.Browser.Dom
 
 group Migrations
     source https://api.nuget.org/v3/index.json

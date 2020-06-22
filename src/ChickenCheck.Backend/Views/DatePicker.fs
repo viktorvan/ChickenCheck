@@ -22,12 +22,12 @@ let layout (currentDate: NotFutureDate) =
         |> DateTime.Parse
         |> NotFutureDate.create
         
-    let dateButton icon isDisabled href =
+    let dateButton icon isDisabled (href: string option) =
         Bulma.button.a [
             color.isLink
             button.isLarge
             if isDisabled then prop.disabled true
-            prop.href href
+            if href.IsSome then prop.href href.Value
             prop.children [ icon ]
         ]
 
@@ -35,17 +35,21 @@ let layout (currentDate: NotFutureDate) =
         currentDate
         |> NotFutureDate.addDays -1.0
         |> Routing.chickensPage
+        |> Some
         |> dateButton iconLeft false
         
     let nextDateButton =
         if currentDate = NotFutureDate.today then
-            dateButton iconRight true "#"
+            dateButton iconRight true None
         else
             currentDate
             |> NotFutureDate.addDays 1.0
             |> Routing.chickensPage
+            |> Some
             |> dateButton iconRight false 
         
+    let currentDateAttr = prop.custom (DataAttributes.CurrentDate, currentDate.ToString())
+    
     Bulma.level [
         level.isMobile
         prop.children [
@@ -55,6 +59,7 @@ let layout (currentDate: NotFutureDate) =
                     prop.style [ style.width (length.percent 100) ]
                     prop.children [
                         Bulma.input.date [
+                            currentDateAttr
 //                            prop.onChange (parseDate >> onDateSet)
                             prop.value (currentDate.ToDateTime().ToString("yyyy-MM-dd"))
                         ]

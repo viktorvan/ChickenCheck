@@ -1,40 +1,77 @@
 open System
 open System.IO
 
-type Bundle =
-    | Script of Path: string
+type Script =
+    | Runtime of Path: string
+    | Vendor of Path: string
+    | App of Path: string
+
+type Source =
+    | Script of Script
     | Style of Path: string
     | Other
 
-let isScript (str: string) =
-    str.Trim('"').EndsWith(".js", StringComparison.OrdinalIgnoreCase)
-let isStyle (str: string) =
-    str.Trim('"').EndsWith(".css", StringComparison.OrdinalIgnoreCase)
+let (|Css|NotStyle|) (str: string) =
+    if str.Trim('"').EndsWith(".css", StringComparison.OrdinalIgnoreCase) then 
+        Css (Style str)
+    else
+        NotStyle
 
-let parseLines lines : Bundle[] =
+let (|Javascript|NotScript|) (str:string) =
+    if str.Trim('"').EndsWith(".js", StringComparison.OrdinalIgnoreCase) then 
+        Javascript str
+    else 
+        NotScript
+
+let (|Runtime|Vendor|App|) (str:string) =
+        if str.Contains(".runtime.", StringComparison.OrdinalIgnoreCase) then Runtime (Script.Runtime str)
+        else if str.Contains(".vendor", StringComparison.OrdinalIgnoreCase) then Vendor (Script.Vendor str)
+        else App (Script.App str)
+
+let parseScript (str: string) =
+    match str with
+    | Javascript (Runtime r) -> Some r
+    | Javascript (Vendor v) -> Some v
+    | Javascript (App a) -> Some a
+    | NotScript -> None
+
+let parseLines lines : Source[] =
     let parseLine (line: string) =
         let split = line.Trim().TrimEnd(',').Split(':')
         if split.Length < 2 then None
         else
             let path = split.[1].Trim()
-            match isScript path, isStyle path with
-            | true, false -> Some (Script path)
-            | false, true -> Some (Style path)
+            match parseScript path, path with
+            | Some script, NotStyle -> Some (Script script)
+            | None, Css style -> Some style
             | _, _ -> Some Other
 
     lines
     |> Array.choose parseLine
 
-let writeOutput filePath (bundle: Bundle[])=
-    let printBundle sb (bundle:Bundle) =
-        let printStyle path = sprintf "Html.link [ prop.rel \"stylesheet\"; prop.href %s ]" path
-        let printScript path = sprintf "Html.script [ prop.src %s ]" path
+let sortImports lines : Source[] = 
+    lines
+    |> Array.groupBy (function 
+        | Script (Script.Runtime _) -> 1
+        | Script (Script.Vendor _) -> 2
+        | Script (Script.App _ ) -> 3
+        | Style _ -> 5
+        | Other -> 6)
+    |> Array.sortBy fst
+    |> Array.collect snd
 
-        match bundle with
+
+let writeOutput filePath (bundle: Source[])=
+    let printBundle sb (source:Source) =
+        let printStyle path = sprintf "Html.link [ prop.rel \"stylesheet\"; prop.href %s ]" path
+        let printScript (Script.Runtime path | Script.Vendor path | Script.App path) = 
+            sprintf "Html.script [ prop.src %s ]" path
+
+        match source with
         | Style path -> 
             Printf.bprintf sb "            %s\n" (printStyle path)
-        | Script path ->
-            Printf.bprintf sb "            %s\n" (printScript path)
+        | Script script ->
+            Printf.bprintf sb "            %s\n" (printScript script)
         | Other -> ()
 
 
@@ -50,4 +87,5 @@ let writeOutput filePath (bundle: Bundle[])=
 let manifest = "output/server/public/manifest.json"
 System.IO.File.ReadAllLines manifest
 |> parseLines
+|> sortImports
 |> writeOutput ("src/ChickenCheck.Backend/Views/Bundle.fs")

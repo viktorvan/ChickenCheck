@@ -1,5 +1,6 @@
 ﻿module.exports = {
     jsEntry: './src/ChickenCheck.Client/build/Chickens.js',
+    fsharpEntry: './src/ChickenCheck.Client/ChickenCheck.Client.fsproj',
     cssEntry: './src/ChickenCheck.Client/scss/main.scss',
     outputDir: 'output/server/public',
     assetsDir: './src/ChickenCheck.Client/public',

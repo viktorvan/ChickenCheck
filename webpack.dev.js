@@ -12,13 +12,16 @@ module.exports = merge(common, {
     // In development, split the JavaScript and CSS files in order to
     // have a faster HMR support. 
     entry: {
-            app: [resolve(CONFIG.jsEntry)],
+            app: [resolve(CONFIG.fsharpEntry)],
             style: [resolve(CONFIG.cssEntry)]
         },
 
     output: {
         path: resolve(CONFIG.outputDir),
-        filename: '[name].js'
+        filename: 'ChickenCheck.[name].js',
+        libraryTarget: 'umd',
+        library: ['ChickenCheck', '[name]'],
+        devtoolNamespace: "wp"
     },
 
     devtool: 'eval-source-map',
@@ -32,6 +35,15 @@ module.exports = merge(common, {
     // - file-loader: Moves files referenced in the code (fonts, images) into output folder
     module: {
         rules: [
+            {
+                test: /\.fs(x|proj)?$/,
+                use: {
+                    loader: 'fable-loader',
+                    options: {
+                        babel: CONFIG.babel
+                    }
+                }
+            },
             {
                 test: /\.js$/,
                 exclude: /node_modules/,

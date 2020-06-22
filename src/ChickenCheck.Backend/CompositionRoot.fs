@@ -32,28 +32,12 @@ let chickenStore = Database.ChickenStore config.ConnectionString
 
 // workflows
     
-let getAllChickens date =
-    Workflows.getAllChickens chickenStore date
+let getAllChickens date = Workflows.getAllChickens chickenStore date
     
-let getEggCount (chickens, date) =
-    Workflows.getEggCount chickenStore date chickens
+let addEgg (chicken, date) = Workflows.addEgg chickenStore chicken date
     
-let addEgg (date, chicken) =
-    Workflows.addEgg chickenStore date chicken
-    
-let removeEgg (date, chicken) =
-    Workflows.removeEgg chickenStore date chicken
-    
-//let authenticationApi : ISettingsApi =
-//    { AuthenticationSettings = fun () -> { Domain = config.Authentication.Domain; Audience = config.Authentication.Audience } }
-//
-//let chickenApi logger : IChickenApi =
-//    let inline logError workflow = logErrors logger workflow
-//    { GetAllChickensWithEggs = getAllChickens |> logError
-//      GetEggCount = getEggCount |> logError }
-//    
-//let chickenEditApi logger : IChickenEditApi =
-//    let inline logError workflow = logErrors logger workflow
-//    { AddEgg = addEgg |> logError
-//      RemoveEgg = removeEgg |> logError }
-//    
+let removeEgg (chicken, date) = Workflows.removeEgg chickenStore chicken date
+
+let api : IChickensApi =
+    { AddEgg = addEgg
+      RemoveEgg = removeEgg }

@@ -27,10 +27,6 @@ let getAllChickens (chickenStore: Database.IChickenStore) =
                 |> List.map (ChickenWithEggCount.create date eggCounts)
         }
         
-let getEggCount (chickenStore: Database.IChickenStore) =
-    fun chickens date  ->
-        chickenStore.GetEggCount chickens date
-        
 let addEgg (chickenStore: Database.IChickenStore) =
     fun chicken (date: NotFutureDate) ->
         chickenStore.AddEgg chicken date

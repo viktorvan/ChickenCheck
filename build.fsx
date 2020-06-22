@@ -112,12 +112,7 @@ let updateChangeLog  _ =
 
     File.writeString false (serverPath @@ "ChangeLog.fs") (sb.ToString())
 
-let compileFable _ =
-    let cmd = sprintf "fable-splitter -o %s/build" clientPath
-    Common.npx cmd clientPath
-
-
-let bundleClient _ =
+let bundleProdClient _ =
 
     [ outputDir @@ "server/public" ]
     |> Shell.cleanDirs
@@ -164,16 +159,10 @@ let watchApp _ =
 
     let server() = Common.DotNetWatch "run" serverPath
 
-    let compileClient() = 
-        let cmd = sprintf "fable-splitter -o %s/build --watch" clientPath
-        Common.npx cmd clientPath
-
-    let bundleClient() =
+    let bundleDevClient() =
+        [ outputDir @@ "server/public" ]
+        |> Shell.cleanDirs
         Common.npx "webpack --config webpack.dev.js" rootPath
-    let bundleClient() =
-        Common.npx "webpack --config webpack.dev.js" rootPath
-
-    let functions() = ()
 
     let browser() =
         let openBrowser url =
@@ -187,7 +176,7 @@ let watchApp _ =
         System.Threading.Thread.Sleep 15000
         openBrowser "https://localhost:8085"
 
-    [ server; compileClient; bundleClient; functions; browser ]
+    [ server; bundleDevClient; browser ]
     |> Seq.iter (Common.invokeAsync >> Async.Catch >> Async.Ignore >> Async.Start)
     printfn "Press Ctrl+C (or Ctrl+Break) to stop..."
     let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
@@ -232,8 +221,7 @@ Target.create "DotnetRestore" dotnetRestore
 Target.create "RunMigrations" runMigrations
 Target.create "InstallClient" installClient
 Target.create "DotnetBuild" dotnetBuild
-Target.create "CompileFable" compileFable
-Target.create "BundleClient" bundleClient
+Target.create "BundleClient" bundleProdClient
 Target.create "UpdateChangeLog" updateChangeLog
 Target.create "RunUnitTests" runUnitTests
 Target.create "WatchApp" watchApp
@@ -258,7 +246,6 @@ Target.create "CreateRelease" ignore
 "DotnetRestore" ==> "RunMigrations" ==> "DotNetBuild"
 
 "DotnetRestore" <=> "InstallClient"
-    ==> "CompileFable"
     ==> "BundleClient"
     ==> "DotnetBuild"
     ==> "RunUnitTests"

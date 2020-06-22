@@ -2,15 +2,11 @@ module Turbolinks
 
 open Fable.Core.JsInterop
 
-type ITurbolinks =
+type ITurbolinksLib =
     abstract start : unit -> unit
     abstract setProgressBarDelay : int -> unit
+    abstract clearCache : unit -> unit
+    abstract visit : string -> unit
     
-let Turbolinks : ITurbolinks = importDefault "turbolinks"
-
-let start() = Turbolinks.start()
-let setProgressBarDelay delay = 
-    Turbolinks.setProgressBarDelay delay
-
-
+let TurbolinksLib : ITurbolinksLib = importDefault "turbolinks"
 

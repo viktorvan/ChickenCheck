@@ -1,13 +1,22 @@
-﻿const WebpackShellPlugin = require('webpack-shell-plugin');
+﻿var ManifestPlugin = require('webpack-manifest-plugin');
+var CopyWebpackPlugin = require('copy-webpack-plugin');
+const WebpackShellPluginNext = require('webpack-shell-plugin-next');
 const path = require('path');
 var webpack = require('webpack');
+const CONFIG = require('./webpack.CONFIG.js');
 
 module.exports = {
+    mode: 'production',
     plugins: [
-        new WebpackShellPlugin({
-            onBuildEnd: ['dotnet fsi ./generateBundle.fsx'],
-            dev: false
-        })
+        new ManifestPlugin(),
+        new CopyWebpackPlugin([{ from: resolve(CONFIG.assetsDir) }]),
+        new WebpackShellPluginNext({
+            onBuildEnd:{
+                scripts: ['echo "Generating Bundle.fsx"', 'dotnet fsi ./generateBundle.fsx'],
+                blocking: false,
+                parallel: true
+            }
+            })
     ],
     optimization: {
         moduleIds: 'hashed',
@@ -33,5 +42,11 @@ module.exports = {
     resolve: {
         // See https://github.com/fable-compiler/Fable/issues/1490
         symlinks: false
-    }
+    },
+
+    devtool: 'source-map', // remove eval
 };
+
+function resolve(filePath) {
+    return path.isAbsolute(filePath) ? filePath : path.join(__dirname, filePath);
+}

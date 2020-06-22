@@ -207,7 +207,6 @@ type IChickenStore =
     abstract AddEgg: ChickenId -> NotFutureDate -> Async<unit>
     abstract RemoveEgg: ChickenId -> NotFutureDate -> Async<unit>
     
-    
 type ChickenStore(connectionString) =
     interface IChickenStore with
         member this.GetAllChickens () = getAllChickens connectionString ()

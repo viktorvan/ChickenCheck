@@ -11,8 +11,7 @@ type ChickenDetails =
       ImageUrl : ImageUrl option 
       Breed : string
       TotalEggCount : EggCount
-      EggCountOnDate : EggCount
-      IsLoading : bool }
+      EggCountOnDate : EggCount }
 
 let layout (model:Map<ChickenId, ChickenDetails>) currentDate =
     let header =
@@ -32,8 +31,7 @@ let layout (model:Map<ChickenId, ChickenDetails>) currentDate =
                       ChickenCard.Model.Breed = chicken.Breed
                       ChickenCard.Model.CurrentDate = currentDate
                       ChickenCard.Model.EggCount = chicken.EggCountOnDate
-                      ChickenCard.Model.ImageUrl = chicken.ImageUrl
-                      ChickenCard.Model.IsLoading = chicken.IsLoading }
+                      ChickenCard.Model.ImageUrl = chicken.ImageUrl }
                 let card = ChickenCard.layout model
                 
                 Bulma.column [
