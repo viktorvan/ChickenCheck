@@ -30,7 +30,7 @@ let serverProj = serverPath @@ "ChickenCheck.Backend.fsproj"
 let clientPath = src @@ "ChickenCheck.Client"
 let migrationsPath = src @@ "ChickenCheck.Migrations"
 let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.UnitTests"
-let connectionString = sprintf "Data Source=%s/database.db" serverPath
+let connectionString = sprintf "Data Source=%s/database-dev.db" serverPath
 
 let srcCodeGlob =
     !! ( src  @@ "**/*.fs")

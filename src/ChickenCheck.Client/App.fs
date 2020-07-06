@@ -14,31 +14,29 @@ type Types.Element with
         this?dataset?chickenId
         |> ChickenId.parse
         
-let isChickenCard (target: Element) =
-    target.closest(".chicken-card") |> Option.isSome
 let isEggIcon (target: Element) =
-    target.closest(".egg-icon") |> Option.isSome
-    
+    target.closest(".egg-icon")
+let isChickenCard (target: Element) =
+    if (isEggIcon target |> Option.isSome) then None
+    else 
+        target.closest(".chicken-card")
 let isNavbarBurger (target: Element) =
-    target.closest(".navbar-burger") |> Option.isSome
+    target.closest(".navbar-burger")
     
 let (|ChickenCard|_|) (target: Element) =
-    if isChickenCard target && not (isEggIcon target) then
-        Some (ChickenCard target.ChickenId)
-    else 
-        None
+    target
+    |> isChickenCard
+    |> Option.map (fun e -> ChickenCard e.ChickenId)
     
 let (|EggIcon|_|) (target: Element) =
-    if isEggIcon target then
-        Some (EggIcon target.ChickenId)
-    else 
-        None
+    target
+    |> isEggIcon
+    |> Option.map (fun e -> EggIcon e.ChickenId)
         
 let (|NavbarBurger|_|) (target: Element) =
-    if isNavbarBurger target then
-        Some NavbarBurger
-    else
-        None
+    target
+    |> isNavbarBurger
+    |> Option.map (fun _ -> NavbarBurger)
 
 
 TurbolinksLib.start()
@@ -55,3 +53,4 @@ document.onpointerdown <-
         | EggIcon chickenId -> CompositionRoot.removeEgg chickenId currentDate
         | NavbarBurger -> CompositionRoot.toggleNavbarMenu()
         | _ -> ()
+

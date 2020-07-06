@@ -23,8 +23,7 @@ module private Helpers =
                 color.hasTextWhite
                 prop.children [
                     Html.i [
-                        chickenIdAttr model.Id
-                        prop.classes [ "fa-5x fas fa-egg egg-icon" ]
+                        prop.classes [ "fa-5x fas fa-egg" ]
                     ]
                 ]
             ]
@@ -33,6 +32,8 @@ module private Helpers =
             [ for _ in 1..eggCount do
                 Bulma.column [
                     column.is3
+                    chickenIdAttr model.Id
+                    prop.classes [ "egg-icon" ]
                     prop.id ("egg-icon-" + model.Id.Value.ToString())
                     prop.children eggIcon
                 ]
@@ -83,15 +84,15 @@ module private Helpers =
     
 let layout (model: Model) =
     Bulma.card [
+        chickenIdAttr model.Id
+        prop.classes [ "chicken-card" ]
         cardBackgroundStyle model
         prop.children [
             Bulma.cardHeader (header model)
             Bulma.cardContent [ 
-                chickenIdAttr model.Id
-                prop.classes [ "chicken-card" ]
                 prop.style [ style.flexGrow 1 ]
                 prop.children [
-                    if model.EggCount.Value > 0 then eggIcons model
+                    eggIcons model
                 ]
             ]
         ]
