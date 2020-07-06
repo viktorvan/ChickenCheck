@@ -82,7 +82,6 @@ module private Helpers =
         ]
     
 let layout (model: Model) =
-
     Bulma.card [
         cardBackgroundStyle model
         prop.children [
@@ -97,6 +96,3 @@ let layout (model: Model) =
             ]
         ]
     ]
-  
-  
-    

@@ -18,6 +18,7 @@
     <Compile Include="Views\App.fs" />
     <Compile Include="Views\ChickenCard.fs" />
     <Compile Include="Views\DatePicker.fs" />
+    <Compile Include="Views\Statistics.fs" />
     <Compile Include="Views\Chickens.fs" />
     <Compile Include="Turbolinks.fs" />
     <Compile Include="CompositionRoot.fs" />

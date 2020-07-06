@@ -16,12 +16,6 @@ let private iconLeft = icon "fa-caret-left"
 let private iconRight = icon "fa-caret-right"
 
 let layout (currentDate: NotFutureDate) =
-
-    let parseDate ev =
-        ev
-        |> DateTime.Parse
-        |> NotFutureDate.create
-        
     let dateButton icon isDisabled (href: string option) =
         Bulma.button.a [
             color.isLink
@@ -60,7 +54,6 @@ let layout (currentDate: NotFutureDate) =
                     prop.children [
                         Bulma.input.date [
                             currentDateAttr
-//                            prop.onChange (parseDate >> onDateSet)
                             prop.value (currentDate.ToDateTime().ToString("yyyy-MM-dd"))
                         ]
                     ]

@@ -2,7 +2,6 @@ module ChickenCheck.Backend.Views.Chickens
 
 open ChickenCheck.Shared
 open Feliz.ViewEngine
-open ChickenCheck.Backend
 open Feliz.Bulma.ViewEngine
 
 type ChickenDetails =
@@ -52,27 +51,21 @@ let layout (model:Map<ChickenId, ChickenDetails>) currentDate =
         |> List.map Bulma.columns 
         |> Bulma.container
 
-//    let statistics =
-//        model
-//        |> Option.map (fun chickens ->
-//            let props =
-//                let chickens = chickens |> Map.values
-//                {| Chickens = chickens |> List.map (fun c -> { Name = c.Name 
-//                                                               EggCount = c.TotalEggCount }) |}
-//            Statistics.statistics props)
-//        |> Option.defaultValue Html.none 
-        
+    let statistics =
+        let model =
+            let chickens = model |> Map.values
+            {| Chickens = chickens |> List.map (fun c -> { Statistics.Chicken.Name = c.Name 
+                                                           Statistics.Chicken.EggCount = c.TotalEggCount }) |}
+        Statistics.layout model
             
     Html.div [
-//        PageLoader.pageLoader [
-//            pageLoader.isInfo
-//            if not (model.Chickens |> Deferred.resolved) then pageLoader.isActive 
-//        ]
         Bulma.section [
             header
             DatePicker.layout currentDate
             chickenListView
-//            statistics
+        ]
+        Bulma.section [
+            statistics
         ]
     ]
     
