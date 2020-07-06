@@ -53,4 +53,5 @@ document.onpointerdown <-
         | EggIcon chickenId -> CompositionRoot.removeEgg chickenId currentDate
         | NavbarBurger -> CompositionRoot.toggleNavbarMenu()
         | _ -> ()
-
+        
+document.addEventListener("turbolinks:load", fun _ -> CompositionRoot.browserService.RecallScrollPosition())

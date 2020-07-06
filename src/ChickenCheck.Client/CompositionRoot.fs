@@ -9,7 +9,7 @@ let api : IChickensApi =
     |> Remoting.withRouteBuilder Route.builder
     |> Remoting.buildProxy<IChickensApi>
     
-let browserService = BrowserService()
+let browserService = BrowserService() :> IBrowserService
 let turbolinks = Turbolinks()
     
 // Workflows
