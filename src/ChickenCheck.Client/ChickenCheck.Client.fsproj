@@ -9,6 +9,7 @@
     <ItemGroup>
         <Compile Include="TurboLinks.fs" />
         <Compile Include="Types.fs" />
+        <Compile Include="HtmlHelper.fs" />
         <Compile Include="Navbar.fs" />
         <Compile Include="Chickens.fs" />
         <Compile Include="CompositionRoot.fs" /> 
