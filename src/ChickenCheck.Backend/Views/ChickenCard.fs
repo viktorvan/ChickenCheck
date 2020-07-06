@@ -1,10 +1,8 @@
 module ChickenCheck.Backend.Views.ChickenCard
 
-open ChickenCheck.Backend
 open ChickenCheck.Shared
 open Feliz.ViewEngine
 open Feliz.Bulma.ViewEngine
-open ChickenCheck.Backend.Views.Shared
 
 type Model =
     { Id: ChickenId
@@ -14,20 +12,19 @@ type Model =
       EggCount: EggCount
       CurrentDate: NotFutureDate }
     
-let eggIconAttr (id: ChickenId) = prop.custom (DataAttributes.EggIcon, id.Value.ToString())
-let chickenCardAttr (id: ChickenId) = prop.custom (DataAttributes.ChickenCard, id.Value.ToString())
+let chickenIdAttr (id: ChickenId) = prop.custom (DataAttributes.ChickenId, id.Value.ToString())
     
 [<AutoOpen>]
 module private Helpers =
     let eggIcons model =
         let eggIcon = 
             Bulma.icon [
-                eggIconAttr model.Id
                 icon.isLarge
                 color.hasTextWhite
                 prop.children [
                     Html.i [
-                        prop.classes [ "fa-5x fas fa-egg" ]
+                        chickenIdAttr model.Id
+                        prop.classes [ "fa-5x fas fa-egg egg-icon" ]
                     ]
                 ]
             ]
@@ -51,7 +48,7 @@ module private Helpers =
             columns.isCentered
             columns.isVCentered
             columns.isMobile
-            prop.style [ style.height (length.px 200) ]
+            prop.style [ style.height (length.percent 100) ]
             prop.children (eggsForCount model.EggCount.Value)
         ]
         
@@ -79,17 +76,24 @@ module private Helpers =
             style.backgroundImage (sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrlStr)
             style.backgroundRepeat.noRepeat
             style.backgroundSize.cover
+            style.height (length.px 300)
+            style.display.flex
+            style.flexDirection.column
         ]
     
 let layout (model: Model) =
 
     Bulma.card [
-        chickenCardAttr model.Id
         cardBackgroundStyle model
         prop.children [
             Bulma.cardHeader (header model)
             Bulma.cardContent [ 
-                eggIcons model
+                chickenIdAttr model.Id
+                prop.classes [ "chicken-card" ]
+                prop.style [ style.flexGrow 1 ]
+                prop.children [
+                    if model.EggCount.Value > 0 then eggIcons model
+                ]
             ]
         ]
     ]

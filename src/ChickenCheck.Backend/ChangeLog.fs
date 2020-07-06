@@ -1,8 +1,9 @@
 module ChangeLog
 
-    let version = "1.2.0"
+    let version = "1.3.0"
     let changelog =
         [
+            "1.3.0 - XXXX"
             "1.2.0 - XXXX"
             "1.1.2 - XXXX"
             "1.1.1 - XXXX"

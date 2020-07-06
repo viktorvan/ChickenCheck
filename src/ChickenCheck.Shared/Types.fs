@@ -159,6 +159,5 @@ module Route =
         sprintf "/api/%s/%s" typeName methodName
     
 module DataAttributes =
-    let [<Literal>] EggIcon = "data-egg-icon"
-    let [<Literal>] ChickenCard = "data-chicken-card"
+    let [<Literal>] ChickenId = "data-chicken-id"
     let [<Literal>] CurrentDate = "data-current-date"

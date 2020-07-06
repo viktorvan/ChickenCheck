@@ -4,7 +4,6 @@ open ChickenCheck.Backend
 open Feliz.ViewEngine
 open Feliz.Bulma.ViewEngine
 open ChickenCheck.Shared
-open ChickenCheck.Backend.Views
 
 let logInLink =
     Bulma.navbarEnd.a
@@ -51,20 +50,21 @@ let layout user content =
             yield! Bundle.bundle
         ]
         Html.body [
-            Bulma.navbar [ 
+            Bulma.navbar [
+                prop.id "chickencheck-navbar"
+                prop.custom ("data-turbolinks-permanent", "")
                 color.isInfo
                 prop.children [ 
                     Bulma.navbarBrand.div [ 
                         Bulma.navbarItem.div [ prop.text "ChickenCheck" ]
-                        Bulma.navbarBurger [ 
-                            prop.onClick (fun _ -> ())
+                        Bulma.navbarBurger [
+                            prop.id "chickencheck-navbar-burger"
                             navbarItem.hasDropdown
-    //                                if model.IsMenuExpanded then navbarBurger.isActive
                             prop.children [ yield! List.replicate 3 (Html.span []) ] 
                         ] 
                     ]
-                    Bulma.navbarMenu [ 
-    //                            if model.IsMenuExpanded then navbarMenu.isActive
+                    Bulma.navbarMenu [
+                        prop.id "chickencheck-navbar-menu"
                         prop.children [ 
                             match user with
                             | Anonymous -> logInLink
