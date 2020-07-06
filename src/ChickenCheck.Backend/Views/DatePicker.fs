@@ -1,4 +1,5 @@
 module ChickenCheck.Backend.Views.DatePicker
+open System
 open ChickenCheck.Backend
 open ChickenCheck.Shared
 open Feliz.ViewEngine
@@ -17,7 +18,8 @@ let private iconRight = icon "fa-caret-right"
 let layout (currentDate: NotFutureDate) =
     let dateButton icon isDisabled (href: string option) =
         Bulma.button.a [
-            color.isLink
+            color.isPrimary
+            button.isOutlined
             button.isLarge
             if isDisabled then prop.disabled true
             if href.IsSome then prop.href href.Value
@@ -51,8 +53,10 @@ let layout (currentDate: NotFutureDate) =
                 Bulma.field.div [
                     prop.style [ style.width (length.percent 100) ]
                     prop.children [
-                        Bulma.input.date [
+                        Html.input [
+                            prop.id "chickencheck-datepicker"
                             currentDateAttr
+                            prop.type'.date
                             prop.value (currentDate.ToDateTime().ToString("yyyy-MM-dd"))
                         ]
                     ]

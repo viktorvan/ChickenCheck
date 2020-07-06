@@ -8,6 +8,7 @@ module ChickenCheck.Backend.Bundle
             Html.script [ prop.src "ChickenCheck.runtime.js"; prop.defer true ]
             Html.script [ prop.src "ChickenCheck.vendor.base64-js.js"; prop.defer true ]
             Html.script [ prop.src "ChickenCheck.vendor.buffer.js"; prop.defer true ]
+            Html.script [ prop.src "ChickenCheck.vendor.bulma-calendar.js"; prop.defer true ]
             Html.script [ prop.src "ChickenCheck.vendor.core-js.js"; prop.defer true ]
             Html.script [ prop.src "ChickenCheck.vendor.css-loader.js"; prop.defer true ]
             Html.script [ prop.src "ChickenCheck.vendor.fortawesome.js"; prop.defer true ]

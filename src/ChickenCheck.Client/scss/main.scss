@@ -14,4 +14,8 @@ $fa-font-path: "~@fortawesome/fontawesome-free/webfonts/";
 @import "~@fortawesome/fontawesome-free/scss/brands.scss";
 
 @import '~bulma/bulma.sass';
-//@import "~bulma-calendar/dist/css/bulma-calendar.min.css";
+@import "~bulma-calendar/src/sass/index.sass";
+
+button.datetimepicker-clear-button {
+  display: none;
+}

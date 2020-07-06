@@ -9,6 +9,7 @@
         "@fortawesome/fontawesome-free": "^5.11.2",
         "auth0-lock": "^11.24.2",
         "bulma": "0.8.0",
+        "bulma-calendar": "^6.0.7",
         "bulma-tooltip": "^2.0.2",
         "core-js": "^3.3.2",
         "open-sans-fonts": "^1.5.1",

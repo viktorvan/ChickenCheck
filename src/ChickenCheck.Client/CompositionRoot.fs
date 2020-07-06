@@ -10,7 +10,7 @@ let api : IChickensApi =
     |> Remoting.buildProxy<IChickensApi>
     
 let browserService = BrowserService() :> IBrowserService
-let turbolinks = Turbolinks()
+let turbolinks = Turbolinks() :> ITurbolinks
     
 // Workflows
 let toggleNavbarMenu() =
@@ -19,3 +19,5 @@ let addEgg chickenId date =
     Chickens.addEgg api browserService turbolinks chickenId date
 let removeEgg chickenId date = 
     Chickens.removeEgg api browserService turbolinks chickenId date
+let initDatepicker =
+        Datepicker.init browserService turbolinks

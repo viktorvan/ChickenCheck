@@ -12,7 +12,6 @@ open Giraffe
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.StaticFiles
-open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Primitives
 open Microsoft.IdentityModel.Tokens
@@ -92,9 +91,10 @@ let endpointPipe = pipeline {
     plug head
 }
 
+let defaultRoute = sprintf "/chickens?date=%s" (NotFutureDate.today.ToString())
 let browser = router {
     pipe_through turbolinks
-    get "/" (redirectTo false "/chickens") 
+    get "/" (redirectTo false defaultRoute) 
     get "/chickens" listChickens
 }
 

@@ -2,11 +2,11 @@ module ChickenCheck.Client.Chickens
 
 open ChickenCheck.Shared
 
-let showEggLoader (browser: IBrowserService) (id: ChickenId) =
+let private showEggLoader (browser: IBrowserService) (id: ChickenId) =
     browser.GetElementById("egg-icon-loader-" + id.Value.ToString())
     |> Option.iter (HtmlHelper.toggleClass "is-hidden")
     
-let hideEggIcon (browser: IBrowserService) (id: ChickenId) =
+let private hideEggIcon (browser: IBrowserService) (id: ChickenId) =
     browser.GetElementById("egg-icon-" + id.Value.ToString())
     |> Option.iter (HtmlHelper.toggleClass "is-hidden")
     
@@ -17,7 +17,7 @@ let addEgg (api: IChickensApi) (browser: IBrowserService) (turbolinks: ITurbolin
             showEggLoader browser chickenId
             do! api.AddEgg(chickenId, date)
             browser.SaveScrollPosition()
-            turbolinks.Reset(browser.FullUrlPath)
+            turbolinks.Reset(browser.UrlPath + browser.UrlQueryString)
         }
         |> Async.StartImmediate
     
@@ -29,7 +29,6 @@ let removeEgg (api: IChickensApi) (browser: IBrowserService) (turbolinks: ITurbo
             showEggLoader browser chickenId
             do! api.RemoveEgg(chickenId, date)
             browser.SaveScrollPosition()
-            turbolinks.Reset(browser.FullUrlPath)
+            turbolinks.Reset(browser.UrlPath + browser.UrlQueryString)
         }
         |> Async.StartImmediate
-        

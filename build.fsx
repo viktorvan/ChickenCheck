@@ -157,26 +157,16 @@ let runUnitTests _ =
 
 let watchApp _ =
 
-    let server() = Common.DotNetWatch "run" serverPath
+    let server() =
+        System.Threading.Thread.Sleep 15000
+        Common.DotNetWatch "run" serverPath
 
     let bundleDevClient() =
         [ outputDir @@ "server/public" ]
         |> Shell.cleanDirs
         Common.npx "webpack --config webpack.dev.js" rootPath
 
-    let browser() =
-        let openBrowser url =
-            //https://github.com/dotnet/corefx/issues/10361
-            Command.ShellCommand url
-            |> CreateProcess.fromCommand
-            |> CreateProcess.ensureExitCodeWithMessage "opening browser failed"
-            |> Proc.run
-            |> ignore
-
-        System.Threading.Thread.Sleep 15000
-        openBrowser "https://localhost:8085"
-
-    [ server; bundleDevClient; browser ]
+    [ server; bundleDevClient ]
     |> Seq.iter (Common.invokeAsync >> Async.Catch >> Async.Ignore >> Async.Start)
     printfn "Press Ctrl+C (or Ctrl+Break) to stop..."
     let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously

@@ -124,7 +124,9 @@ module NotFutureDate =
         |> tryParse
         |> function
             | Some d -> d
-            | None -> invalidArg "date" "Invalid date"
+            | None ->
+                let msg = sprintf "Invalid date: %s" dateStr
+                invalidArg "date" msg
         
     let toDateTime { Year = year; Month = month; Day = day } = DateTime(year, month, day)
     let today = create DateTime.Today

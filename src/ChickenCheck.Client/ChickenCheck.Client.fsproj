@@ -7,10 +7,10 @@
 
     </PropertyGroup>
     <ItemGroup>
-        <Compile Include="TurboLinks.fs" />
-        <Compile Include="BulmaCalendar.fs" />
+        <Compile Include="BulmaCalendarLib.fs" />
         <Compile Include="Types.fs" />
         <Compile Include="HtmlHelper.fs" />
+        <Compile Include="DatePicker.fs" />
         <Compile Include="Navbar.fs" />
         <Compile Include="Chickens.fs" />
         <Compile Include="CompositionRoot.fs" /> 

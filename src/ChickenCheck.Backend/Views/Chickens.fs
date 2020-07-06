@@ -16,7 +16,7 @@ let layout (model:Map<ChickenId, ChickenDetails>) currentDate =
     let header =
         Bulma.subtitle.h2 [
             text.hasTextCentered
-            prop.text "Vem värpte idag?"
+            prop.text "Vem värpte?"
         ]
 
     
