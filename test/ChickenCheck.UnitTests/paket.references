@@ -3,4 +3,4 @@ Expecto
 Unquote
 Fable.Elmish
 Simple.Migrations
-Microsoft.Data.Sqlite.Core
+Microsoft.Data.Sqlite

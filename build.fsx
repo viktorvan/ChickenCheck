@@ -187,7 +187,7 @@ let dotnetPublishServer ctx =
     DotNet.publish(fun c ->
         { c with
             Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
-            Runtime = Some "linux-arm64"
+            Runtime = Some "linux-musl-x64"
             SelfContained = Some false
             Common =
                 c.Common
@@ -197,7 +197,7 @@ let dotnetPublishServer ctx =
     DotNet.publish(fun c ->
         { c with
             Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
-            Runtime = Some "linux-x64"
+            Runtime = Some "linux-arm64"
             SelfContained = Some false
             Common =
                 c.Common

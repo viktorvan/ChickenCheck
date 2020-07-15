@@ -49,21 +49,20 @@ type Saturn.Application.ApplicationBuilder with
         
     [<CustomOperation("use_cached_static_files_with_max_age")>]
     member __.UseStaticWithCacheMaxAge(state, path : string, maxAge) =
-      let middleware (app : IApplicationBuilder) =
-        match app.UseDefaultFiles(), state.MimeTypes with
-        |app, [] -> app.UseStaticFiles(StaticFileOptions(OnPrepareResponse = (fun ctx -> ctx.Context.Response.Headers.[HeaderNames.CacheControl] <- sprintf "public, max-age=%i" maxAge |> StringValues)))
-        |app, mimes ->
-            let provider = FileExtensionContentTypeProvider()
-            mimes |> List.iter (fun (extension, mime) -> provider.Mappings.[extension] <- mime)
-            app.UseStaticFiles(StaticFileOptions(ContentTypeProvider=provider, OnPrepareResponse = (fun ctx -> ctx.Context.Response.Headers.[HeaderNames.CacheControl] <- sprintf "public, max-age=%i" maxAge |> StringValues)))
-      let host (builder: IWebHostBuilder) =
-        let p = Path.Combine(Directory.GetCurrentDirectory(), path)
-        builder
-          .UseWebRoot(p)
-      { state with
-          AppConfigs = middleware::state.AppConfigs
-          WebHostConfigs = host::state.WebHostConfigs
-      }
+        let middleware (app : IApplicationBuilder) =
+            match app.UseDefaultFiles(), state.MimeTypes with
+            |app, [] -> app.UseStaticFiles(StaticFileOptions(OnPrepareResponse = (fun ctx -> ctx.Context.Response.Headers.[HeaderNames.CacheControl] <- sprintf "public, max-age=%i" maxAge |> StringValues)))
+            |app, mimes ->
+                let provider = FileExtensionContentTypeProvider()
+                mimes |> List.iter (fun (extension, mime) -> provider.Mappings.[extension] <- mime)
+                app.UseStaticFiles(StaticFileOptions(ContentTypeProvider=provider, OnPrepareResponse = (fun ctx -> ctx.Context.Response.Headers.[HeaderNames.CacheControl] <- sprintf "public, max-age=%i" maxAge |> StringValues)))
+        let host (builder: IWebHostBuilder) =
+            let p = Path.Combine(Directory.GetCurrentDirectory(), path)
+            Console.WriteLine("Using webRoot: " + p)
+            builder.UseWebRoot(p)
+        { state with
+            AppConfigs = middleware::state.AppConfigs
+            WebHostConfigs = host::state.WebHostConfigs }
 
 let requireLoggedIn = pipeline { requires_authentication (Giraffe.Auth.challenge JwtBearerDefaults.AuthenticationScheme) }
 
@@ -149,5 +148,4 @@ let app = application {
     logging ignore
 }
 
-SQLitePCL.Batteries_V2.Init()
 run app

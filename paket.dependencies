@@ -24,8 +24,7 @@ group Backend
     nuget Fable.Remoting.Server
     nuget Microsoft.AspNetCore.Cryptography.KeyDerivation
     nuget FSharpPlus
-    nuget Microsoft.Data.Sqlite.Core
-    nuget SQLitePCLRaw.bundle_e_sqlite3
+    nuget Microsoft.Data.Sqlite
     nuget Dapper
     nuget FsConfig
     nuget Microsoft.Extensions.Configuration.UserSecrets 
@@ -61,7 +60,7 @@ group UnitTests
     nuget Unquote
     nuget Fable.Elmish ~> 3
     nuget Simple.Migrations
-    nuget Microsoft.Data.Sqlite.Core
+    nuget Microsoft.Data.Sqlite
     
 group WebTests
     source https://www.nuget.org/api/v2

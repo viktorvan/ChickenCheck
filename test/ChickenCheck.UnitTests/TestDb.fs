@@ -10,7 +10,6 @@ open SimpleMigrations
 open SimpleMigrations.DatabaseProvider
 
 type TestDb(?file) =
-    do SQLitePCL.Batteries_V2.Init()
     let file = file |> Option.defaultValue (Guid.NewGuid().ToString("N") + ".db")
     let migrateDb connectionString =
         let migrationAssembly = Assembly.GetAssembly(typeof<ChickenCheck.Migrations.CreateUserTable>)
