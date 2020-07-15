@@ -47,11 +47,10 @@ module Tools =
     let nodeTool = platformTool "node" "node.exe"
     let npmTool = platformTool "npm" "npx.exe"
     let npxTool = platformTool "npx" "npx.exe"
-    let azCliTool = platformTool "az" "az.cmd"
     let docker = platformTool "docker" "docker.exe"
 
     let runTool cmd args workingDir =
-        let arguments = args |> String.split ' ' |> Arguments.OfArgs
+        let arguments = args |> Arguments.OfArgs
         Command.RawCommand (cmd, arguments)
         |> CreateProcess.fromCommand
         |> CreateProcess.withWorkingDirectory workingDir
@@ -59,8 +58,7 @@ module Tools =
         |> Proc.run
         |> ignore
 
-let node = Tools.runTool Tools.nodeTool
-let npm = Tools.runTool Tools.npmTool
-let npx = Tools.runTool Tools.npxTool
-let az = Tools.runTool Tools.azCliTool
-let docker = Tools.runTool Tools.docker
+let node (args: string list) = Tools.runTool Tools.nodeTool args
+let npm (args: string list) = Tools.runTool Tools.npmTool args
+let npx (args: string list) = Tools.runTool Tools.npxTool args
+let docker (args: string list) = Tools.runTool Tools.docker args

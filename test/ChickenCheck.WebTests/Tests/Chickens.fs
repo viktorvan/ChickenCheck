@@ -18,7 +18,7 @@ let all() =
     "chickens page for 'today' does not have next-date link" &&& fun _ ->
         let nextDateLink = element Selectors.nextDateLink
         let href = nextDateLink.GetAttribute("href")
-        if href <> null then failwith "href should be null"
+        if not (isNull href) then failwith "href should be null"
         
     "go back to yesterday" &&& fun _ ->
         click Selectors.previousDateLink
@@ -51,7 +51,8 @@ let all() =
         
         notDisplayed (Selectors.eggIcon id)
         
-        click chicken
+        click (Selectors.chickenCardById id)
+        displayed (Selectors.eggIcon id)
         count (Selectors.eggIcon id) 1
         
         click (Selectors.eggIcon id)

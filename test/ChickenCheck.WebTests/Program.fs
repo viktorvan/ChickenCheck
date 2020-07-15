@@ -8,7 +8,7 @@ open canopy.types
 [<EntryPoint>]
 let main _ =
     start BrowserStartMode.ChromeHeadless
-//    start BrowserStartMode.Chrome
+    // start BrowserStartMode.Chrome
     
     Chickens.all()
         

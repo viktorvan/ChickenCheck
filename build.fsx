@@ -31,6 +31,7 @@ let serverProj = serverPath @@ "ChickenCheck.Backend.fsproj"
 let clientPath = src @@ "ChickenCheck.Client"
 let migrationsPath = src @@ "ChickenCheck.Migrations"
 let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.UnitTests"
+let webTestsPath = rootPath @@ "test" @@ "ChickenCheck.WebTests"
 let connectionString = sprintf "Data Source=%s/database-dev.db" serverPath
 let dockerRegistry = "microk8s-1.local:32000"
 let dockerImageName = "chickencheck"
@@ -94,22 +95,35 @@ let dockerImageFullName version =
 
 let dockerBuildImage dockerfile version =
     let fullName = dockerImageFullName version
-    let args = sprintf "build -t %s -f %s ." fullName dockerfile
+    let args = [ "build"; "-t"; fullName; "-f"; dockerfile ]
     Common.docker args ""
 
 let dockerPushImage version =
     let fullName = dockerImageFullName version
-    let args = sprintf "push %s" fullName
+    let args = [ "push"; fullName ]
     Common.docker args ""
 
 let dockerRunWebTestContainer dbFile =
-    let args = sprintf "run -d -p 8085:8085 --name %s -e ChickenCheck_ConnectionString=\"Data Source=/var/lib/chickencheck/webtest.db\" -e ChickenCheck_PublicPath=\"/server/public\" -v .:/var/lib/chickencheck %s" dockerWebTestContainerName (getBuildVersion().AsString |> dockerImageFullName)
+    let args = 
+        [ "run"
+          "-d"
+          "-p"
+          "8085:8085"
+          "--name"
+          dockerWebTestContainerName
+          "-e"
+          "ChickenCheck_ConnectionString=Data Source=/var/lib/chickencheck/" + dbFile
+          "-e"
+          "ChickenCheck_PublicPath=server/public"
+          "-v"
+          rootPath + ":/var/lib/chickencheck"
+          (getBuildVersion().AsString) |> dockerImageFullName]
     Common.docker (args) ""
 
 let dockerCleanUp _ =
     try
-        Common.docker ("stop " + dockerWebTestContainerName) ""
-        Common.docker ("remove " + dockerWebTestContainerName) ""
+        Common.docker [ "stop"; dockerWebTestContainerName ] ""
+        Common.docker [ "rm"; dockerWebTestContainerName ] ""
     with
         | e -> Trace.tracef "Failed to stop running docker container: %s" e.Message
 
@@ -139,10 +153,10 @@ let runMigrations _ = Common.runMigrations migrationsPath connectionString
 
 let installClient _ =
     printfn "Node version:"
-    Common.node "--version" rootPath
+    Common.node [ "--version" ] rootPath
     printfn "npm version:"
-    Common.npm "--version" rootPath
-    Common.npm "install" rootPath
+    Common.npm [ "--version" ] rootPath
+    Common.npm [ "install" ] rootPath
 
 let dotnetBuild ctx =
     let args =
@@ -175,7 +189,7 @@ let updateChangeLog  _ =
 let bundleClient _ =
     [ outputDir @@ "server/public"; outputDirArm64 @@ "server/public" ]
     |> Shell.cleanDirs
-    Common.npx "webpack --config webpack.prod.js" rootPath
+    Common.npx [ "webpack"; "--config webpack.prod.js" ] rootPath
 
     Shell.copyDir (outputDirArm64 @@ "server/public") (outputDir @@ "server/public") (fun _ -> true)
 
@@ -228,10 +242,12 @@ let runWebTests _ =
     Target.activateBuildFailure "DockerCleanUp"
     let dbFile = "webtest.db"
     try
-        File.create dbFile
+        rootPath @@ dbFile 
+        |> sprintf "Data Source=%s" 
+        |> Common.runMigrations migrationsPath
         dockerRunWebTestContainer dbFile
         DotNet.exec (fun c ->
-            { c with WorkingDirectory = unitTestsPath }) "run" ""
+            { c with WorkingDirectory = webTestsPath }) "run" ""
         |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
         dockerCleanUp()
     finally
@@ -257,7 +273,7 @@ let watchApp _ =
     let bundleDevClient() =
         [ outputDir @@ "server/public" ]
         |> Shell.cleanDirs
-        Common.npx "webpack --config webpack.dev.js" rootPath
+        Common.npx [ "webpack"; "--config webpack.dev.js" ] rootPath
 
     [ server; bundleDevClient ]
     |> Seq.iter (Common.invokeAsync >> Async.Catch >> Async.Ignore >> Async.Start)
@@ -332,6 +348,7 @@ Target.createBuildFailure "DockerCleanUp" dockerCleanUp
     ==> "DotnetPublishServer"
     ==> "Package"
     ==> "DockerBuild"
+    ==> "RunWebTests"
     // ==> "DockerPush"
     ==> "GitTagBuild"
     ==> "CreateRelease"
