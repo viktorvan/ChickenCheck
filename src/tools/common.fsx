@@ -48,6 +48,7 @@ module Tools =
     let npmTool = platformTool "npm" "npx.exe"
     let npxTool = platformTool "npx" "npx.exe"
     let azCliTool = platformTool "az" "az.cmd"
+    let docker = platformTool "docker" "docker.exe"
 
     let runTool cmd args workingDir =
         let arguments = args |> String.split ' ' |> Arguments.OfArgs
@@ -62,3 +63,4 @@ let node = Tools.runTool Tools.nodeTool
 let npm = Tools.runTool Tools.npmTool
 let npx = Tools.runTool Tools.npxTool
 let az = Tools.runTool Tools.azCliTool
+let docker = Tools.runTool Tools.docker

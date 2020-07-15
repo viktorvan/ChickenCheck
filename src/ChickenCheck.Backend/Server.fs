@@ -12,7 +12,9 @@ open Giraffe
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.StaticFiles
+open Microsoft.Extensions.Configuration
 open Microsoft.Extensions.DependencyInjection
+open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Primitives
 open Microsoft.IdentityModel.Tokens
 open Microsoft.Net.Http.Headers
@@ -25,27 +27,27 @@ open Fable.Remoting.Server
 open Fable.Remoting.Giraffe
 
 type Saturn.Application.ApplicationBuilder with
-    [<CustomOperation("use_token_authentication")>]
-    member __.UseTokenAuthentication(state: ApplicationState) =
-        let middleware (app: IApplicationBuilder) =
-            app.UseAuthentication()
- 
-        let service (services : IServiceCollection) =
-            services.AddAuthentication(fun options ->
-              options.DefaultAuthenticateScheme <- JwtBearerDefaults.AuthenticationScheme
-              options.DefaultChallengeScheme <- JwtBearerDefaults.AuthenticationScheme
-            ).AddJwtBearer(fun options ->
-                options.Authority <- sprintf "https://%s/" CompositionRoot.config.Authentication.Domain
-                options.Audience <- CompositionRoot.config.Authentication.Audience
-                options.TokenValidationParameters <- TokenValidationParameters(
-                    NameClaimType = ClaimTypes.NameIdentifier
-                )
-            ) |> ignore
-            services
-     
-        { state with ServicesConfig = service::state.ServicesConfig ; AppConfigs = middleware::state.AppConfigs ; CookiesAlreadyAdded = true }
+//    [<CustomOperation("use_token_authentication")>]
+//    member __.UseTokenAuthentication(state: ApplicationState) =
+//        let middleware (app: IApplicationBuilder) =
+//            app.UseAuthentication()
+// 
+//        let service (services : IServiceCollection) =
+//            services.AddAuthentication(fun options ->
+//              options.DefaultAuthenticateScheme <- JwtBearerDefaults.AuthenticationScheme
+//              options.DefaultChallengeScheme <- JwtBearerDefaults.AuthenticationScheme
+//            ).AddJwtBearer(fun options ->
+//                options.Authority <- sprintf "https://%s/" CompositionRoot.config.Authentication.Domain
+//                options.Audience <- CompositionRoot.config.Authentication.Audience
+//                options.TokenValidationParameters <- TokenValidationParameters(
+//                    NameClaimType = ClaimTypes.NameIdentifier
+//                )
+//            ) |> ignore
+//            services
+//     
+//        { state with ServicesConfig = service::state.ServicesConfig ; AppConfigs = middleware::state.AppConfigs ; CookiesAlreadyAdded = true }
         
-    [<CustomOperation("use_cached_static_files_with_maxage")>]
+    [<CustomOperation("use_cached_static_files_with_max_age")>]
     member __.UseStaticWithCacheMaxAge(state, path : string, maxAge) =
       let middleware (app : IApplicationBuilder) =
         match app.UseDefaultFiles(), state.MimeTypes with
@@ -70,7 +72,7 @@ let listChickens : HttpHandler =
     fun _next (ctx: HttpContext) ->
         task {
             let maybeDate = ctx.TryGetQueryStringValue "date"
-            let date = maybeDate |> Option.bind NotFutureDate.tryParse |> Option.defaultValue NotFutureDate.today
+            let date = maybeDate |> Option.bind NotFutureDate.tryParse |> Option.defaultValue (NotFutureDate.today())
             let! chickensWithEggCounts = CompositionRoot.getAllChickens date
             let model =
                 chickensWithEggCounts
@@ -91,10 +93,10 @@ let endpointPipe = pipeline {
     plug head
 }
 
-let defaultRoute = sprintf "/chickens?date=%s" (NotFutureDate.today.ToString())
+let defaultRoute() = sprintf "/chickens?date=%s" (NotFutureDate.today().ToString())
 let browser = router {
     pipe_through turbolinks
-    get "/" (redirectTo false defaultRoute) 
+    get "/" (redirectTo false (defaultRoute())) 
     get "/chickens" listChickens
 }
 
@@ -134,17 +136,18 @@ let errorHandler : ErrorHandler =
             let msg = sprintf "Exception for %s%s" ctx.Request.Path.Value ctx.Request.QueryString.Value
             logger.LogError(exn, msg)
             Response.internalError ctx ()
+            
 
 let app = application {
     error_handler errorHandler
     pipe_through endpointPipe
-    url ("https://*:" + CompositionRoot.config.ServerPort.ToString() + "/")
-    force_ssl
-    use_token_authentication
+    url ("http://*:" + CompositionRoot.config.ServerPort.ToString() + "/")
+//    use_token_authentication
     use_router webApp
-    use_cached_static_files_with_maxage CompositionRoot.config.PublicPath 86400
+    use_cached_static_files_with_max_age CompositionRoot.config.PublicPath 86400
     use_gzip
     logging ignore
 }
 
+SQLitePCL.Batteries_V2.Init()
 run app

@@ -1,6 +1,0 @@
-group ApiTests
-Expecto
-Unquote
-Fable.Elmish
-Simple.Migrations
-Microsoft.Data.Sqlite

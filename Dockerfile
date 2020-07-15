@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/aspnet:3.1.4-alpine3.11-arm64v8
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1.6-alpine3.11
 
 # Copy 
 WORKDIR /app

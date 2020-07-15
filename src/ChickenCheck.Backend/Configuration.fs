@@ -4,16 +4,16 @@ open Microsoft.Extensions.Configuration
 open System.IO
 
 
-type Authentication =
-    { Domain: string
-      Audience: string }
+//type Authentication =
+//    { Domain: string
+//      Audience: string }
 type Config =
     { ConnectionString: string
       [<DefaultValue("8085")>]
       ServerPort: uint16
       [<DefaultValue("../../output/server/public")>]
-      PublicPath: string
-      Authentication: Authentication }
+      PublicPath: string }
+//      Authentication: Authentication }
 
 let configRoot =
     ConfigurationBuilder()
@@ -42,8 +42,8 @@ let config =
         | Ok config ->
             {| ConnectionString = Database.ConnectionString.create config.ConnectionString
                ServerPort = config.ServerPort
-               PublicPath = config.PublicPath |> Path.GetFullPath
-               Authentication = config.Authentication |}
+               PublicPath = config.PublicPath |> Path.GetFullPath |}
+//               Authentication = config.Authentication |}
         | Error msg ->
             match msg with
             | BadValue (name, msg) -> invalidArg name msg

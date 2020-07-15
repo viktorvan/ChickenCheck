@@ -5,6 +5,7 @@ open Browser
 type IBrowserService =
     abstract StopPropagation : unit -> unit
     abstract GetElementById : string -> Types.HTMLElement option
+    abstract QuerySelector : string -> Types.Element option
     abstract UrlQueryString : string with get
     abstract UrlPath : string with get
     abstract SaveScrollPosition : unit -> unit
@@ -16,6 +17,7 @@ type BrowserService() =
     interface IBrowserService with
         member this.StopPropagation() = window.event.stopPropagation()
         member this.GetElementById id = document.getElementById id |> Option.ofObj
+        member this.QuerySelector selector = document.querySelector selector |> Option.ofObj
         member this.UrlPath = window.location.pathname
         member this.UrlQueryString = window.location.search
         member this.SaveScrollPosition() =

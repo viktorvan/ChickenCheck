@@ -6,7 +6,8 @@ Fable.Remoting.Giraffe
 Microsoft.AspNetCore.Cryptography.KeyDerivation
 FSharpPlus
 Dapper
-Microsoft.Data.Sqlite
+Microsoft.Data.Sqlite.Core
+SQLitePCLRaw.bundle_e_sqlite3
 FsConfig
 Microsoft.Extensions.Configuration.UserSecrets
 Saturn

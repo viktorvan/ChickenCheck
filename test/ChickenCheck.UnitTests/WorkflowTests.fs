@@ -1,28 +1,20 @@
-module ChickenCheck.ApiTests.WorkflowTests
+module ChickenCheck.UnitTests.WorkflowTests
 
-open System
 open ChickenCheck.Backend
-open Swensen.Unquote
 open Expecto
+open Swensen.Unquote
 open ChickenCheck.Shared
 open FsToolkit.ErrorHandling
 
-let testChicken1 = ChickenId.create (Guid.Parse("b65e8809-06dd-4338-a55e-418837072c0f"))
-let testChicken2 = ChickenId.create (Guid.Parse("dedc5301-b404-49f4-8d5c-7bfac10c6950"))
-let date = NotFutureDate.create DateTime.UtcNow
-let yesterday = DateTime.UtcNow.AddDays(-1.) |> NotFutureDate.create
-let mockDb =
-    { new Database.IChickenStore with
-        member this.GetAllChickens () = failwith ""
-        member this.GetEggCount chickens date  = failwith ""
-        member this.GetTotalEggCount(chickens: ChickenId list) = failwith ""
-        member this.AddEgg chicken date = failwith ""
-        member this.RemoveEgg chicken date = failwith "" }
+let date = NotFutureDate.today()
+let yesterday = date |> NotFutureDate.addDays -1
+let noEggs = EggCount.zero
+let oneEgg = EggCount.create 1
+let twoEggs = EggCount.create 2
 
 let withChickenStore f =
     async {
-        let dbFile = Guid.NewGuid().ToString("N") + ".db"
-        use testDb = new TestDb(dbFile)
+        use testDb = new TestDb()
         return! f (testDb.ChickenStore :> Database.IChickenStore)
     }
     
@@ -56,24 +48,24 @@ let addEggTests =
                 async {
                     // arrange
                     let! beforeCount = 
-                        chickenStore.GetEggCount [testChicken1] date
-                        |> Async.map (fun x -> x.[testChicken1])
+                        chickenStore.GetEggCount [DbChickens.bjork.Id] date
+                        |> Async.map (fun x -> x.[DbChickens.bjork.Id])
                     // act
-                    do! addEggs chickenStore 3 date testChicken1
+                    do! addEggs chickenStore 3 date DbChickens.bjork.Id
                     // assert
                     let! newCount = 
-                        chickenStore.GetEggCount [testChicken1] date
-                        |> Async.map (fun x -> x.[testChicken1])
+                        chickenStore.GetEggCount [DbChickens.bjork.Id] date
+                        |> Async.map (fun x -> x.[DbChickens.bjork.Id])
                     let added = newCount.Value - beforeCount.Value
-                    added =! 3
+                    test <@ added = 3 @>
                 }
             "Adding eggs to one chicken, does not increase count of another",
             fun chickenStore ->
                 async {
-                    do! addEggs chickenStore 1 date testChicken1 
-                    let! count = chickenStore.GetEggCount [ testChicken1; testChicken2 ] date
-                    count.[testChicken1] =! EggCount.create(1)
-                    count.[testChicken2] =! EggCount.zero
+                    do! addEggs chickenStore 1 date DbChickens.bjork.Id 
+                    let! count = chickenStore.GetEggCount [ DbChickens.bjork.Id; DbChickens.bodil.Id ] date
+                    test <@ count.[DbChickens.bjork.Id] = oneEgg @>
+                    test <@ count.[DbChickens.bodil.Id] = noEggs @>
                 }
         ]
     ]
@@ -84,17 +76,17 @@ let removeEggTests =
             "Removing an egg when count is already zero keeps count at zero",
             fun chickenStore ->
                 async {
-                    do! Workflows.removeEgg chickenStore testChicken1 date
-                    let! count = chickenStore.GetEggCount [ testChicken1 ] date
-                    count.[testChicken1] =! EggCount.zero
+                    do! Workflows.removeEgg chickenStore DbChickens.bjork.Id date
+                    let! count = chickenStore.GetEggCount [ DbChickens.bjork.Id ] date
+                    test <@ count.[DbChickens.bjork.Id] = noEggs @>
                 }
             "Removing egg decreases count",
             fun chickenStore ->
                 async {
-                    do! addEggs chickenStore 3 date testChicken1 
-                    do! removeEggs chickenStore 2 date testChicken1 
-                    let! count = chickenStore.GetEggCount [ testChicken1 ] date
-                    count.[testChicken1] =! EggCount.create(1)
+                    do! addEggs chickenStore 3 date DbChickens.bjork.Id 
+                    do! removeEggs chickenStore 2 date DbChickens.bjork.Id 
+                    let! count = chickenStore.GetEggCount [ DbChickens.bjork.Id ] date
+                    test <@ count.[DbChickens.bjork.Id] = oneEgg @>
                 }
         ]
     ]
@@ -129,15 +121,15 @@ let getAllChickensTests =
                     // all chickens have 1 egg on date
                     newChickens
                     |> List.iter (fun r ->
-                        r.Count =! (date, EggCount.create(1)))
+                        test <@ r.Count = (date, oneEgg) @>)
                     // all chickens have 2 eggs total
                     newChickens
                     |> List.iter (fun r ->
-                        r.TotalCount =! EggCount.create(2))
+                        test <@ r.TotalCount = twoEggs @>)
                 }
         ]
     ]
-            
+    
 [<Tests>]
 let tests = testList "Workflows" [
         addEggTests

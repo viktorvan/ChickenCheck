@@ -1,5 +1,5 @@
 module ChickenCheck.Backend.Views.DatePicker
-open System
+
 open ChickenCheck.Backend
 open ChickenCheck.Shared
 open Feliz.ViewEngine
@@ -16,32 +16,30 @@ let private iconLeft = icon "fa-caret-left"
 let private iconRight = icon "fa-caret-right"
 
 let layout (currentDate: NotFutureDate) =
-    let dateButton icon isDisabled (href: string option) =
+    let dateButton (id: string) icon (href: string option) =
         Bulma.button.a [
-            color.isPrimary
+            prop.id id
+            if href.IsSome then color.isPrimary else color.isLight
             button.isOutlined
             button.isLarge
-            if isDisabled then prop.disabled true
             if href.IsSome then prop.href href.Value
+            if href.IsNone then prop.style [ style.custom ("pointer-events", "none") ]
             prop.children [ icon ]
         ]
 
     let previousDateButton =
         currentDate
-        |> NotFutureDate.addDays -1.0
-        |> Routing.chickensPage
-        |> Some
-        |> dateButton iconLeft false
+        |> NotFutureDate.tryAddDays -1
+        |> Result.map Routing.chickensPage
+        |> Option.ofResult
+        |> dateButton "previous-date" iconLeft 
         
     let nextDateButton =
-        if currentDate = NotFutureDate.today then
-            dateButton iconRight true None
-        else
-            currentDate
-            |> NotFutureDate.addDays 1.0
-            |> Routing.chickensPage
-            |> Some
-            |> dateButton iconRight false 
+        currentDate
+        |> NotFutureDate.tryAddDays 1
+        |> Result.map Routing.chickensPage
+        |> Option.ofResult
+        |> dateButton "next-date" iconRight
         
     let currentDateAttr = prop.custom (DataAttributes.CurrentDate, currentDate.ToString())
     

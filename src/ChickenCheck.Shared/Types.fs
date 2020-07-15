@@ -104,14 +104,20 @@ module EggCount =
     let toString (EggCount num) = num.ToString()
         
 module NotFutureDate =
+    let tryCreate (date: DateTime) =
+        let tomorrow = DateTime.Today.AddDays(1.)
+        if (date >= tomorrow) then
+            Error "cannot be in the future"
+        else
+            Ok
+                { Year = date.Year
+                  Month = date.Month
+                  Day = date.Day }
+                
     let create (date: DateTime) =
-        let tomorrow = DateTime.UtcNow.AddDays(1.)
-        if (date >= tomorrow) then 
-            invalidArg "date" "cannot be in the future"
-        else 
-            { Year = date.Year
-              Month = date.Month
-              Day = date.Day }
+        match tryCreate date with
+        | Ok d -> d
+        | Error err -> invalidArg "date" err
             
     let tryParse dateStr =
         match DateTime.TryParse dateStr with
@@ -129,12 +135,17 @@ module NotFutureDate =
                 invalidArg "date" msg
         
     let toDateTime { Year = year; Month = month; Day = day } = DateTime(year, month, day)
-    let today = create DateTime.Today
-    let addDays days date =
+    let today() = create DateTime.Today
+    let tryAddDays days date =
         date
         |> toDateTime
-        |> (fun dt -> dt.AddDays(days))
-        |> create
+        |> (fun dt -> dt.AddDays(float days))
+        |> tryCreate
+        
+    let addDays days date =
+        match tryAddDays days date with
+        | Ok d -> d
+        | Error err -> invalidArg "date" err
 
 // Extensions
 type Email with
@@ -163,3 +174,4 @@ module Route =
 module DataAttributes =
     let [<Literal>] ChickenId = "data-chicken-id"
     let [<Literal>] CurrentDate = "data-current-date"
+    let chickenIdStr (id: ChickenId) = sprintf "%s=\"%s\"" ChickenId (id.Value.ToString())

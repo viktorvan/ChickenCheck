@@ -11,14 +11,14 @@ let api : IChickensApi =
     
 let browserService = BrowserService() :> IBrowserService
 let turbolinks = Turbolinks() :> ITurbolinks
-let currentDate = HtmlHelper.DataAttributes.currentDate()
+let currentDate() = HtmlHelper.DataAttributes.parseCurrentDate()
     
 // Workflows
 let toggleNavbarMenu() =
     Navbar.toggleNavbarMenu browserService
 let addEgg chickenId =
-    Chickens.addEgg api browserService turbolinks chickenId currentDate
+    Chickens.addEgg api browserService turbolinks chickenId (currentDate())
 let removeEgg chickenId = 
-    Chickens.removeEgg api browserService turbolinks chickenId currentDate
-let initDatepicker () =
-        Datepicker.init browserService turbolinks currentDate
+    Chickens.removeEgg api browserService turbolinks chickenId (currentDate())
+let initDatepicker() =
+        Datepicker.init browserService turbolinks (currentDate())

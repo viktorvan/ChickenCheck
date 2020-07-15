@@ -34,13 +34,13 @@ module private Helpers =
                     column.is3
                     chickenIdAttr model.Id
                     prop.classes [ "egg-icon" ]
-                    prop.id ("egg-icon-" + model.Id.Value.ToString())
                     prop.children eggIcon
                 ]
               Bulma.column [
                   column.is3
+                  chickenIdAttr model.Id
                   helpers.isHidden
-                  prop.id ("egg-icon-loader-" + model.Id.Value.ToString())
+                  prop.classes [ "egg-icon-loader" ]
                   prop.children Shared.loading
               ]
             ]

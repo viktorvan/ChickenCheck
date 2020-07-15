@@ -24,6 +24,7 @@ open Fake.BuildServer
 let sln = "ChickenCheck.sln"
 let rootPath = __SOURCE_DIRECTORY__
 let outputDir = rootPath @@ "output"
+let outputDirArm64 = rootPath @@ "output-arm64"
 let src = rootPath @@ "src"
 let serverPath = src @@ "ChickenCheck.Backend"
 let serverProj = serverPath @@ "ChickenCheck.Backend.fsproj"
@@ -31,6 +32,11 @@ let clientPath = src @@ "ChickenCheck.Client"
 let migrationsPath = src @@ "ChickenCheck.Migrations"
 let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.UnitTests"
 let connectionString = sprintf "Data Source=%s/database-dev.db" serverPath
+let dockerRegistry = "microk8s-1.local:32000"
+let dockerImageName = "chickencheck"
+let dockerfile = "Dockerfile"
+let dockerfileArm64 = "Dockerfile-arm64"
+let dockerWebTestContainerName = "chickencheckwebtest"
 
 let srcCodeGlob =
     !! ( src  @@ "**/*.fs")
@@ -52,11 +58,67 @@ let fullVersion =
         sprintf "%s.%s" (semVersion.AsString) TeamFoundation.Environment.BuildId
 
 //-----------------------------------------------------------------------------
+// Helpers
+//-----------------------------------------------------------------------------
+
+let storeVersion (v: SemVerInfo) =
+    FakeVar.set "tagVersion" v
+let getStoredVersion() : SemVerInfo option =
+    FakeVar.get<SemVerInfo> "tagVersion"
+
+let getBuildVersion() =
+    match getStoredVersion() with
+    | None ->
+        let getNextVersion' existingVersionTags version =
+            let nextVersions = 
+                let versionWithBuildNumber (i:int) = { version with Build = version.Build + bigint(i); Original = None}
+                Seq.initInfinite versionWithBuildNumber
+            let validVersion = 
+                let isExistingTag (v:SemVerInfo) = existingVersionTags |> List.contains v.AsString
+                nextVersions
+                |> Seq.skipWhile isExistingTag
+                |> Seq.head
+
+            validVersion
+
+        match Git.CommandHelper.runGitCommand "" "tag" with
+        | false, _,_ -> failwith "git error"
+        | true, existingTags, _ ->
+            let version =getNextVersion' existingTags semVersion
+            storeVersion version
+            version
+    | Some v -> v
+
+let dockerImageFullName version =
+    sprintf "%s/%s:%s" dockerRegistry dockerImageName version
+
+let dockerBuildImage dockerfile version =
+    let fullName = dockerImageFullName version
+    let args = sprintf "build -t %s -f %s ." fullName dockerfile
+    Common.docker args ""
+
+let dockerPushImage version =
+    let fullName = dockerImageFullName version
+    let args = sprintf "push %s" fullName
+    Common.docker args ""
+
+let dockerRunWebTestContainer dbFile =
+    let args = sprintf "run -d -p 8085:8085 --name %s -e ChickenCheck_ConnectionString=\"Data Source=/var/lib/chickencheck/webtest.db\" -e ChickenCheck_PublicPath=\"/server/public\" -v .:/var/lib/chickencheck %s" dockerWebTestContainerName (getBuildVersion().AsString |> dockerImageFullName)
+    Common.docker (args) ""
+
+let dockerCleanUp _ =
+    try
+        Common.docker ("stop " + dockerWebTestContainerName) ""
+        Common.docker ("remove " + dockerWebTestContainerName) ""
+    with
+        | e -> Trace.tracef "Failed to stop running docker container: %s" e.Message
+
+//-----------------------------------------------------------------------------
 // Build Target Implementations
 //-----------------------------------------------------------------------------
 
 let clean _ =
-    [ "bin"; "temp"; outputDir ]
+    [ "bin"; "temp"; outputDir; outputDirArm64 ]
     |> Shell.cleanDirs
 
     !! srcGlob
@@ -73,9 +135,7 @@ let clean _ =
 
 let dotnetRestore _ = DotNet.restore id sln
 
-let runMigrations _ =
-    if BuildServer.isLocalBuild then
-        Common.runMigrations migrationsPath connectionString
+let runMigrations _ = Common.runMigrations migrationsPath connectionString
 
 let installClient _ =
     printfn "Node version:"
@@ -112,12 +172,12 @@ let updateChangeLog  _ =
 
     File.writeString false (serverPath @@ "ChangeLog.fs") (sb.ToString())
 
-let bundleProdClient _ =
-
-    [ outputDir @@ "server/public" ]
+let bundleClient _ =
+    [ outputDir @@ "server/public"; outputDirArm64 @@ "server/public" ]
     |> Shell.cleanDirs
     Common.npx "webpack --config webpack.prod.js" rootPath
 
+    Shell.copyDir (outputDirArm64 @@ "server/public") (outputDir @@ "server/public") (fun _ -> true)
 
 let dotnetPublishServer ctx =
     let args =
@@ -134,6 +194,26 @@ let dotnetPublishServer ctx =
                 |> DotNet.Options.withAdditionalArgs args
             OutputPath = Some (outputDir @@ "Server")
         }) serverProj
+    DotNet.publish(fun c ->
+        { c with
+            Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+            Runtime = Some "linux-x64"
+            SelfContained = Some false
+            Common =
+                c.Common
+                |> DotNet.Options.withAdditionalArgs args
+            OutputPath = Some (outputDirArm64 @@ "Server")
+        }) serverProj
+
+let dockerBuild _ =
+    let tag = getBuildVersion().AsString
+    // let tagArm64 = tag + "-arm64"
+    dockerBuildImage dockerfile tag
+    // dockerBuildImage dockerfile tagArm64
+
+let dockerPush _ =
+    let tag = getBuildVersion().AsString + "-arm64"
+    dockerPushImage tag
 
 let runUnitTests _ =
     let args =
@@ -143,6 +223,19 @@ let runUnitTests _ =
     DotNet.exec (fun c ->
         { c with WorkingDirectory = unitTestsPath }) "run" args
     |> (fun res -> if not res.OK then failwithf "RunUnitTests failed")
+
+let runWebTests _ =
+    Target.activateBuildFailure "DockerCleanUp"
+    let dbFile = "webtest.db"
+    try
+        File.create dbFile
+        dockerRunWebTestContainer dbFile
+        DotNet.exec (fun c ->
+            { c with WorkingDirectory = unitTestsPath }) "run" ""
+        |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
+        dockerCleanUp()
+    finally
+        File.delete dbFile   
 
 // Using DotNet.test to run the tests would give us better test result reporting in Azure DevOps, but:
 // There is a bug in DotNet.test that, it does not use RunSettingsArguments https://github.com/fsharp/FAKE/issues/2376
@@ -184,23 +277,15 @@ let watchTests _ =
     let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
     cancelEvent.Cancel <- true
 
-let getValidVersion existingTags version =
-    let nextVersions = Seq.initInfinite (fun i -> { version with Build = version.Build + bigint(i); Original = None})
-    let validVersions = Seq.skipWhile (fun (v: SemVerInfo) -> existingTags |> List.contains v.AsString) nextVersions
-    Seq.head validVersions
-
 let gitTagBuild _ =
     let tag (version: SemVerInfo) =
         match Git.Information.getBranchName "" with
         | "master" -> version.AsString
         | branch -> version.AsString + "-" + branch
-        
-    match Git.CommandHelper.runGitCommand "" "tag" with
-    | false, _,_ -> failwith "git error"
-    | true, existingTags, _ ->
-        let version = getValidVersion existingTags semVersion
-        tag version |> Git.Branches.tag ""
-        tag version |> Git.Branches.pushTag "" "origin"
+
+    let version = getBuildVersion()
+    tag version |> Git.Branches.tag ""
+    tag version |> Git.Branches.pushTag "" "origin"
 
 //-----------------------------------------------------------------------------
 // Build Target Declaration
@@ -211,7 +296,7 @@ Target.create "DotnetRestore" dotnetRestore
 Target.create "RunMigrations" runMigrations
 Target.create "InstallClient" installClient
 Target.create "DotnetBuild" dotnetBuild
-Target.create "BundleClient" bundleProdClient
+Target.create "BundleClient" bundleClient
 Target.create "UpdateChangeLog" updateChangeLog
 Target.create "RunUnitTests" runUnitTests
 Target.create "WatchApp" watchApp
@@ -219,8 +304,12 @@ Target.create "WatchTests" watchTests
 Target.create "Build" ignore
 Target.create "DotnetPublishServer" dotnetPublishServer
 Target.create "Package" ignore
+Target.create "DockerBuild" dockerBuild
+Target.create "RunWebTests" runWebTests
+Target.create "DockerPush" dockerPush
 Target.create "GitTagBuild" gitTagBuild
 Target.create "CreateRelease" ignore
+Target.createBuildFailure "DockerCleanUp" dockerCleanUp
 
 //-----------------------------------------------------------------------------
 // Build Target Dependencies
@@ -242,6 +331,8 @@ Target.create "CreateRelease" ignore
     ==> "Build"
     ==> "DotnetPublishServer"
     ==> "Package"
+    ==> "DockerBuild"
+    // ==> "DockerPush"
     ==> "GitTagBuild"
     ==> "CreateRelease"
 

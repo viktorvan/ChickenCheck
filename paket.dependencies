@@ -24,7 +24,8 @@ group Backend
     nuget Fable.Remoting.Server
     nuget Microsoft.AspNetCore.Cryptography.KeyDerivation
     nuget FSharpPlus
-    nuget Microsoft.Data.Sqlite
+    nuget Microsoft.Data.Sqlite.Core
+    nuget SQLitePCLRaw.bundle_e_sqlite3
     nuget Dapper
     nuget FsConfig
     nuget Microsoft.Extensions.Configuration.UserSecrets 
@@ -49,18 +50,8 @@ group Migrations
     nuget Argu
     nuget Simple.Migrations
     nuget Microsoft.Data.Sqlite
-
-group Tests
-    source https://www.nuget.org/api/v2
-    framework: netcoreapp3.1
-    storage: none
-
-    nuget FSharp.Core
-    nuget Expecto
-    nuget Unquote
-    nuget Fable.Elmish ~> 3
     
-group ApiTests
+group UnitTests
     source https://www.nuget.org/api/v2
     framework: netcoreapp3.1
     storage: none
@@ -70,7 +61,17 @@ group ApiTests
     nuget Unquote
     nuget Fable.Elmish ~> 3
     nuget Simple.Migrations
-    nuget Microsoft.Data.Sqlite
+    nuget Microsoft.Data.Sqlite.Core
+    
+group WebTests
+    source https://www.nuget.org/api/v2
+    framework: netcoreapp3.1
+    storage: none
+    
+    nuget canopy
+    nuget Selenium.WebDriver.ChromeDriver
+    nuget runtime.osx.10.10-x64.CoreCompat.System.Drawing
+
 
 group Build
 

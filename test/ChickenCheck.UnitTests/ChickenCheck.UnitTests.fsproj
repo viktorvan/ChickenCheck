@@ -3,15 +3,17 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <GenerateProgramFile>false</GenerateProgramFile>
-    <RootNamespace>ChickenCheck.UnitTests</RootNamespace>
+    <RootNamespace>ChickenCheck.ApiTests</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="TestHelpers.fs" />
+    <Compile Include="TestDb.fs" />
+    <Compile Include="WorkflowTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\ChickenCheck.Client\ChickenCheck.Client.fsproj" />
+    <ProjectReference Include="..\..\src\ChickenCheck.Backend\ChickenCheck.Backend.fsproj" />
+    <ProjectReference Include="..\..\src\ChickenCheck.Migrations\ChickenCheck.Migrations.fsproj" />
     <ProjectReference Include="..\..\src\ChickenCheck.Shared\ChickenCheck.Shared.fsproj" />
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />

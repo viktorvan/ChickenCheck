@@ -15,25 +15,27 @@ let toggleClass className (e: Element) =
         
 module DataAttributes =
     
-    let chickenId (element: Element) =
+    let parseChickenId (element: Element) =
         element?dataset?chickenId
         |> ChickenId.parse
         
-    let currentDate() = 
+    let parseCurrentDate() = 
         document.querySelector(sprintf "[%s]" DataAttributes.CurrentDate)?dataset?currentDate
         |> NotFutureDate.parse
         
 type Element with
-    member this.ChickenId = DataAttributes.chickenId(this)
+    member this.ChickenId = DataAttributes.parseChickenId(this)
         
 module EventTargets =
     
     let private isEggIcon (target: Element) =
         target.closest(".egg-icon")
+        
     let private isChickenCard (target: Element) =
         if (isEggIcon target |> Option.isSome) then None
         else 
             target.closest(".chicken-card")
+            
     let private isNavbarBurger (target: Element) =
         target.closest(".navbar-burger")
     

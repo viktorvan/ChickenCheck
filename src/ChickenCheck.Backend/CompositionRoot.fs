@@ -19,14 +19,6 @@ let getStatus() =
     let now = DateTime.Now
     now.ToString("yyyyMMdd HH:mm:ss") |> sprintf "Ok at %s" 
     
-let inline logErrors (logger: ILogger) (workflow: 'TRequest -> Async<'TResult>) =
-    try
-        logger.LogInformation (sprintf "%A" workflow)
-        workflow
-    with exn ->
-        logger.LogError(exn.Message)
-        reraise()
-    
 // services
 let chickenStore = Database.ChickenStore config.ConnectionString
 

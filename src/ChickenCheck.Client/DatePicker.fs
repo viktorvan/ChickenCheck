@@ -33,7 +33,7 @@ let init (browser: IBrowserService) (turbolinks: ITurbolinks) =
                 datepicker.date.start
                 |> Option.ofNullable
                 |> Option.map NotFutureDate.create
-                |> Option.defaultValue NotFutureDate.today
+                |> Option.defaultValue (NotFutureDate.today())
             if date <> currentDate then
                 let dateQueryStr = sprintf "?date=%s" (date.ToString())
                 turbolinks.Visit(browser.UrlPath + dateQueryStr))

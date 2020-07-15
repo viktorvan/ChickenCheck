@@ -45,3 +45,9 @@ module Map =
         map
         |> Map.tryFind key
         |> Option.defaultValue defaultValue
+        
+module Option =
+    let ofResult r =
+        match r with
+        | Ok v -> Some v
+        | Error _ -> None
