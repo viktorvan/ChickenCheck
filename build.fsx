@@ -189,7 +189,7 @@ let updateChangeLog  _ =
 let bundleClient _ =
     [ outputDir @@ "server/public"; outputDirArm64 @@ "server/public" ]
     |> Shell.cleanDirs
-    Common.npx [ "webpack"; "--config webpack.prod.js" ] rootPath
+    Common.npx [ "webpack"; "--config webpack.config.js"; "--mode=production" ] rootPath
 
     Shell.copyDir (outputDirArm64 @@ "server/public") (outputDir @@ "server/public") (fun _ -> true)
 
@@ -273,7 +273,7 @@ let watchApp _ =
     let bundleDevClient() =
         [ outputDir @@ "server/public" ]
         |> Shell.cleanDirs
-        Common.npx [ "webpack"; "--config webpack.dev.js" ] rootPath
+        Common.npx [ "webpack"; "--config webpack.config.js"; "--mode=development" ] rootPath
 
     [ server; bundleDevClient ]
     |> Seq.iter (Common.invokeAsync >> Async.Catch >> Async.Ignore >> Async.Start)

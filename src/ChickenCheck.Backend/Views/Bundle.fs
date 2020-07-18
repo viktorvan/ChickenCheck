@@ -14,6 +14,6 @@ module ChickenCheck.Backend.Bundle
             Html.script [ prop.src "ChickenCheck.vendor.isarray.6f47c1d9c943dcdbefcc.js"; prop.defer true ]
             Html.script [ prop.src "ChickenCheck.vendor.turbolinks.ebed4d9f47169d882d78.js"; prop.defer true ]
             Html.script [ prop.src "ChickenCheck.vendor.webpack.c7c69cbabc629065e060.js"; prop.defer true ]
-            Html.script [ prop.src "ChickenCheck.app.000a45caa5778b57b4d5.js"; prop.defer true ]
+            Html.script [ prop.src "ChickenCheck.app.342bff9e5573cd2c0712.js"; prop.defer true ]
             Html.link [ prop.rel "stylesheet"; prop.href "0.style.7b791af26b8e8aca9cdf.css" ]
         ]

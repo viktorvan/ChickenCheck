@@ -12,7 +12,7 @@ open SimpleMigrations.DatabaseProvider
 type TestDb(?file) =
     let file = file |> Option.defaultValue (Guid.NewGuid().ToString("N") + ".db")
     let migrateDb connectionString =
-        let migrationAssembly = Assembly.GetAssembly(typeof<ChickenCheck.Migrations.CreateUserTable>)
+        let migrationAssembly = Assembly.GetAssembly(typeof<ChickenCheck.Migrations.CreateChickenTable>)
         let connection = new SqliteConnection(connectionString)
         connection.Open()
         let provider = SqliteDatabaseProvider(connection)
