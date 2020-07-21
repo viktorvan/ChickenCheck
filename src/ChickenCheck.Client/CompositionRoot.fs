@@ -21,4 +21,4 @@ let addEgg chickenId =
 let removeEgg chickenId = 
     Chickens.removeEgg api browserService turbolinks chickenId (currentDate())
 let initDatepicker() =
-        Datepicker.init browserService turbolinks (currentDate())
+    Datepicker.init browserService turbolinks (currentDate())

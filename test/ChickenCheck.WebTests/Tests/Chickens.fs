@@ -57,3 +57,20 @@ let all() =
         
         click (Selectors.eggIcon id)
         notDisplayed (Selectors.eggIcon id)
+        
+    "browser navigation works" &&& fun _ ->
+        click Selectors.previousDateLink
+        let yesterday = today.AddDays(-1.0)
+        onn (ChickensPage.url yesterday)
+        navigate back
+        onn (ChickensPage.url today)
+        navigate forward
+        onn (ChickensPage.url yesterday)
+        
+    "browser navigation does not add multiple datepickers" &&& fun _ ->
+        click Selectors.previousDateLink
+        click Selectors.previousDateLink
+        navigate back
+        navigate back
+        navigate forward
+        count Selectors.datePicker 1

@@ -4,7 +4,7 @@ open System
 open ChickenCheck.Shared
 open OpenQA.Selenium
 
-let rootUrl = "http://localhost:8085/chickens"
+let rootUrl = "http://localhost:8087/chickens"
 let parseDateQueryString (url: string) =
     DateTime.Parse(url.Split("?date=").[1])
     

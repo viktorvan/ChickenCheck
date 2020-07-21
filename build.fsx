@@ -95,7 +95,7 @@ let dockerImageFullName version =
 
 let dockerBuildImage dockerfile version =
     let fullName = dockerImageFullName version
-    let args = [ "build"; "-t"; fullName; "-f"; dockerfile ]
+    let args = [ "build"; "-t"; fullName; "-f"; dockerfile; "." ]
     Common.docker args ""
 
 let dockerPushImage version =
@@ -108,7 +108,7 @@ let dockerRunWebTestContainer dbFile =
         [ "run"
           "-d"
           "-p"
-          "8085:8085"
+          "8087:8085"
           "--name"
           dockerWebTestContainerName
           "-e"
