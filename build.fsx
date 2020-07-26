@@ -58,6 +58,8 @@ let fullVersion =
     else
         sprintf "%s.%s" (semVersion.AsString) TeamFoundation.Environment.BuildId
 
+let webTestPort = 8087
+
 //-----------------------------------------------------------------------------
 // Helpers
 //-----------------------------------------------------------------------------
@@ -108,7 +110,7 @@ let dockerRunWebTestContainer dbFile =
         [ "run"
           "-d"
           "-p"
-          "8087:8085"
+          sprintf "%i:8085" webTestPort
           "--name"
           dockerWebTestContainerName
           "-e"
@@ -173,11 +175,43 @@ let dotnetBuild ctx =
         }) sln
 
 let updateChangeLog  _ =
+    let printChanges sb (changes: Changelog.Change list) =
+        let getChangeText (change: Changelog.Change) =
+            match change with
+            | Changelog.Added text
+            | Changelog.Changed text
+            | Changelog.Removed text
+            | Changelog.Deprecated text
+            | Changelog.Security text
+            | Changelog.Fixed text
+            | Changelog.Custom (_, text) -> 
+                if String.IsNullOrWhiteSpace text.CleanedText then None
+                else Some text.CleanedText
+        let grouped = 
+            changes 
+            |> List.groupBy (function 
+            | Changelog.Added _ -> "Added"
+            | Changelog.Changed _ -> "Changed"
+            | Changelog.Removed _ -> "Removed"
+            | Changelog.Deprecated _ -> "Deprecated"
+            | Changelog.Security _ -> "Security"
+            | Changelog.Fixed _ -> "Fixed"
+            | Changelog.Custom (label,_) -> label)
+
+        let printGroup (label, (changes: Changelog.Change list)) =
+            Printf.bprintf sb "            \"%s\"\n" label
+            changes
+            |> List.map getChangeText
+            |> List.iter (Option.iter (Printf.bprintf sb "                \"%s\"\n"))
+
+        grouped
+        |> List.iter printGroup
     let printEntry sb (entry: Changelog.ChangelogEntry) =
         Printf.bprintf sb
             "            \"%s - %s\"\n"
             entry.SemVer.AsString
             (entry.Date |> Option.map (fun d -> d.ToString("yyyy-MM-dd")) |> Option.defaultValue "XXXX")
+        printChanges sb entry.Changes
     let sb = System.Text.StringBuilder("module ChangeLog\n\n")
     Printf.bprintf sb "    let version = \"%s\"\n" fullVersion
     Printf.bprintf sb "    let changelog =\n        [\n"
@@ -241,13 +275,14 @@ let runUnitTests _ =
 let runWebTests _ =
     Target.activateBuildFailure "DockerCleanUp"
     let dbFile = "webtest.db"
+    let args = sprintf "-- %i" webTestPort
     try
         rootPath @@ dbFile 
         |> sprintf "Data Source=%s" 
         |> Common.runMigrations migrationsPath
         dockerRunWebTestContainer dbFile
         DotNet.exec (fun c ->
-            { c with WorkingDirectory = webTestsPath }) "run" ""
+            { c with WorkingDirectory = webTestsPath }) "run" args
         |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
         dockerCleanUp()
     finally
