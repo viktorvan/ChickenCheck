@@ -3,3 +3,4 @@
 
 # include output-folder
 !output
+!output-arm64

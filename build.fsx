@@ -255,9 +255,9 @@ let dotnetPublishServer ctx =
 
 let dockerBuild _ =
     let tag = getBuildVersion().AsString
-    // let tagArm64 = tag + "-arm64"
     dockerBuildImage dockerfile tag
-    // dockerBuildImage dockerfile tagArm64
+    let tagArm64 = tag + "-arm64"
+    dockerBuildImage dockerfileArm64 tagArm64
 
 let dockerPush _ =
     let tag = getBuildVersion().AsString + "-arm64"
@@ -384,7 +384,7 @@ Target.createBuildFailure "DockerCleanUp" dockerCleanUp
     ==> "Package"
     ==> "DockerBuild"
     ==> "RunWebTests"
-    // ==> "DockerPush"
+    ==> "DockerPush"
     ==> "GitTagBuild"
     ==> "CreateRelease"
 
