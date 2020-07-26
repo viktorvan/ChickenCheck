@@ -116,13 +116,18 @@ let api : HttpHandler =
     #endif
     |> Remoting.withErrorHandler apiErrorHandler
     |> Remoting.buildHttpHandler
+    
+let health : HttpHandler =
+    router {
+        get "/health" (setStatusCode 200)
+    }
 
 let webApp =
     choose [
+        health
         api
         browser
     ]
-
     
 OptionHandler.register()
 

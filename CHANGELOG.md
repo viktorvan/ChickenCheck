@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+* Health-check endpoint
 * Kubernetes deploment
 
 ## [1.3.1] - 2020-07-26
