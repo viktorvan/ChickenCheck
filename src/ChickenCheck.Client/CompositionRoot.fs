@@ -9,6 +9,7 @@ let api : IChickensApi =
     |> Remoting.withRouteBuilder Route.builder
     |> Remoting.buildProxy<IChickensApi>
     
+let scrollPositionService = ScrollPositionService() :> IScrollPositionService
 let browserService = BrowserService() :> IBrowserService
 let turbolinks = Turbolinks() :> ITurbolinks
 let currentDate() = HtmlHelper.DataAttributes.parseCurrentDate()

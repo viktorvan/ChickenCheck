@@ -14,7 +14,6 @@ let private hideEggIcon (browser: IBrowserService) (id: ChickenId) =
     browser.QuerySelector selector
     |> Option.iter (HtmlHelper.toggleClass "is-hidden")
     
-let private serverErrorMsg = "server error"
 let addEgg (api: IChickensApi) (browser: IBrowserService) (turbolinks: ITurbolinks) =
     fun chickenId date ->
         async {
@@ -22,7 +21,6 @@ let addEgg (api: IChickensApi) (browser: IBrowserService) (turbolinks: ITurbolin
                 browser.StopPropagation()
                 showEggLoader browser chickenId
                 do! api.AddEgg(chickenId, date)
-                browser.SaveScrollPosition()
                 turbolinks.Reset(browser.UrlPath + browser.UrlQueryString)
             with exn ->
                 eprintf "addEgg failed: %s" exn.Message
@@ -37,7 +35,6 @@ let removeEgg (api: IChickensApi) (browser: IBrowserService) (turbolinks: ITurbo
                 hideEggIcon browser chickenId
                 showEggLoader browser chickenId
                 do! api.RemoveEgg(chickenId, date)
-                browser.SaveScrollPosition()
                 turbolinks.Reset(browser.UrlPath + browser.UrlQueryString)
             with exn -> 
                 eprintf "removeEgg failed: %s" exn.Message

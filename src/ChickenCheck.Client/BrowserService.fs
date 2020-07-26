@@ -8,22 +8,13 @@ type IBrowserService =
     abstract QuerySelector : string -> Types.Element option
     abstract UrlQueryString : string with get
     abstract UrlPath : string with get
-    abstract SaveScrollPosition : unit -> unit
-    abstract RecallScrollPosition : unit -> unit
     
 type BrowserService() =
     
     let mutable scrollPosition = None
     interface IBrowserService with
-        member this.StopPropagation() = window.event.stopPropagation()
-        member this.GetElementById id = document.getElementById id |> Option.ofObj
-        member this.QuerySelector selector = document.querySelector selector |> Option.ofObj
-        member this.UrlPath = window.location.pathname
-        member this.UrlQueryString = window.location.search
-        member this.SaveScrollPosition() =
-            scrollPosition <- Some {| X = window.scrollX; Y = window.scrollY |}
-        member this.RecallScrollPosition() =
-            scrollPosition 
-            |> Option.iter (fun p -> window.scrollTo(p.X, p.Y))
-            scrollPosition <- None
-        
+        member __.StopPropagation() = window.event.stopPropagation()
+        member __.GetElementById id = document.getElementById id |> Option.ofObj
+        member __.QuerySelector selector = document.querySelector selector |> Option.ofObj
+        member __.UrlPath = window.location.pathname
+        member __.UrlQueryString = window.location.search

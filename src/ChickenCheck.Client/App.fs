@@ -16,7 +16,10 @@ document.onpointerdown <-
         | NavbarBurger -> CompositionRoot.toggleNavbarMenu()
         | _ -> ()
         
+document.addEventListener("turbolinks:before-cache", fun _ ->
+    CompositionRoot.scrollPositionService.Save())
+
 document.addEventListener("turbolinks:load", fun _ ->
-    CompositionRoot.browserService.RecallScrollPosition()
+    CompositionRoot.scrollPositionService.Recall()
     CompositionRoot.initDatepicker())
 
