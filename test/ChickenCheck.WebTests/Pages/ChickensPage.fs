@@ -3,13 +3,15 @@ module ChickenCheck.WebTests.Pages.ChickensPage
 open System
 open ChickenCheck.Shared
 open OpenQA.Selenium
+open canopy.classic
 
-let rootUrl = "http://localhost:8087/chickens"
+let rootUrl port =
+    sprintf "http://localhost:%i/chickens" port
 let parseDateQueryString (url: string) =
     DateTime.Parse(url.Split("?date=").[1])
     
-let url (date: DateTime) =
-    rootUrl + "?date=" + date.ToString("yyyy-MM-dd")
+let url port (date: DateTime) =
+    rootUrl(port) + "?date=" + date.ToString("yyyy-MM-dd")
 let parseChickenId (element: IWebElement) = element.GetAttribute(DataAttributes.ChickenId) |> ChickenId.parse
 module Selectors =
     let nextDateLink = "#next-date"
