@@ -48,6 +48,12 @@ let releaseTagPrefix = "Release-"
 // Helpers
 //-----------------------------------------------------------------------------
 
+let fullVersion (semVer: SemVerInfo) =
+    if semVer.Build = bigint(0) then
+        { semVer with 
+            Build = bigint(1)
+            Original = None }
+    else semVer
 
 let getReleaseVersionTags() =
     let getGitTags() = 
@@ -74,20 +80,16 @@ let getBuildVersion() =
                 let versionWithBuildNumber (i:int) = { version with Build = version.Build + bigint(i); Original = None}
                 Seq.initInfinite versionWithBuildNumber
             let validVersion = 
-                let isExistingTag (v:SemVerInfo) = existingVersionTags |> List.contains v.AsString
+                let isExistingTag (v:SemVerInfo) = 
+                    existingVersionTags |> List.contains v.AsString
                 nextVersions
                 |> Seq.skipWhile isExistingTag
                 |> Seq.head
 
-            if validVersion.Build = bigint(0) then
-                { validVersion with 
-                    Build = bigint(1)
-                    Original = None }
-            else 
-                validVersion
+            validVersion
 
         let existingTags = getReleaseVersionTags()
-        let version = getNextVersion existingTags semVersion
+        let version = getNextVersion existingTags (fullVersion semVersion)
         storeVersion version
         version
     | Some v -> v
@@ -177,7 +179,7 @@ let installClient _ =
 let dotnetBuild ctx =
     let args =
         [
-            sprintf "/p:PackageVersion=%s" semVersion.AsString
+            sprintf "/p:PackageVersion=%s" (fullVersion semVersion).AsString
         ]
     DotNet.build(fun c ->
         { c with
@@ -194,7 +196,7 @@ let bundleClient _ =
 let dotnetPublishServer ctx =
     let args =
         [
-            sprintf "/p:PackageVersion=%s" semVersion.AsString
+            sprintf "/p:PackageVersion=%s" (fullVersion semVersion).AsString
         ]
     DotNet.publish(fun c ->
         { c with
