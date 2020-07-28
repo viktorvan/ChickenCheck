@@ -14,7 +14,6 @@ open Fake.Core.TargetOperators
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open Fake.IO.Globbing.Operators
-open Fake.BuildServer
 
 
 //-----------------------------------------------------------------------------
@@ -24,11 +23,9 @@ open Fake.BuildServer
 let sln = "ChickenCheck.sln"
 let rootPath = __SOURCE_DIRECTORY__
 let outputDir = rootPath @@ "output"
-let outputDirArm64 = rootPath @@ "output-arm64"
 let src = rootPath @@ "src"
 let serverPath = src @@ "ChickenCheck.Backend"
 let serverProj = serverPath @@ "ChickenCheck.Backend.fsproj"
-let clientPath = src @@ "ChickenCheck.Client"
 let migrationsPath = src @@ "ChickenCheck.Migrations"
 let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.UnitTests"
 let webTestsPath = rootPath @@ "test" @@ "ChickenCheck.WebTests"
@@ -37,42 +34,42 @@ let dockerRegistry = "microk8s-1.local:32000"
 let dockerImageName = "chickencheck"
 let dockerfile = "Dockerfile"
 let dockerfileArm64 = "Dockerfile-arm64"
+let arm64ImageSuffix = "-arm64"
 let dockerWebTestContainerName = "chickencheckwebtest"
-
-let srcCodeGlob =
-    !! ( src  @@ "**/*.fs")
-    ++ ( src  @@ "**/*.fsx")
-
-let testsCodeGlob =
-    !! (rootPath  @@ "test/**/*.fs")
-    ++ (rootPath  @@ "test/**/*.fsx")
-
 let srcGlob = src @@ "**/*.??proj"
 let testsGlob = rootPath  @@ "test/**/*.??proj"
-
 let changelog = Fake.Core.Changelog.load "CHANGELOG.md"
 let semVersion = changelog.LatestEntry.SemVer
-let fullVersion =
-    if BuildServer.isLocalBuild then
-        semVersion.AsString
-    else
-        sprintf "%s.%s" (semVersion.AsString) TeamFoundation.Environment.BuildId
-
 let webTestPort = 8087
+let k8sDeployment = rootPath @@ "k8s" @@ "ChickenCheckApp.yaml"
+let releaseTagPrefix = "Release-"
 
 //-----------------------------------------------------------------------------
 // Helpers
 //-----------------------------------------------------------------------------
 
-let storeVersion (v: SemVerInfo) =
-    FakeVar.set "tagVersion" v
-let getStoredVersion() : SemVerInfo option =
-    FakeVar.get<SemVerInfo> "tagVersion"
+
+let getReleaseVersionTags() =
+    let getGitTags() = 
+        match Git.CommandHelper.runGitCommand "" "tag" with
+        | false, _,_ -> 
+            failwith "git error"
+        | true, existingTags, _ -> 
+            existingTags 
+
+    getGitTags()
+    |> List.filter (fun t -> t.StartsWith releaseTagPrefix)
+    |> List.map (fun t -> t.Substring(releaseTagPrefix.Length))
 
 let getBuildVersion() =
+    let storeVersion (v: SemVerInfo) =
+        FakeVar.set "tagVersion" v
+    let getStoredVersion() : SemVerInfo option =
+        FakeVar.get<SemVerInfo> "tagVersion"
+
     match getStoredVersion() with
     | None ->
-        let getNextVersion' existingVersionTags version =
+        let getNextVersion existingVersionTags version =
             let nextVersions = 
                 let versionWithBuildNumber (i:int) = { version with Build = version.Build + bigint(i); Original = None}
                 Seq.initInfinite versionWithBuildNumber
@@ -82,15 +79,26 @@ let getBuildVersion() =
                 |> Seq.skipWhile isExistingTag
                 |> Seq.head
 
-            validVersion
+            if validVersion.Build = bigint(0) then
+                { validVersion with 
+                    Build = bigint(1)
+                    Original = None }
+            else 
+                validVersion
 
-        match Git.CommandHelper.runGitCommand "" "tag" with
-        | false, _,_ -> failwith "git error"
-        | true, existingTags, _ ->
-            let version =getNextVersion' existingTags semVersion
-            storeVersion version
-            version
+        let existingTags = getReleaseVersionTags()
+        let version = getNextVersion existingTags semVersion
+        storeVersion version
+        version
     | Some v -> v
+
+let getDeployVersion() =
+    let pattern = sprintf "image: localhost:32000\/%s:(.*)%s" dockerImageName arm64ImageSuffix
+    let regex = String.getRegEx pattern
+    File.readAsString k8sDeployment
+    |> regex.Match
+    |> (fun m -> m.Groups.[1].Value)
+    |> SemVer.parse
 
 let dockerImageFullName version =
     sprintf "%s/%s:%s" dockerRegistry dockerImageName version
@@ -134,7 +142,7 @@ let dockerCleanUp _ =
 //-----------------------------------------------------------------------------
 
 let clean _ =
-    [ "bin"; "temp"; outputDir; outputDirArm64 ]
+    [ "bin"; "temp"; outputDir ]
     |> Shell.cleanDirs
 
     !! srcGlob
@@ -153,6 +161,12 @@ let dotnetRestore _ = DotNet.restore id sln
 
 let runMigrations _ = Common.runMigrations migrationsPath connectionString
 
+let writeVersionToFile  _ =
+    let sb = System.Text.StringBuilder("module Version\n\n")
+    Printf.bprintf sb "    let version = \"%s\"\n" (getBuildVersion().AsString)
+
+    File.writeString false (serverPath @@ "Version.fs") (sb.ToString())
+
 let installClient _ =
     printfn "Node version:"
     Common.node [ "--version" ] rootPath
@@ -164,68 +178,18 @@ let dotnetBuild ctx =
     let args =
         [
             sprintf "/p:PackageVersion=%s" semVersion.AsString
-            "--no-restore"
         ]
     DotNet.build(fun c ->
         { c with
             Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+            NoRestore = true
             Common =
                 c.Common
                 |> DotNet.Options.withAdditionalArgs args
         }) sln
 
-let updateChangeLog  _ =
-    let printChanges sb (changes: Changelog.Change list) =
-        let getChangeText (change: Changelog.Change) =
-            match change with
-            | Changelog.Added text
-            | Changelog.Changed text
-            | Changelog.Removed text
-            | Changelog.Deprecated text
-            | Changelog.Security text
-            | Changelog.Fixed text
-            | Changelog.Custom (_, text) -> 
-                if String.IsNullOrWhiteSpace text.CleanedText then None
-                else Some text.CleanedText
-        let grouped = 
-            changes 
-            |> List.groupBy (function 
-            | Changelog.Added _ -> "Added"
-            | Changelog.Changed _ -> "Changed"
-            | Changelog.Removed _ -> "Removed"
-            | Changelog.Deprecated _ -> "Deprecated"
-            | Changelog.Security _ -> "Security"
-            | Changelog.Fixed _ -> "Fixed"
-            | Changelog.Custom (label,_) -> label)
-
-        let printGroup (label, (changes: Changelog.Change list)) =
-            Printf.bprintf sb "            \"%s\"\n" label
-            changes
-            |> List.map getChangeText
-            |> List.iter (Option.iter (Printf.bprintf sb "                \"%s\"\n"))
-
-        grouped
-        |> List.iter printGroup
-    let printEntry sb (entry: Changelog.ChangelogEntry) =
-        Printf.bprintf sb
-            "            \"%s - %s\"\n"
-            entry.SemVer.AsString
-            (entry.Date |> Option.map (fun d -> d.ToString("yyyy-MM-dd")) |> Option.defaultValue "XXXX")
-        printChanges sb entry.Changes
-    let sb = System.Text.StringBuilder("module ChangeLog\n\n")
-    Printf.bprintf sb "    let version = \"%s\"\n" fullVersion
-    Printf.bprintf sb "    let changelog =\n        [\n"
-    changelog.Entries |> Seq.iter (printEntry sb)
-    Printf.bprintf sb "        ]\n"
-
-    File.writeString false (serverPath @@ "ChangeLog.fs") (sb.ToString())
-
 let bundleClient _ =
-    [ outputDir @@ "server/public"; outputDirArm64 @@ "server/public" ]
-    |> Shell.cleanDirs
     Common.npx [ "webpack"; "--config webpack.config.js"; "--mode=production" ] rootPath
-
-    Shell.copyDir (outputDirArm64 @@ "server/public") (outputDir @@ "server/public") (fun _ -> true)
 
 let dotnetPublishServer ctx =
     let args =
@@ -235,47 +199,38 @@ let dotnetPublishServer ctx =
     DotNet.publish(fun c ->
         { c with
             Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
-            Runtime = Some "linux-musl-x64"
+            NoBuild = true
+            NoRestore = true
             SelfContained = Some false
             Common =
                 c.Common
                 |> DotNet.Options.withAdditionalArgs args
             OutputPath = Some (outputDir @@ "Server")
         }) serverProj
-    DotNet.publish(fun c ->
-        { c with
-            Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
-            Runtime = Some "linux-arm64"
-            SelfContained = Some false
-            Common =
-                c.Common
-                |> DotNet.Options.withAdditionalArgs args
-            OutputPath = Some (outputDirArm64 @@ "Server")
-        }) serverProj
 
 let dockerBuild _ =
     let tag = getBuildVersion().AsString
     dockerBuildImage dockerfile tag
-    let tagArm64 = tag + "-arm64"
+    let tagArm64 = tag + arm64ImageSuffix
     dockerBuildImage dockerfileArm64 tagArm64
 
 let dockerPush _ =
     let tag = getBuildVersion().AsString + "-arm64"
     dockerPushImage tag
 
-let runUnitTests _ =
-    let args =
-        match BuildServer.isLocalBuild  with
-        | true -> ""
-        | false -> "--fail-on-focused-tests"
+let runUnitTests ctx =
+    let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+    let args = sprintf "--configuration %s --no-restore --no-build --fail-on-focused-tests" (configuration.ToString())
     DotNet.exec (fun c ->
-        { c with WorkingDirectory = unitTestsPath }) "run" args
+        { c with 
+            WorkingDirectory = unitTestsPath }) "run" args
     |> (fun res -> if not res.OK then failwithf "RunUnitTests failed")
 
-let runWebTests _ =
+let runWebTests ctx =
     Target.activateBuildFailure "DockerCleanUp"
     let dbFile = "webtest.db"
-    let args = sprintf "-- %i" webTestPort
+    let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+    let args = sprintf "--configuration %s --no-restore --no-build -- %i" (configuration.ToString()) webTestPort
     try
         rootPath @@ dbFile 
         |> sprintf "Data Source=%s" 
@@ -328,15 +283,52 @@ let watchTests _ =
     let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
     cancelEvent.Cancel <- true
 
-let gitTagBuild _ =
-    let tag (version: SemVerInfo) =
+let gitTagRelease _ =
+    let releaseTag (version: SemVerInfo) =
         match Git.Information.getBranchName "" with
-        | "master" -> version.AsString
-        | branch -> version.AsString + "-" + branch
+        | "master" -> releaseTagPrefix + version.AsString
+        | branch -> releaseTagPrefix + version.AsString + "-" + branch
 
     let version = getBuildVersion()
-    tag version |> Git.Branches.tag ""
-    tag version |> Git.Branches.pushTag "" "origin"
+    releaseTag version |> Git.Branches.tag ""
+    releaseTag version |> Git.Branches.pushTag "" "origin"
+
+let gitTagDeployment _ =
+    let version = "PROD-" + getDeployVersion().AsString
+    Git.Branches.tag "" version
+
+let updateDeployVersion _ =
+    let deployImageName = sprintf "localhost:32000/%s:%s%s" dockerImageName (getBuildVersion().AsString) arm64ImageSuffix
+    Trace.tracefn "Updating kubernetes deployment file %s with new image version %s" k8sDeployment deployImageName
+    let pattern = sprintf "image: localhost:32000\/%s:.*%s" dockerImageName arm64ImageSuffix
+    File.readAsString k8sDeployment
+    |> String.regex_replace pattern ("image: " + deployImageName)
+    |> File.writeString false k8sDeployment
+
+let deploy _ = 
+    let latestReleaseBuild = getReleaseVersionTags() |> List.last |> SemVer.parse
+    let deployVersion = getDeployVersion()
+
+    let rec getUserConfirmation() =
+        let prompt =
+            if latestReleaseBuild > deployVersion then
+                sprintf "There is a newer buildVersion (%s), are you sure you still want to deploy version %s (yes/no)?\n> " latestReleaseBuild.AsString deployVersion.AsString
+            else 
+                sprintf "Deploy version %s (yes/no)?\n> " deployVersion.AsString
+        match UserInput.getUserInput prompt with
+        | "yes" -> true
+        | "no" -> false
+        | _ -> getUserConfirmation()
+
+    let args = [
+        "apply"
+        "-f"
+        k8sDeployment
+    ]
+    if getUserConfirmation() then
+        Common.kubectl args ""
+    else 
+        failwith "User aborted deployment"
 
 //-----------------------------------------------------------------------------
 // Build Target Declaration
@@ -346,9 +338,9 @@ Target.create "Clean" clean
 Target.create "DotnetRestore" dotnetRestore
 Target.create "RunMigrations" runMigrations
 Target.create "InstallClient" installClient
+Target.create "WriteVersionToFile" writeVersionToFile
 Target.create "DotnetBuild" dotnetBuild
 Target.create "BundleClient" bundleClient
-Target.create "UpdateChangeLog" updateChangeLog
 Target.create "RunUnitTests" runUnitTests
 Target.create "WatchApp" watchApp
 Target.create "WatchTests" watchTests
@@ -358,8 +350,12 @@ Target.create "Package" ignore
 Target.create "DockerBuild" dockerBuild
 Target.create "RunWebTests" runWebTests
 Target.create "DockerPush" dockerPush
-Target.create "GitTagBuild" gitTagBuild
+Target.create "GitTagRelease" gitTagRelease
 Target.create "CreateRelease" ignore
+Target.create "UpdateDeployVersion" updateDeployVersion
+Target.create "DeployToKubernetes" deploy
+Target.create "GitTagDeployment" gitTagDeployment
+Target.create "Deploy" ignore
 Target.createBuildFailure "DockerCleanUp" dockerCleanUp
 
 //-----------------------------------------------------------------------------
@@ -371,12 +367,12 @@ Target.createBuildFailure "DockerCleanUp" dockerCleanUp
 "Clean" ?=> "DotnetRestore"
 "Clean" ?=> "InstallClient"
 "Clean" ==> "Package"
-"UpdateChangeLog" ==> "dotnetBuild"
 
 "DotnetRestore" ==> "RunMigrations" ==> "DotNetBuild"
 
 "DotnetRestore" <=> "InstallClient"
     ==> "BundleClient"
+    ==> "WriteVersionToFile"
     ==> "DotnetBuild"
     ==> "RunUnitTests"
     ==> "Build"
@@ -385,8 +381,13 @@ Target.createBuildFailure "DockerCleanUp" dockerCleanUp
     ==> "DockerBuild"
     ==> "RunWebTests"
     ==> "DockerPush"
-    ==> "GitTagBuild"
+    ==> "GitTagRelease"
+    ==> "UpdateDeployVersion"
     ==> "CreateRelease"
+
+"DeployToKubernetes"
+    ==> "GitTagDeployment"
+    ==> "Deploy"
 
 "DotnetRestore"
     ==> "WatchTests"

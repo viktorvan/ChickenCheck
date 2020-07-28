@@ -5,9 +5,24 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+* Time/UTC error when running on prod kubernetes? 
+* Check database status in /health
+
+
+## [1.4.3] - 2020-07-28
+### Added
+* Kubernetes deployment
+
+### Changed
+* Simpler build process, publish all runtimes.
+
+## [1.4.0] - 2020-07-28
 ### Added
 * Health-check endpoint
-* Kubernetes deploment
+
+### Changed
+* Use Debian based docker images instead of Alpine. There does not seem to be sqlite support for linux-musl-arm64.
 
 ## [1.3.1] - 2020-07-26
 ### Added

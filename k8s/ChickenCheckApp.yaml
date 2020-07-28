@@ -1,0 +1,89 @@
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: chickencheck-config
+data:
+  ChickenCheck_ConnectionString: "Data Source=/var/lib/chickencheck/database.db"
+  ChickenCheck_PublicPath: "server/public"
+---
+kind: PersistentVolumeClaim
+apiVersion: v1
+metadata:
+  name: chickencheck-claim
+spec:
+  storageClassName: managed-nfs-storage
+  accessModes:
+    - ReadWriteMany
+  resources:
+    requests:
+      storage: 100Mi
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: chickencheck-service
+spec:
+  type: NodePort
+  selector:
+    app: chickencheck
+  ports:
+    - protocol: TCP
+      port: 8085
+      targetPort: 8085
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: chickencheck
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: chickencheck
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        app: chickencheck
+    spec:
+      containers:
+      - name: chickencheck
+        image: localhost:32000/chickencheck:1.4.3.1-arm64
+        ports: 
+          - containerPort: 8085
+        readinessProbe:
+          httpGet: 
+            path: /health
+            port: 8085
+          initialDelaySeconds: 2
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8085
+          initialDelaySeconds: 2
+          periodSeconds: 10
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 1000m
+          requests:
+            memory: 500Mi
+            cpu: 500m
+        envFrom:
+          - configMapRef:
+              name: chickencheck-config
+        volumeMounts:
+          - name: chickencheck-pvc
+            mountPath: "/var/lib/chickencheck"
+      volumes:
+        - name: chickencheck-pvc
+          persistentVolumeClaim:
+            claimName: chickencheck-claim

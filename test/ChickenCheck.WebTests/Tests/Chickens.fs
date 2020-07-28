@@ -12,6 +12,7 @@ let today = DateTime.Today
 let all port =
     let rootUrl = (ChickensPage.rootUrl(port))
     let url = ChickensPage.url port
+    
     canopy.classic.url rootUrl
     
     "root redirects to chickens page for current date" &&& fun _ ->
@@ -36,6 +37,7 @@ let all port =
             click Selectors.datePicker
             let dayButton = elementWithText Selectors.dayButton (day.Day.ToString())
             click dayButton
+            waitForCurrentDate day
             onn (url day)
         
         let inAPreviousMonth = today.AddDays(-40.0)
@@ -54,10 +56,11 @@ let all port =
         notDisplayed (Selectors.eggIcon id)
         
         click (Selectors.chickenCardById id)
-        displayed (Selectors.eggIcon id)
+        waitForElement (Selectors.eggIcon id)
         count (Selectors.eggIcon id) 1
         
         click (Selectors.eggIcon id)
+        
         notDisplayed (Selectors.eggIcon id)
         
     "browser navigation works" &&& fun _ ->

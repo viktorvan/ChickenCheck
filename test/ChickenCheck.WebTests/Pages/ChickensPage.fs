@@ -13,6 +13,10 @@ let parseDateQueryString (url: string) =
 let url port (date: DateTime) =
     rootUrl(port) + "?date=" + date.ToString("yyyy-MM-dd")
 let parseChickenId (element: IWebElement) = element.GetAttribute(DataAttributes.ChickenId) |> ChickenId.parse
+let waitForCurrentDate (date: DateTime) =
+    let selector = sprintf "[data-current-date=\"%s\"" (date.ToString("yyyy-MM-dd"))
+    waitForElement selector
+
 module Selectors =
     let nextDateLink = "#next-date"
     let previousDateLink = "#previous-date"

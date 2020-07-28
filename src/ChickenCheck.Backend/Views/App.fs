@@ -6,14 +6,14 @@ open Feliz.Bulma.ViewEngine
 open ChickenCheck.Shared
 
 let logInLink =
-    Bulma.navbarEnd.a
-        [ prop.href "/login"
-          prop.children [ Bulma.navbarItem.div [ prop.text "log in" ] ] ]
+    Bulma.navbarItem.div [ 
+        prop.href "/login"
+        prop.text "log in" ]
 
 let logOutLink =
-    Bulma.navbarEnd.a
-        [ prop.href "logout"
-          prop.children [ Bulma.navbarItem.div [ prop.text "log out" ] ] ]
+    Bulma.navbarItem.div [ 
+        prop.href "/logout"
+        prop.text "log out" ]
           
 let layout user content =
     Html.html [
@@ -66,9 +66,14 @@ let layout user content =
                     Bulma.navbarMenu [
                         prop.id "chickencheck-navbar-menu"
                         prop.children [ 
-                            match user with
-                            | Anonymous -> logInLink
-                            | ApiUser _ -> logOutLink
+                            Bulma.navbarEnd.div [
+                                Bulma.navbarItem.div [
+                                    prop.text Version.version
+                                ]
+                                match user with
+                                | Anonymous -> logInLink
+                                | ApiUser _ -> logOutLink
+                            ]
                         ] 
                     ] 
                 ] 

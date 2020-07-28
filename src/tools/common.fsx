@@ -48,6 +48,7 @@ module Tools =
     let npmTool = platformTool "npm" "npx.exe"
     let npxTool = platformTool "npx" "npx.exe"
     let docker = platformTool "docker" "docker.exe"
+    let kubectl = platformTool "kubectl" "kubectl.exe"
 
     let runTool cmd args workingDir =
         let arguments = args |> Arguments.OfArgs
@@ -62,3 +63,4 @@ let node (args: string list) = Tools.runTool Tools.nodeTool args
 let npm (args: string list) = Tools.runTool Tools.npmTool args
 let npx (args: string list) = Tools.runTool Tools.npxTool args
 let docker (args: string list) = Tools.runTool Tools.docker args
+let kubectl (args: string list) = Tools.runTool Tools.kubectl args

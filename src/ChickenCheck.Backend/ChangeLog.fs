@@ -1,8 +1,11 @@
 module ChangeLog
 
-    let version = "1.3.1"
+    let version = "1.4.0"
     let changelog =
         [
+            "1.4.0 - 2020-07-28"
+            "Changed"
+                "Use Debian based docker images instead of Alpine. There does not seem to be sqlite support for linux-musl-arm64."
             "1.3.1 - 2020-07-26"
             "Added"
                 "Docker images"
