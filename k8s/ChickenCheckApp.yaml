@@ -55,21 +55,15 @@ spec:
     spec:
       containers:
       - name: chickencheck
-        image: localhost:32000/chickencheck:1.4.4.1-arm64
+        image: localhost:32000/chickencheck:1.4.5.1-arm64
         ports: 
           - containerPort: 8085
-        readinessProbe:
-          httpGet: 
-            path: /health
-            port: 8085
-          initialDelaySeconds: 2
-          periodSeconds: 10
         livenessProbe:
           httpGet:
             path: /health
             port: 8085
-          initialDelaySeconds: 2
-          periodSeconds: 10
+          initialDelaySeconds: 5
+          periodSeconds: 60
         resources:
           limits:
             memory: 1Gi
