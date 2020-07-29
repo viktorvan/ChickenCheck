@@ -9,6 +9,7 @@
     <Compile Include="TestHelpers.fs" />
     <Compile Include="TestDb.fs" />
     <Compile Include="WorkflowTests.fs" />
+    <Compile Include="DomainTests.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

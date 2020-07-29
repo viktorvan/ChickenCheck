@@ -55,7 +55,7 @@ spec:
     spec:
       containers:
       - name: chickencheck
-        image: localhost:32000/chickencheck:1.4.3.3-arm64
+        image: localhost:32000/chickencheck:1.4.3.4-arm64
         ports: 
           - containerPort: 8085
         readinessProbe:
