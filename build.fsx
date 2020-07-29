@@ -334,13 +334,14 @@ let deploy _ =
         | "no" -> false
         | _ -> getUserConfirmation()
 
-    let args = [
+    let deployArgs = [
         "apply"
         "-f"
         k8sDeployment
     ]
     if getUserConfirmation() then
-        Common.kubectl args ""
+        Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
+        Common.kubectl deployArgs ""
     else 
         failwith "User aborted deployment"
 
