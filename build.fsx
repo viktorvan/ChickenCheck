@@ -159,6 +159,9 @@ let clean _ =
     [ "paket-files/paket.restore.cached" ]
     |> Seq.iter Shell.rm
 
+let verifyCleanWorkingDirectory _ =
+    if not (Git.Information.isCleanWorkingCopy "") then failwith "Working directory is not clean"
+
 let dotnetRestore _ = DotNet.restore id sln
 
 let runMigrations _ = Common.runMigrations migrationsPath connectionString
@@ -295,6 +298,17 @@ let gitTagRelease _ =
     releaseTag version |> Git.Branches.tag ""
     releaseTag version |> Git.Branches.pushTag "" "origin"
 
+let gitCommitReleaseFiles _ =
+    let stageReleaseFiles() =
+        [ Git.Staging.stageFile "" "src/ChickenCheck.Backend/Views/Bundle.fs"
+          Git.Staging.stageFile "" "src/ChickenCheck.Backend/Version.fs"
+          Git.Staging.stageFile "" "k8s/ChickenCheckApp.yaml" ]
+
+    if stageReleaseFiles() |> List.map (fun (r,_,_) -> r) |> List.exists (fun success -> not success) then failwith "Git staging release files failed"
+
+    let msg = sprintf "Creating release v%s" (fullVersion (getBuildVersion())).AsString
+    Git.Commit.exec "" msg
+
 let gitTagDeployment _ =
     let version = "PROD-" + getDeployVersion().AsString
     Git.Branches.tag "" version
@@ -352,6 +366,8 @@ Target.create "Package" ignore
 Target.create "DockerBuild" dockerBuild
 Target.create "RunWebTests" runWebTests
 Target.create "DockerPush" dockerPush
+Target.create "VerifyCleanWorkingDirectory" verifyCleanWorkingDirectory
+Target.create "GitCommitReleaseFiles" gitCommitReleaseFiles
 Target.create "GitTagRelease" gitTagRelease
 Target.create "CreateRelease" ignore
 Target.create "UpdateDeployVersion" updateDeployVersion
@@ -383,9 +399,14 @@ Target.createBuildFailure "DockerCleanUp" dockerCleanUp
     ==> "DockerBuild"
     ==> "RunWebTests"
     ==> "DockerPush"
-    ==> "GitTagRelease"
     ==> "UpdateDeployVersion"
+    ==> "GitCommitReleaseFiles"
+    ==> "GitTagRelease"
     ==> "CreateRelease"
+
+"Clean" ?=> "VerifyCleanWorkingDirectory"
+"VerifyCleanWorkingDirectory" ?=> "BundleClient"
+"VerifyCleanWorkingDirectory" ==> "CreateRelease"
 
 "DeployToKubernetes"
     ==> "GitTagDeployment"

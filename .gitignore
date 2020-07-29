@@ -16,6 +16,7 @@ createdockerimage.sh
 .paket/load
 .paket/.store
 .paket/paket
+.paket/Paket.Restore.targets
 paket-files
 packages
 
@@ -52,6 +53,8 @@ tdd.fsx
 release.sh
 infrastructure.sh
 local.settings.json
+src/ChickenCheck.Backend/Version.fs
+src/ChickenCheck.Backend/Views/Bundle.fs
 
 tmp.fsx
 

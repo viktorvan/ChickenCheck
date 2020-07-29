@@ -21,6 +21,10 @@ let layout user content =
             Html.meta [
                 prop.charset.utf8
             ]
+            Html.meta [
+                prop.content "width=device-width, initial-scale=1"
+                prop.name "viewport"
+            ]
             Html.title "ChickenCheck"
             Html.link [
                 prop.rel "apple-touch-icon"
@@ -41,7 +45,7 @@ let layout user content =
             ]
             Html.link [ 
                 prop.rel "manifest" 
-                prop.href "Icons/site.webmanifest"
+                prop.href "Icons/site.json"
             ]
             Html.link [
                 prop.rel "stylesheet" 
