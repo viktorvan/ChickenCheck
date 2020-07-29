@@ -50,6 +50,18 @@ let inline private throwOnParsingError result =
         sprintf "Could not parse database entity to domain: %s" err
         |> invalidArg "entity"
     result |> Result.valueOr throw
+    
+let testConnection (conn: ConnectionString) =
+    let sql = """SELECT c.id FROM Chicken c LIMIT 1"""
+    fun () ->
+        async {
+            use! connection = getConnection conn
+            let! result = query connection sql None
+            if result.Length <> 1 then 
+                failwith "Test database connection failed"
+            else 
+                ()
+        }
 
 type private ChickenEntity =
     { Id: string
@@ -59,7 +71,7 @@ type private ChickenEntity =
 
 let getAllChickens (conn: ConnectionString) =
     let sql = """SELECT c.Id, c.Name, c.Breed, c.ImageUrl 
-                FROM Chicken c
+                 FROM Chicken c
                  ORDER BY c.Name"""
 
     let toDomain (entity:ChickenEntity) =
@@ -201,6 +213,7 @@ let removeEgg (conn: ConnectionString) =
         }
 
 type IChickenStore =
+    abstract TestDatabaseAccess: unit -> Async<unit>
     abstract GetAllChickens: unit -> Async<Chicken list>
     abstract GetEggCount: ChickenId list -> NotFutureDate -> Async<Map<ChickenId, EggCount>>
     abstract GetTotalEggCount: ChickenId list -> Async<Map<ChickenId, EggCount>>
@@ -209,7 +222,8 @@ type IChickenStore =
     
 type ChickenStore(connectionString) =
     interface IChickenStore with
-        member this.GetAllChickens () = getAllChickens connectionString ()
+        member this.TestDatabaseAccess() = testConnection connectionString ()
+        member this.GetAllChickens() = getAllChickens connectionString ()
         member this.GetEggCount chickens date  = getEggCount connectionString chickens date
         member this.GetTotalEggCount(chickens: ChickenId list) = getTotalEggCount connectionString chickens
         member this.AddEgg chicken date = addEgg connectionString chicken date

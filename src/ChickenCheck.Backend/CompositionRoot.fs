@@ -23,6 +23,7 @@ let getStatus() =
 let chickenStore = Database.ChickenStore config.ConnectionString
 
 // workflows
+let healthCheck() = Workflows.healthCheck chickenStore ()
     
 let getAllChickens date = Workflows.getAllChickens chickenStore date
     

@@ -70,13 +70,13 @@ let defaultRoute() = "/chickens"
 
 open Chickens
 let listChickens : HttpHandler =
-    fun _next (ctx: HttpContext) ->
+    fun next (ctx: HttpContext) ->
         ctx.TryGetQueryStringValue "date"
         |> Option.map NotFutureDate.tryParse 
         |> Option.defaultValue (NotFutureDate.today() |> Ok)
         |> function
             | Error _ ->
-                redirectTo false (defaultRoute()) _next ctx
+                redirectTo false (defaultRoute()) next ctx
             | Ok date ->
                 task {
                     let! chickensWithEggCounts = CompositionRoot.getAllChickens date
@@ -123,9 +123,17 @@ let api : HttpHandler =
     |> Remoting.withErrorHandler apiErrorHandler
     |> Remoting.buildHttpHandler
     
+    
 let health : HttpHandler =
+    let checkHealth : HttpHandler =
+        fun next ctx ->
+            task {
+                do! CompositionRoot.healthCheck()
+                return! setStatusCode 200 next ctx
+            }
+            
     router {
-        get "/health" (setStatusCode 200)
+        get "/health" checkHealth
     }
 
 let webApp =
