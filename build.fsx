@@ -300,9 +300,7 @@ let gitTagRelease _ =
 
 let gitCommitReleaseFiles _ =
     let stageReleaseFiles() =
-        [ Git.Staging.stageFile "" "src/ChickenCheck.Backend/Views/Bundle.fs"
-          Git.Staging.stageFile "" "src/ChickenCheck.Backend/Version.fs"
-          Git.Staging.stageFile "" "k8s/ChickenCheckApp.yaml" ]
+        [ Git.Staging.stageFile "" "k8s/ChickenCheckApp.yaml" ]
 
     if stageReleaseFiles() |> List.map (fun (r,_,_) -> r) |> List.exists (fun success -> not success) then failwith "Git staging release files failed"
 

@@ -6,6 +6,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.6] - 2020-07-29
+### Added 
+* NotFound handler
+
+### Fixed
+* Styling bug for datepicker
+
 ## [1.4.5] - 2020-07-29
 ### Fixed
 * Check database status in /health

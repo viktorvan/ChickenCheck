@@ -53,6 +53,7 @@ tdd.fsx
 release.sh
 infrastructure.sh
 local.settings.json
+src/ChickenCheck.Backend/Changelog.fs
 src/ChickenCheck.Backend/Version.fs
 src/ChickenCheck.Backend/Views/Bundle.fs
 
