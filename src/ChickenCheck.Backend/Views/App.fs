@@ -59,8 +59,18 @@ let layout user content =
                 prop.custom ("data-turbolinks-permanent", "")
                 color.isInfo
                 prop.children [ 
-                    Bulma.navbarBrand.div [ 
-                        Bulma.navbarItem.div [ prop.text "ChickenCheck" ]
+                    Bulma.navbarBrand.div [
+                        Bulma.navbarItem.a [
+                            prop.href "/chickens"
+                            prop.children [
+                                Html.img [
+                                    prop.src "/Icons/android-chrome-512x512.png"
+                                    prop.alt "Icon"
+                                    prop.style [ style.width (length.px 28); style.height (length.px 28)]
+                                ]
+                                Html.text "ChickenCheck"
+                            ]
+                        ]
                         Bulma.navbarBurger [
                             prop.id "chickencheck-navbar-burger"
                             navbarItem.hasDropdown

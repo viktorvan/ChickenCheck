@@ -15,9 +15,6 @@ document.onclick <-
         | EggIcon chickenId -> CompositionRoot.removeEgg chickenId 
         | NavbarBurger -> CompositionRoot.toggleNavbarMenu()
         | _ -> ()
-        
-document.addEventListener("turbolinks:before-cache", fun _ ->
-    CompositionRoot.scrollPositionService.Save())
 
 document.addEventListener("turbolinks:load", fun _ ->
     CompositionRoot.scrollPositionService.Recall()

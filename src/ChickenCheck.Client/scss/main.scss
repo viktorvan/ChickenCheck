@@ -19,3 +19,7 @@ $fa-font-path: "~@fortawesome/fontawesome-free/webfonts/";
 button.datetimepicker-clear-button {
   display: none;
 }
+
+.datetimepicker-dummy .datetimepicker-dummy-wrapper .datetimepicker-dummy-input {
+  max-width: 100% !important;
+}

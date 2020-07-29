@@ -268,7 +268,7 @@ let watchApp _ =
     let bundleDevClient() =
         [ outputDir @@ "server/public" ]
         |> Shell.cleanDirs
-        Common.npx [ "webpack"; "--config webpack.config.js"; "--mode=development" ] rootPath
+        Common.npx [ "webpack"; "--config webpack.config.js"; "--mode=development"; "--watch" ] rootPath
 
     [ server; bundleDevClient ]
     |> Seq.iter (Common.invokeAsync >> Async.Catch >> Async.Ignore >> Async.Start)
