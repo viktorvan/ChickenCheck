@@ -135,12 +135,19 @@ let health : HttpHandler =
     router {
         get "/health" checkHealth
     }
+    
+let notFoundHandler : HttpHandler =
+    fun next ctx ->
+        task { 
+            return! (setStatusCode 404 >=> htmlString "<div>Not Found!</div>" ) next ctx
+        }
 
 let webApp =
     choose [
         health
         api
         browser
+        notFoundHandler
     ]
     
 OptionHandler.register()
@@ -162,7 +169,7 @@ let app = application {
     url ("http://*:" + CompositionRoot.config.ServerPort.ToString() + "/")
 //    use_token_authentication
     use_router webApp
-    use_cached_static_files_with_max_age CompositionRoot.config.PublicPath 86400
+    use_cached_static_files_with_max_age CompositionRoot.config.PublicPath 31536000
     use_gzip
     logging ignore
 }
