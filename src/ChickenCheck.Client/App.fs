@@ -7,7 +7,7 @@ open HtmlHelper.EventTargets
     
 CompositionRoot.turbolinks.Start()
 
-document.onpointerdown <-
+document.onclick <-
     fun ev ->
         let target = ev.target :?> Element
         match target with
