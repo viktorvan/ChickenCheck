@@ -9,14 +9,13 @@ open canopy.runner.classic
 
 let today = DateTime.Today
 
-let all port =
-    let rootUrl = (ChickensPage.rootUrl(port))
-    let url = ChickensPage.url port
+let all rootUrl =
+    let chickensUrl = ChickensPage.url rootUrl
     
-    canopy.classic.url rootUrl
+    url (rootUrl + "/chickens")
     
     "root redirects to chickens page for current date" &&& fun _ ->
-        onn (url today)
+        onn (chickensUrl today)
         
     "chickens page for 'today' does not have next-date link" &&& fun _ ->
         let nextDateLink = element Selectors.nextDateLink
@@ -26,11 +25,11 @@ let all port =
     "go back to yesterday" &&& fun _ ->
         click Selectors.previousDateLink
         let yesterday = today.AddDays(-1.0)
-        onn (url yesterday)
+        onn (chickensUrl yesterday)
         
     "go forward to today" &&& fun _ ->
         click Selectors.nextDateLink
-        onn (url today)
+        onn (chickensUrl today)
         
     "navigate by datepicker" &&& fun _ ->
         let testNavigateToDay (day: DateTime) =
@@ -38,10 +37,10 @@ let all port =
             let dayButton = elementWithText Selectors.dayButton (day.Day.ToString())
             click dayButton
             waitForCurrentDate day
-            onn (url day)
+            onn (chickensUrl day)
         
         let inAPreviousMonth = today.AddDays(-40.0)
-        canopy.classic.url (url inAPreviousMonth)
+        url (chickensUrl inAPreviousMonth)
         
         let firstDayOfMonth = DateTime(inAPreviousMonth.Year, inAPreviousMonth.Month, 1)
         let secondDayOfMonth = DateTime(inAPreviousMonth.Year, inAPreviousMonth.Month, 2)
@@ -66,11 +65,11 @@ let all port =
     "browser navigation works" &&& fun _ ->
         click Selectors.previousDateLink
         let yesterday = today.AddDays(-1.0)
-        onn (url yesterday)
+        onn (chickensUrl yesterday)
         navigate back
-        onn (url today)
+        onn (chickensUrl today)
         navigate forward
-        onn (url yesterday)
+        onn (chickensUrl yesterday)
         
     "browser navigation does not add multiple datepickers" &&& fun _ ->
         click Selectors.previousDateLink

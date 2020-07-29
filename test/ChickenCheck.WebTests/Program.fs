@@ -9,18 +9,17 @@ open canopy.types
    
 [<EntryPoint>]
 let main args =
-    let port = args |> Array.tryHead |> Option.map int |> Option.defaultValue 8085
+    let rootUrl = args |> Array.tryHead |> Option.defaultValue "http://localhost:8085"
     start BrowserStartMode.ChromeHeadless
     // start BrowserStartMode.Chrome
     
     "Root url redirects to chickens page" &&& fun _ ->
-        let rootUrl = sprintf "http://localhost:%i" port
         let today = DateTime.Today
-        let chickensPage = ChickensPage.url port today
+        let chickensPage = ChickensPage.url rootUrl today
         url rootUrl
         onn chickensPage
     
-    Chickens.all port
+    Chickens.all rootUrl
         
     run()
     

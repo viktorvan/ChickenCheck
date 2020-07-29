@@ -92,7 +92,7 @@ let endpointPipe = pipeline {
     plug head
 }
 
-let defaultRoute() = sprintf "/chickens?date=%s" (NotFutureDate.today().ToString())
+let defaultRoute() = "/chickens"
 let browser = router {
     pipe_through turbolinks
     get "/" (redirectTo false (defaultRoute())) 

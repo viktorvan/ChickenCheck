@@ -232,7 +232,7 @@ let runWebTests ctx =
     Target.activateBuildFailure "DockerCleanUp"
     let dbFile = "webtest.db"
     let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
-    let args = sprintf "--configuration %s --no-restore --no-build -- %i" (configuration.ToString()) webTestPort
+    let args = sprintf "--configuration %s --no-restore --no-build -- http://localhost:%i" (configuration.ToString()) webTestPort
     try
         rootPath @@ dbFile 
         |> sprintf "Data Source=%s" 

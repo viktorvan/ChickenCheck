@@ -6,12 +6,12 @@ open Feliz.Bulma.ViewEngine
 open ChickenCheck.Shared
 
 let logInLink =
-    Bulma.navbarItem.div [ 
+    Bulma.navbarItem.a [ 
         prop.href "/login"
         prop.text "log in" ]
 
 let logOutLink =
-    Bulma.navbarItem.div [ 
+    Bulma.navbarItem.a [ 
         prop.href "/logout"
         prop.text "log out" ]
           

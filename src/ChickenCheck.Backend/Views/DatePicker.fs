@@ -37,8 +37,8 @@ let layout (currentDate: NotFutureDate) =
     let nextDateButton =
         currentDate
         |> NotFutureDate.tryAddDays 1
-        |> Result.map Routing.chickensPage
         |> Option.ofResult
+        |> Option.map Routing.chickensPage
         |> dateButton "next-date" iconRight
         
     let currentDateAttr = prop.custom (DataAttributes.CurrentDate, currentDate.ToString())
