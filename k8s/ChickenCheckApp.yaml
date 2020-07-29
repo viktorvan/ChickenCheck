@@ -55,7 +55,7 @@ spec:
     spec:
       containers:
       - name: chickencheck
-        image: localhost:32000/chickencheck:1.4.5.2-arm64
+        image: localhost:32000/chickencheck:1.4.5.3-arm64
         ports: 
           - containerPort: 8085
         livenessProbe:

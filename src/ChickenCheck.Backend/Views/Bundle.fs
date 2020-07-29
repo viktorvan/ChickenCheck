@@ -14,6 +14,6 @@ let bundle =
         Html.script [ prop.src "ChickenCheck.vendor.isarray.6f47c1d9c943dcdbefcc.js"; prop.defer true ]
         Html.script [ prop.src "ChickenCheck.vendor.turbolinks.ebed4d9f47169d882d78.js"; prop.defer true ]
         Html.script [ prop.src "ChickenCheck.vendor.webpack.c7c69cbabc629065e060.js"; prop.defer true ]
-        Html.script [ prop.src "ChickenCheck.app.72d1bfad002ab20d1279.js"; prop.defer true ]
+        Html.script [ prop.src "ChickenCheck.app.c50ed9e11d586b333d06.js"; prop.defer true ]
         Html.link [ prop.rel "stylesheet"; prop.href "0.style.7b791af26b8e8aca9cdf.css" ]
     ]
