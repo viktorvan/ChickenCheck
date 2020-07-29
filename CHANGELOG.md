@@ -6,9 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Fixed
-* Time/UTC error when running on prod kubernetes? 
 * Check database status in /health
 
+## [1.4.4] - 2020-07-29
+### Fixed
+* Redirect to 'today' when requesting url for future date.
 
 ## [1.4.3] - 2020-07-28
 ### Added

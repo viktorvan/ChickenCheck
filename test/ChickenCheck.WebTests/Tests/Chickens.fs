@@ -71,6 +71,11 @@ let all rootUrl =
         navigate forward
         onn (chickensUrl yesterday)
         
+    "navigation by url to future date defaults to 'today'" &&& fun _ ->
+        let tomorrow = today.AddDays(1.)
+        url (chickensUrl tomorrow)
+        onn (chickensUrl today)
+        
     "browser navigation does not add multiple datepickers" &&& fun _ ->
         click Selectors.previousDateLink
         click Selectors.previousDateLink

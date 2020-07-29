@@ -66,33 +66,39 @@ type Saturn.Application.ApplicationBuilder with
 
 let requireLoggedIn = pipeline { requires_authentication (Giraffe.Auth.challenge JwtBearerDefaults.AuthenticationScheme) }
 
+let defaultRoute() = "/chickens"
+
 open Chickens
 let listChickens : HttpHandler =
     fun _next (ctx: HttpContext) ->
-        task {
-            let maybeDate = ctx.TryGetQueryStringValue "date"
-            let date = maybeDate |> Option.bind NotFutureDate.tryParse |> Option.defaultValue (NotFutureDate.today())
-            let! chickensWithEggCounts = CompositionRoot.getAllChickens date
-            let model =
-                chickensWithEggCounts
-                |> List.map (fun c ->
-                    c.Chicken.Id, 
-                    { Id = c.Chicken.Id
-                      Name = c.Chicken.Name
-                      ImageUrl = c.Chicken.ImageUrl
-                      Breed = c.Chicken.Breed
-                      TotalEggCount = c.TotalCount
-                      EggCountOnDate = snd c.Count })
-               |> Map.ofList
-           return! ctx.WriteHtmlStringAsync (Chickens.layout model date |> App.layout Anonymous)
-        }
+        ctx.TryGetQueryStringValue "date"
+        |> Option.map NotFutureDate.tryParse 
+        |> Option.defaultValue (NotFutureDate.today() |> Ok)
+        |> function
+            | Error _ ->
+                redirectTo false (defaultRoute()) _next ctx
+            | Ok date ->
+                task {
+                    let! chickensWithEggCounts = CompositionRoot.getAllChickens date
+                    let model =
+                        chickensWithEggCounts
+                        |> List.map (fun c ->
+                            c.Chicken.Id, 
+                            { Id = c.Chicken.Id
+                              Name = c.Chicken.Name
+                              ImageUrl = c.Chicken.ImageUrl
+                              Breed = c.Chicken.Breed
+                              TotalEggCount = c.TotalCount
+                              EggCountOnDate = snd c.Count })
+                        |> Map.ofList
+                    return! ctx.WriteHtmlStringAsync (Chickens.layout model date |> App.layout Anonymous)
+                }
 
 let endpointPipe = pipeline {
     plug putSecureBrowserHeaders
     plug head
 }
 
-let defaultRoute() = "/chickens"
 let browser = router {
     pipe_through turbolinks
     get "/" (redirectTo false (defaultRoute())) 
