@@ -66,7 +66,7 @@ type Saturn.Application.ApplicationBuilder with
 
 let requireLoggedIn = pipeline { requires_authentication (Giraffe.Auth.challenge JwtBearerDefaults.AuthenticationScheme) }
 
-let defaultRoute() = "/chickens"
+let defaultRoute = "/chickens"
 
 open Chickens
 let listChickens : HttpHandler =
@@ -76,7 +76,7 @@ let listChickens : HttpHandler =
         |> Option.defaultValue (NotFutureDate.today() |> Ok)
         |> function
             | Error _ ->
-                redirectTo false (defaultRoute()) next ctx
+                redirectTo false (defaultRoute) next ctx
             | Ok date ->
                 task {
                     let! chickensWithEggCounts = CompositionRoot.getAllChickens date
@@ -101,7 +101,7 @@ let endpointPipe = pipeline {
 
 let browser = router {
     pipe_through turbolinks
-    get "/" (redirectTo false (defaultRoute())) 
+    get "/" (redirectTo false (defaultRoute)) 
     get "/chickens" listChickens
 }
 
