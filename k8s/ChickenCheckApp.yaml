@@ -5,7 +5,9 @@ metadata:
 data:
   ChickenCheck_ConnectionString: "Data Source=/var/lib/chickencheck/database.db"
   ChickenCheck_PublicPath: "server/public"
+
 ---
+
 kind: PersistentVolumeClaim
 apiVersion: v1
 metadata:
@@ -19,20 +21,35 @@ spec:
       storage: 100Mi
 
 ---
+
 apiVersion: v1
 kind: Service
 metadata:
   name: chickencheck-service
 spec:
-  type: NodePort
   selector:
     app: chickencheck
   ports:
     - protocol: TCP
       port: 8085
-      targetPort: 8085
 
 ---
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: microk8s-ingress
+spec:
+  rules:
+  - host: chickens.viktorvan.com
+    http:
+      paths:
+        - backend:
+            serviceName: chickencheck-service
+            servicePort: 8085
+
+---
+
 apiVersion: apps/v1
 kind: Deployment
 metadata:
