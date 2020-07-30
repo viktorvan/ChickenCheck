@@ -309,7 +309,8 @@ let gitCommitReleaseFiles _ =
 
 let gitTagDeployment _ =
     let version = "PROD-" + getDeployVersion().AsString
-    Git.Branches.tag "" version
+    try Git.Branches.tag "" version
+    with exn -> Trace.tracef "Failed to git tag deployment: %s" exn.Message
 
 let updateDeployVersion _ =
     let deployImageName = sprintf "localhost:32000/%s:%s%s" dockerImageName (getBuildVersion().AsString) arm64ImageSuffix
