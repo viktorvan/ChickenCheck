@@ -35,21 +35,6 @@ spec:
 
 ---
 
-apiVersion: networking.k8s.io/v1beta1
-kind: Ingress
-metadata:
-  name: microk8s-ingress
-spec:
-  rules:
-  - host: chickens.viktorvan.com
-    http:
-      paths:
-      - backend:
-          serviceName: chickencheck-service
-          servicePort: 80
-
----
-
 apiVersion: apps/v1
 kind: Deployment
 metadata:
