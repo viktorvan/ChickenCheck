@@ -8,6 +8,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 * Authentication
 
+## [1.4.9] - 2020-08-01
+### Changed 
+* Build-script, git push on deploy
+
 ## [1.4.8] - 2020-07-31
 ### Removed
 * Ingress configuration (moved to cluster-wide configuration)

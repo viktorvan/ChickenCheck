@@ -43,6 +43,7 @@ let semVersion = changelog.LatestEntry.SemVer
 let webTestPort = 8087
 let k8sDeployment = rootPath @@ "k8s" @@ "ChickenCheckApp.yaml"
 let releaseTagPrefix = "Release-"
+let prodDeployTagPrefix = "PROD-"
 
 //-----------------------------------------------------------------------------
 // Helpers
@@ -55,17 +56,21 @@ let fullVersion (semVer: SemVerInfo) =
             Original = None }
     else semVer
 
+let getGitTags() = 
+    match Git.CommandHelper.runGitCommand "" "tag" with
+    | false, _,_ -> 
+        failwith "git error"
+    | true, existingTags, _ -> 
+        existingTags 
 let getReleaseVersionTags() =
-    let getGitTags() = 
-        match Git.CommandHelper.runGitCommand "" "tag" with
-        | false, _,_ -> 
-            failwith "git error"
-        | true, existingTags, _ -> 
-            existingTags 
-
     getGitTags()
     |> List.filter (fun t -> t.StartsWith releaseTagPrefix)
     |> List.map (fun t -> t.Substring(releaseTagPrefix.Length))
+
+let getProdDeployVersionTags() =
+    getGitTags()
+    |> List.filter (fun t -> t.StartsWith prodDeployTagPrefix)
+    |> List.map (fun t -> t.Substring(prodDeployTagPrefix.Length))
 
 let getBuildVersion() =
     let storeVersion (v: SemVerInfo) =
@@ -161,6 +166,8 @@ let clean _ =
 
 let verifyCleanWorkingDirectory _ =
     if not (Git.Information.isCleanWorkingCopy "") then failwith "Working directory is not clean"
+    let currentBranchName = Git.Information.getBranchName "" 
+    if (currentBranchName <> "master") then failwithf "Can only release master, current branch is: %s" currentBranchName 
 
 let dotnetRestore _ = DotNet.restore id sln
 
@@ -309,8 +316,15 @@ let gitCommitReleaseFiles _ =
 
 let gitTagDeployment _ =
     let version = "PROD-" + getDeployVersion().AsString
-    try Git.Branches.tag "" version
-    with exn -> Trace.tracef "Failed to git tag deployment: %s" exn.Message
+    let existingTags = getProdDeployVersionTags()
+
+    if not (List.contains version existingTags) then
+        Git.Branches.tag "" version
+    else
+        Trace.tracefn "prod tag already exists for this version" 
+
+    Git.Branches.pushBranch "" "origin" "master"
+
 
 let updateDeployVersion _ =
     let deployImageName = sprintf "localhost:32000/%s:%s%s" dockerImageName (getBuildVersion().AsString) arm64ImageSuffix
@@ -321,30 +335,14 @@ let updateDeployVersion _ =
     |> File.writeString false k8sDeployment
 
 let deploy _ = 
-    let latestReleaseBuild = getReleaseVersionTags() |> List.last |> SemVer.parse
-    let deployVersion = getDeployVersion()
-
-    let rec getUserConfirmation() =
-        let prompt =
-            if latestReleaseBuild > deployVersion then
-                sprintf "There is a newer buildVersion (%s), are you sure you still want to deploy version %s (yes/no)?\n> " latestReleaseBuild.AsString deployVersion.AsString
-            else 
-                sprintf "Deploy version %s (yes/no)?\n> " deployVersion.AsString
-        match UserInput.getUserInput prompt with
-        | "yes" -> true
-        | "no" -> false
-        | _ -> getUserConfirmation()
-
     let deployArgs = [
         "apply"
         "-f"
         k8sDeployment
     ]
-    if getUserConfirmation() then
-        Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
-        Common.kubectl deployArgs ""
-    else 
-        failwith "User aborted deployment"
+
+    Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
+    Common.kubectl deployArgs ""
 
 //-----------------------------------------------------------------------------
 // Build Target Declaration
@@ -374,6 +372,7 @@ Target.create "UpdateDeployVersion" updateDeployVersion
 Target.create "DeployToKubernetes" deploy
 Target.create "GitTagDeployment" gitTagDeployment
 Target.create "Deploy" ignore
+Target.create "DeployOnly" ignore
 Target.createBuildFailure "DockerCleanUp" dockerCleanUp
 
 //-----------------------------------------------------------------------------
@@ -386,7 +385,9 @@ Target.createBuildFailure "DockerCleanUp" dockerCleanUp
 "Clean" ?=> "InstallClient"
 "Clean" ==> "Package"
 
-"DotnetRestore" ==> "RunMigrations" ==> "DotNetBuild"
+"DotnetRestore" 
+    ==> "RunMigrations" 
+    ==> "DotNetBuild"
 
 "DotnetRestore" <=> "InstallClient"
     ==> "BundleClient"
@@ -403,6 +404,15 @@ Target.createBuildFailure "DockerCleanUp" dockerCleanUp
     ==> "GitCommitReleaseFiles"
     ==> "GitTagRelease"
     ==> "CreateRelease"
+    ==> "Deploy"
+
+"CreateRelease"
+    ?=> "DeployToKubernetes"
+    ?=> "GitTagDeployment"
+
+"DeployToKubernetes"
+    ==> "GitTagDeployment"
+    ==> "Deploy"
 
 "Clean" ?=> "VerifyCleanWorkingDirectory"
 "VerifyCleanWorkingDirectory" ?=> "BundleClient"
@@ -410,7 +420,7 @@ Target.createBuildFailure "DockerCleanUp" dockerCleanUp
 
 "DeployToKubernetes"
     ==> "GitTagDeployment"
-    ==> "Deploy"
+    ==> "DeployOnly"
 
 "DotnetRestore"
     ==> "WatchTests"
