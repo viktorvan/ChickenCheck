@@ -27,26 +27,6 @@ open Fable.Remoting.Server
 open Fable.Remoting.Giraffe
 
 type Saturn.Application.ApplicationBuilder with
-//    [<CustomOperation("use_token_authentication")>]
-//    member __.UseTokenAuthentication(state: ApplicationState) =
-//        let middleware (app: IApplicationBuilder) =
-//            app.UseAuthentication()
-// 
-//        let service (services : IServiceCollection) =
-//            services.AddAuthentication(fun options ->
-//              options.DefaultAuthenticateScheme <- JwtBearerDefaults.AuthenticationScheme
-//              options.DefaultChallengeScheme <- JwtBearerDefaults.AuthenticationScheme
-//            ).AddJwtBearer(fun options ->
-//                options.Authority <- sprintf "https://%s/" CompositionRoot.config.Authentication.Domain
-//                options.Audience <- CompositionRoot.config.Authentication.Audience
-//                options.TokenValidationParameters <- TokenValidationParameters(
-//                    NameClaimType = ClaimTypes.NameIdentifier
-//                )
-//            ) |> ignore
-//            services
-//     
-//        { state with ServicesConfig = service::state.ServicesConfig ; AppConfigs = middleware::state.AppConfigs ; CookiesAlreadyAdded = true }
-        
     [<CustomOperation("use_cached_static_files_with_max_age")>]
     member __.UseStaticWithCacheMaxAge(state, path : string, maxAge) =
         let middleware (app : IApplicationBuilder) =
@@ -129,7 +109,7 @@ let health : HttpHandler =
         fun next ctx ->
             task {
                 do! CompositionRoot.healthCheck()
-                return! setStatusCode 200 next ctx
+                return! (DateTime.Now |> sprintf "Healthy at: %A" |> text)  next ctx
             }
             
     router {

@@ -62,6 +62,7 @@ let getGitTags() =
         failwith "git error"
     | true, existingTags, _ -> 
         existingTags 
+
 let getReleaseVersionTags() =
     getGitTags()
     |> List.filter (fun t -> t.StartsWith releaseTagPrefix)
@@ -96,8 +97,8 @@ let getBuildVersion() =
         let existingTags = getReleaseVersionTags()
         let version = getNextVersion existingTags (fullVersion semVersion)
         storeVersion version
-        version
-    | Some v -> v
+        version.AsString
+    | Some v -> v.AsString
 
 let getDeployVersion() =
     let pattern = sprintf "image: localhost:32000\/%s:(.*)%s" dockerImageName arm64ImageSuffix
@@ -120,7 +121,7 @@ let dockerPushImage version =
     let args = [ "push"; fullName ]
     Common.docker args ""
 
-let dockerRunWebTestContainer dbFile =
+let dockerRunWebTestContainer (version: string) dbFile =
     let args = 
         [ "run"
           "-d"
@@ -134,7 +135,7 @@ let dockerRunWebTestContainer dbFile =
           "ChickenCheck_PublicPath=server/public"
           "-v"
           rootPath + ":/var/lib/chickencheck"
-          (getBuildVersion().AsString) |> dockerImageFullName]
+          version |> dockerImageFullName]
     Common.docker (args) ""
 
 let dockerCleanUp _ =
@@ -175,7 +176,7 @@ let runMigrations _ = Common.runMigrations migrationsPath connectionString
 
 let writeVersionToFile  _ =
     let sb = System.Text.StringBuilder("module Version\n\n")
-    Printf.bprintf sb "    let version = \"%s\"\n" (getBuildVersion().AsString)
+    Printf.bprintf sb "    let version = \"%s\"\n" (getBuildVersion())
 
     File.writeString false (serverPath @@ "Version.fs") (sb.ToString())
 
@@ -221,13 +222,13 @@ let dotnetPublishServer ctx =
         }) serverProj
 
 let dockerBuild _ =
-    let tag = getBuildVersion().AsString
+    let tag = getBuildVersion()
     dockerBuildImage dockerfile tag
     let tagArm64 = tag + arm64ImageSuffix
     dockerBuildImage dockerfileArm64 tagArm64
 
 let dockerPush _ =
-    let tag = getBuildVersion().AsString + "-arm64"
+    let tag = getBuildVersion() + "-arm64"
     dockerPushImage tag
 
 let runUnitTests ctx =
@@ -238,6 +239,27 @@ let runUnitTests ctx =
             WorkingDirectory = unitTestsPath }) "run" args
     |> (fun res -> if not res.OK then failwithf "RunUnitTests failed")
 
+let runDocker _ =
+    Target.activateBuildFailure "DockerCleanUp"
+    let dbFile = "debug.db"
+    let args = sprintf "--configuration %s --no-restore --no-build"
+    try
+        rootPath @@ dbFile 
+        |> sprintf "Data Source=%s" 
+        |> Common.runMigrations migrationsPath
+        let version = getReleaseVersionTags() |> List.last
+
+        Trace.tracefn "\n\n****************************************\nRunning docker container v%s at \n\thttp://localhost:%i\n****************************************\n\n" version webTestPort
+        dockerRunWebTestContainer version dbFile
+
+        printfn "Press Ctrl+C (or Ctrl+Break) to stop..."
+        let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
+        cancelEvent.Cancel <- true
+
+        dockerCleanUp()
+    finally
+        File.delete dbFile   
+
 let runWebTests ctx =
     Target.activateBuildFailure "DockerCleanUp"
     let dbFile = "webtest.db"
@@ -247,7 +269,7 @@ let runWebTests ctx =
         rootPath @@ dbFile 
         |> sprintf "Data Source=%s" 
         |> Common.runMigrations migrationsPath
-        dockerRunWebTestContainer dbFile
+        dockerRunWebTestContainer (getBuildVersion()) dbFile
         DotNet.exec (fun c ->
             { c with WorkingDirectory = webTestsPath }) "run" args
         |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
@@ -296,10 +318,10 @@ let watchTests _ =
     cancelEvent.Cancel <- true
 
 let gitTagRelease _ =
-    let releaseTag (version: SemVerInfo) =
+    let releaseTag (version: string) =
         match Git.Information.getBranchName "" with
-        | "master" -> releaseTagPrefix + version.AsString
-        | branch -> releaseTagPrefix + version.AsString + "-" + branch
+        | "master" -> releaseTagPrefix + version
+        | branch -> releaseTagPrefix + version + "-" + branch
 
     let version = getBuildVersion()
     releaseTag version |> Git.Branches.tag ""
@@ -311,7 +333,7 @@ let gitCommitReleaseFiles _ =
 
     if stageReleaseFiles() |> List.map (fun (r,_,_) -> r) |> List.exists (fun success -> not success) then failwith "Git staging release files failed"
 
-    let msg = sprintf "Creating release v%s" (fullVersion (getBuildVersion())).AsString
+    let msg = sprintf "Creating release v%s" (getBuildVersion())
     Git.Commit.exec "" msg
 
 let gitTagDeployment _ =
@@ -327,7 +349,7 @@ let gitTagDeployment _ =
 
 
 let updateDeployVersion _ =
-    let deployImageName = sprintf "localhost:32000/%s:%s%s" dockerImageName (getBuildVersion().AsString) arm64ImageSuffix
+    let deployImageName = sprintf "localhost:32000/%s:%s%s" dockerImageName (getBuildVersion()) arm64ImageSuffix
     Trace.tracefn "Updating kubernetes deployment file %s with new image version %s" k8sDeployment deployImageName
     let pattern = sprintf "image: localhost:32000\/%s:.*%s" dockerImageName arm64ImageSuffix
     File.readAsString k8sDeployment
@@ -363,6 +385,7 @@ Target.create "DotnetPublishServer" dotnetPublishServer
 Target.create "Package" ignore
 Target.create "DockerBuild" dockerBuild
 Target.create "RunWebTests" runWebTests
+Target.create "RunDocker" runDocker
 Target.create "DockerPush" dockerPush
 Target.create "VerifyCleanWorkingDirectory" verifyCleanWorkingDirectory
 Target.create "GitCommitReleaseFiles" gitCommitReleaseFiles
