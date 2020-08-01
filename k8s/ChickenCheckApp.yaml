@@ -70,9 +70,6 @@ spec:
           limits:
             memory: 1Gi
             cpu: 1000m
-          requests:
-            memory: 500Mi
-            cpu: 500m
         envFrom:
           - configMapRef:
               name: chickencheck-config
