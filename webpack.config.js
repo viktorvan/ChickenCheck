@@ -41,7 +41,13 @@ var isProduction = !process.argv.find(v => v.indexOf('--mode=development') !== -
 console.log('Bundling for ' + (isProduction ? 'production' : 'development') + '...');
 
 var commonPlugins = [
-    new CopyWebpackPlugin([{ from: resolve(CONFIG.assetsDir) }]),
+    new CopyWebpackPlugin({ 
+        patterns: [
+            { 
+                from: resolve(CONFIG.assetsDir), 
+            }
+        ]
+    }),
     new ManifestPlugin(),
     new WebpackShellPluginNext({
         onBuildEnd:{
