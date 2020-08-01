@@ -20,6 +20,11 @@ let main args =
         onn chickensPage
     
     Chickens.all rootUrl
+
+    "Health endpoint returns time in timezone /Europe/Stockholm" &&& fun _ ->
+        let now = DateTime.Now
+        url (rootUrl + "/health")
+        contains (now.ToString("yyyy-MM-dd hh:mm")) (read "#healthCheckTime")
         
     run()
     

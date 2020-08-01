@@ -107,9 +107,10 @@ let api : HttpHandler =
 let health : HttpHandler =
     let checkHealth : HttpHandler =
         fun next ctx ->
+            let healthView = sprintf "<div>Healthy at <span id=healthCheckTime>%s</span></div>" (DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"))
             task {
                 do! CompositionRoot.healthCheck()
-                return! (DateTime.Now |> sprintf "Healthy at: %A" |> text)  next ctx
+                return! (htmlString healthView) next ctx
             }
             
     router {

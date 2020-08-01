@@ -242,7 +242,6 @@ let runUnitTests ctx =
 let runDocker _ =
     Target.activateBuildFailure "DockerCleanUp"
     let dbFile = "debug.db"
-    let args = sprintf "--configuration %s --no-restore --no-build"
     try
         rootPath @@ dbFile 
         |> sprintf "Data Source=%s" 
