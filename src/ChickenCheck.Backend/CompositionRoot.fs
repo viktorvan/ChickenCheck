@@ -4,7 +4,6 @@ open ChickenCheck.Shared
 open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
 open System
-open FSharpPlus
 open Microsoft.Extensions.Logging
 
 module Result =

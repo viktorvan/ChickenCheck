@@ -2,7 +2,6 @@ module Server.Startup
 
 open System
 open System.IO
-open System.Security.Claims
 open ChickenCheck.Backend
 open ChickenCheck.Backend.Turbolinks
 open ChickenCheck.Backend.Views
@@ -12,11 +11,7 @@ open Giraffe
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.StaticFiles
-open Microsoft.Extensions.Configuration
-open Microsoft.Extensions.DependencyInjection
-open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Primitives
-open Microsoft.IdentityModel.Tokens
 open Microsoft.Net.Http.Headers
 open Saturn
 open ChickenCheck.Shared
@@ -107,10 +102,10 @@ let api : HttpHandler =
 let health : HttpHandler =
     let checkHealth : HttpHandler =
         fun next ctx ->
-            let healthView = sprintf "<div>Healthy at <span id=healthCheckTime>%s</span></div>" (DateTime.Now.ToString("yyyy-MM-dd hh:mm:ss"))
+            let healthView (time: DateTime) = sprintf "<div>Healthy at <span id=healthCheckTime>%s</span></div>" (time.ToString("yyyy-MM-dd hh:mm:ss"))
             task {
-                do! CompositionRoot.healthCheck()
-                return! (htmlString healthView) next ctx
+                let! time = CompositionRoot.healthCheck()
+                return! (htmlString (healthView time)) next ctx
             }
             
     router {

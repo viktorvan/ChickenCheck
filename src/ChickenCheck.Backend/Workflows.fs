@@ -37,4 +37,7 @@ let removeEgg (chickenStore: Database.IChickenStore) =
     
 let healthCheck (chickenStore: Database.IChickenStore) =
     fun () ->
-        chickenStore.TestDatabaseAccess()
+        async {
+            do! chickenStore.TestDatabaseAccess()
+            return System.DateTime.Now
+        }

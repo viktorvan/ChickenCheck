@@ -1,13 +1,9 @@
 group Backend
 FsToolkit.ErrorHandling
 FsToolkit.ErrorHandling.TaskResult
-System.IdentityModel.Tokens.Jwt
 Fable.Remoting.Giraffe
-Microsoft.AspNetCore.Cryptography.KeyDerivation
-FSharpPlus
 Dapper
 Microsoft.Data.Sqlite
-SQLitePCLRaw.bundle_e_sqlite3
 FsConfig
 Microsoft.Extensions.Configuration.UserSecrets
 Saturn
