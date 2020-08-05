@@ -29,20 +29,22 @@ open Fable.Remoting.Giraffe
 open Microsoft.AspNetCore.Authentication
 open Microsoft.Extensions.DependencyInjection
 
+let setPathScheme (path: string) =
+    // application is running as http, but is ssl-terminated in production, we need to change scheme to https.
+    printfn "setting pathscheme for %s" path
+    if path.Contains("localhost", StringComparison.InvariantCultureIgnoreCase) then 
+        path
+    else
+        path.Replace("http", "https")
+    
 let toAbsolutePath (req: HttpRequest) (path: string) =
     match path.StartsWith("/") with
     | true ->
         req.Scheme + "://" + req.Host.Value + req.PathBase.Value + path
     | false -> 
         path
+    |> setPathScheme
         
-let setPathScheme (path: string) =
-    // application is running as http, but is ssl-terminated in production, we need to change scheme to https.
-    if path.Contains("localhost", StringComparison.InvariantCultureIgnoreCase) then 
-        path
-    else
-        path.Replace("http", "https")
-    
 type Saturn.Application.ApplicationBuilder with
     [<CustomOperation("use_cached_static_files_with_max_age")>]
     member __.UseStaticWithCacheMaxAge(state, path : string, maxAge) =
@@ -95,7 +97,7 @@ type Saturn.Application.ApplicationBuilder with
                         let redirectQueryParameter =
                             ctx.Properties.RedirectUri
                             |> String.notNullOrEmpty
-                            |> Option.map (toAbsolutePath ctx.Request >> setPathScheme)
+                            |> Option.map (toAbsolutePath ctx.Request)
                             |> Option.map (sprintf "&returnTo=%s")
                             |> Option.defaultValue ""
                     
@@ -156,7 +158,6 @@ module Authentication =
                 ctx.TryGetQueryStringValue "returnUrl"
                 |> Option.defaultValue "/"
                 |> toAbsolutePath ctx.Request
-                |> setPathScheme
             task {
                 do! ctx.ChallengeAsync("Auth0", AuthenticationProperties(RedirectUri = returnUrl))
                 return! next ctx
