@@ -1,26 +1,21 @@
-module ChickenCheck.Backend.Configuration
+#if !FAKE
+#load "../../.fake/build.fsx/intellisense.fsx"
+#endif
 open FsConfig
 open Microsoft.Extensions.Configuration
 open System.IO
-
 
 type Authentication =
     { Domain: string
       ClientId: string
       ClientSecret: string }
 type Config =
-    { ConnectionString: string
-      [<DefaultValue("8085")>]
-      ServerPort: uint16
-      [<DefaultValue("../../output/server/public")>]
-      PublicPath: string
-      Authentication: Authentication }
+    { Authentication: Authentication }
 
 let configRoot =
     ConfigurationBuilder()
         .SetBasePath(Directory.GetCurrentDirectory())
         .AddUserSecrets("f1dcbf68-77d8-40ba-807d-b98d9be91d5e")
-        .AddEnvironmentVariables("ChickenCheck_")
         .Build()
 
 let [<Literal>] ConfigErrorMsg =
@@ -41,10 +36,7 @@ let config =
 
         match appConfig.Get<Config>() with
         | Ok config ->
-            {| ConnectionString = Database.ConnectionString.create config.ConnectionString
-               ServerPort = config.ServerPort
-               PublicPath = config.PublicPath |> Path.GetFullPath
-               Authentication = config.Authentication |}
+            config
         | Error msg ->
             match msg with
             | BadValue (name, msg) -> invalidArg name msg

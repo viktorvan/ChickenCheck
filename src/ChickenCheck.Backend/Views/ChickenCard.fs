@@ -43,6 +43,13 @@ module private Helpers =
                   prop.classes [ "egg-icon-loader" ]
                   prop.children Shared.loading
               ]
+              Bulma.column [
+                  column.is3
+                  chickenIdAttr model.Id
+                  helpers.isHidden
+                  prop.classes [ "egg-error" ]
+                  prop.children Shared.error
+              ]
             ]
 
         Bulma.columns [

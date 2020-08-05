@@ -16,6 +16,7 @@ group Backend
     nuget Giraffe
     nuget Fable.Remoting.Giraffe
     nuget Saturn
+    nuget Saturn.Extensions.Authorization
 
     nuget FSharp.Core
     nuget FsToolkit.ErrorHandling
@@ -69,6 +70,8 @@ group WebTests
     nuget canopy
     nuget Selenium.WebDriver.ChromeDriver
     nuget runtime.osx.10.10-x64.CoreCompat.System.Drawing
+    nuget FsConfig
+    nuget Microsoft.Extensions.Configuration.UserSecrets 
 
 
 group Build
@@ -84,3 +87,5 @@ group Build
     nuget Fake.IO.FileSystem
     nuget Fake.Tools.Git
     nuget Fake.Core.UserInput
+    nuget FsConfig
+    nuget Microsoft.Extensions.Configuration.UserSecrets 

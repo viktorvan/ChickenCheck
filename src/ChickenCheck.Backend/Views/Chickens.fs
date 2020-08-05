@@ -12,13 +12,12 @@ type ChickenDetails =
       TotalEggCount : EggCount
       EggCountOnDate : EggCount }
 
-let layout (model:Map<ChickenId, ChickenDetails>) currentDate =
+let layout (model:ChickenDetails list) currentDate =
     let header =
         Bulma.subtitle.h2 [
             text.hasTextCentered
             prop.text "Vem värpte?"
         ]
-
     
     let chickenListView = 
         let cardViewRows (chickens: ChickenDetails list) = 
@@ -46,16 +45,14 @@ let layout (model:Map<ChickenId, ChickenDetails>) currentDate =
             |> List.map cardViewRow
 
         model
-        |> Map.values
         |> cardViewRows
         |> List.map Bulma.columns 
         |> Bulma.container
 
     let statistics =
         let model =
-            let chickens = model |> Map.values
-            {| Chickens = chickens |> List.map (fun c -> { Statistics.Chicken.Name = c.Name 
-                                                           Statistics.Chicken.EggCount = c.TotalEggCount }) |}
+            {| Chickens = model |> List.map (fun c -> { Statistics.Chicken.Name = c.Name 
+                                                        Statistics.Chicken.EggCount = c.TotalEggCount }) |}
         Statistics.layout model
             
     Html.div [

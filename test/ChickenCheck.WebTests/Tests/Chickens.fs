@@ -1,6 +1,7 @@
 module ChickenCheck.WebTests.Tests.Chickens
 
 open System
+open ChickenCheck.WebTests
 open ChickenCheck.WebTests.Pages
 open ChickenCheck.WebTests.Pages.ChickensPage
 open canopy.classic
@@ -8,6 +9,20 @@ open canopy.runner.classic
 
 
 let today = DateTime.Today
+
+let login() =
+    try
+        displayed "log in"
+        click "log in"
+        displayed "#auth0-lock-container-1"
+        "[name=email]" << Configuration.config.Value.Username
+        "[name=password]" << Configuration.config.Value.Password
+        click "[name=submit]"
+        displayed "Test-User"
+    with exn ->
+        describe ("Failed to login: " + exn.Message)
+        describe "check if user is already logged in"
+        displayed "Test-User"
 
 let all rootUrl =
     let chickensUrl = ChickensPage.url rootUrl
@@ -49,6 +64,7 @@ let all rootUrl =
         testNavigateToDay secondDayOfMonth
         
     "add and remove egg" &&& fun _ ->
+        login()
         let chicken = first Selectors.chickenCard
         let id = parseChickenId chicken
         

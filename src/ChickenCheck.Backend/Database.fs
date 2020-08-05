@@ -77,12 +77,14 @@ let getAllChickens (conn: ConnectionString) =
     let toDomain (entity:ChickenEntity) =
         result {
             let id = entity.Id |> ChickenId.parse
-            let name = 
+            let! name = 
                 entity.Name 
                 |> String.notNullOrEmpty
-            let breed = 
+                |> Result.requireSome "Name cannot be empty"
+            let! breed = 
                 entity.Breed 
                 |> String.notNullOrEmpty
+                |> Result.requireSome "Breed cannot be empty"
             let! imageUrl = 
                 entity.ImageUrl 
                 |> Option.traverseResult ImageUrl.create 

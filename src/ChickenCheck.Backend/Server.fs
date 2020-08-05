@@ -3,16 +3,22 @@ module Server.Startup
 open System
 open System.IO
 open ChickenCheck.Backend
+open ChickenCheck.Backend.Configuration
 open ChickenCheck.Backend.Turbolinks
 open ChickenCheck.Backend.Views
-open Microsoft.AspNetCore.Authentication.JwtBearer
+//open Microsoft.AspNetCore.Authentication.Cookies
+//open Microsoft.AspNetCore.Authentication.OpenIdConnect
+open Microsoft.AspNetCore.Authentication.Cookies
+open Microsoft.AspNetCore.Authentication.OpenIdConnect
 open Microsoft.AspNetCore.Builder
 open Giraffe
+open Microsoft.AspNetCore.CookiePolicy
+open Microsoft.IdentityModel.Protocols.OpenIdConnect
+open Microsoft.Net.Http.Headers
 open Microsoft.AspNetCore.Hosting
 open Microsoft.AspNetCore.Http
 open Microsoft.AspNetCore.StaticFiles
 open Microsoft.Extensions.Primitives
-open Microsoft.Net.Http.Headers
 open Saturn
 open ChickenCheck.Shared
 open FSharp.Control.Tasks.V2.ContextInsensitive
@@ -20,6 +26,8 @@ open FsToolkit.ErrorHandling
 open Microsoft.Extensions.Logging
 open Fable.Remoting.Server
 open Fable.Remoting.Giraffe
+open Microsoft.AspNetCore.Authentication
+open Microsoft.Extensions.DependencyInjection
 
 type Saturn.Application.ApplicationBuilder with
     [<CustomOperation("use_cached_static_files_with_max_age")>]
@@ -38,10 +46,71 @@ type Saturn.Application.ApplicationBuilder with
         { state with
             AppConfigs = middleware::state.AppConfigs
             WebHostConfigs = host::state.WebHostConfigs }
+    
+    [<CustomOperation("use_auth0_open_id")>]
+    member __.UseAuth0OpenId(state: ApplicationState) =
+        // https://auth0.com/docs/quickstart/webapp/aspnet-core-3?download=true#install-and-configure-openid-connect-middleware
+        let middleware (app : IApplicationBuilder) =
+            app.UseAuthentication()
+                .UseHsts()
+                .UseCookiePolicy()
+                .UseAuthorization()
 
-let requireLoggedIn = pipeline { requires_authentication (Giraffe.Auth.challenge JwtBearerDefaults.AuthenticationScheme) }
+        let toAbsolutePath (ctx: RedirectContext) (path: string) =
+            match path.StartsWith("/") with
+            | true ->
+                let req = ctx.Request
+                req.Scheme + "://" + req.Host.Value + req.PathBase.Value + path
+            | _ -> path
+//            |> Uri.EscapeDataString
+            
+        let service (services: IServiceCollection) =
+            services.Configure<CookiePolicyOptions>(fun (o:CookiePolicyOptions) ->
+                    o.Secure <- CookieSecurePolicy.SameAsRequest
+                    o.HttpOnly <- HttpOnlyPolicy.Always
+                    o.MinimumSameSitePolicy <- Microsoft.AspNetCore.Http.SameSiteMode.None)
+                .AddAuthorization()
+                .AddAuthentication(fun (o:AuthenticationOptions) ->
+                    o.DefaultAuthenticateScheme <- CookieAuthenticationDefaults.AuthenticationScheme
+                    o.DefaultSignInScheme <- CookieAuthenticationDefaults.AuthenticationScheme
+                    o.DefaultChallengeScheme <- CookieAuthenticationDefaults.AuthenticationScheme)
+                .AddCookie()
+                .AddOpenIdConnect("Auth0", fun (o:OpenIdConnectOptions) ->
+                    o.Authority <- sprintf "https://%s" CompositionRoot.config.Authentication.Domain
+                    o.ClientId <- CompositionRoot.config.Authentication.ClientId
+                    o.ClientSecret <- CompositionRoot.config.Authentication.ClientSecret
+                    o.ResponseType <- OpenIdConnectResponseType.Code
+                    o.Scope.Add "openid"
+                    o.CallbackPath <- PathString "/callback" // Also ensure that you have added the URL as an Allowed Callback URL in your Auth0 dashboard
+                    o.ClaimsIssuer <- "Auth0"
+                    o.Events <- OpenIdConnectEvents(OnRedirectToIdentityProviderForSignOut = fun ctx ->
+                        let logoutUri = sprintf "https://%s/v2/logout?client_id=%s" CompositionRoot.config.Authentication.Domain CompositionRoot.config.Authentication.ClientId
+                        
+                        let redirectQueryParameter =
+                            ctx.Properties.RedirectUri
+                            |> String.notNullOrEmpty
+                            |> Option.map (toAbsolutePath ctx)
+                            |> Option.map (sprintf "&returnTo=%s")
+                            |> Option.defaultValue ""
+                    
+                        ctx.Response.Redirect (logoutUri + redirectQueryParameter)
+                        ctx.HandleResponse()
+                        System.Threading.Tasks.Task.CompletedTask))
+                |> ignore
+            services
+
+        { state with
+            ServicesConfig = service::state.ServicesConfig
+            AppConfigs = middleware::state.AppConfigs
+            CookiesAlreadyAdded = true }
 
 let defaultRoute = "/chickens"
+let getUser (ctx: HttpContext) =
+    match ctx.User |> Option.ofObj with
+    | Some principal when principal.Identity.IsAuthenticated ->
+        ApiUser { Name = principal.Claims |> Seq.tryFind (fun c -> c.Type = "name") |> Option.map (fun c -> c.Value) |> Option.defaultValue "unknown" }
+    | _ -> 
+        Anonymous
 
 open Chickens
 let listChickens : HttpHandler =
@@ -58,15 +127,14 @@ let listChickens : HttpHandler =
                     let model =
                         chickensWithEggCounts
                         |> List.map (fun c ->
-                            c.Chicken.Id, 
                             { Id = c.Chicken.Id
                               Name = c.Chicken.Name
                               ImageUrl = c.Chicken.ImageUrl
                               Breed = c.Chicken.Breed
                               TotalEggCount = c.TotalCount
                               EggCountOnDate = snd c.Count })
-                        |> Map.ofList
-                    return! ctx.WriteHtmlStringAsync (Chickens.layout model date |> App.layout Anonymous)
+                    let user = getUser ctx
+                    return! ctx.WriteHtmlStringAsync (Chickens.layout model date |> App.layout user)
                 }
 
 let endpointPipe = pipeline {
@@ -74,10 +142,33 @@ let endpointPipe = pipeline {
     plug head
 }
 
-let browser = router {
+module Authentication =
+    let challenge : HttpHandler =
+        fun next ctx ->
+            let returnUrl = 
+                ctx.TryGetQueryStringValue "returnUrl"
+                |> Option.defaultValue "/"
+            task {
+                do! ctx.ChallengeAsync("Auth0", AuthenticationProperties(RedirectUri = returnUrl))
+                return! next ctx
+            }
+            
+    let requireLoggedIn = requiresAuthentication challenge
+    let logout : HttpHandler =
+        Giraffe.Auth.signOut "Auth0"
+        >=> Giraffe.Auth.signOut CookieAuthenticationDefaults.AuthenticationScheme
+        
+let browserRouter = router {
     pipe_through turbolinks
     get "/" (redirectTo false (defaultRoute)) 
     get "/chickens" listChickens
+    get "/login" Authentication.challenge
+}
+
+let secureBrowserRouter = router {
+    pipe_through turbolinks
+    pipe_through Authentication.requireLoggedIn
+    get "/logout" Authentication.logout
 }
 
 let apiErrorHandler (ex: Exception) (routeInfo: RouteInfo<HttpContext>) =
@@ -88,16 +179,18 @@ let apiErrorHandler (ex: Exception) (routeInfo: RouteInfo<HttpContext>) =
     // decide whether or not you want to propagate the error to the client
     Ignore
 
-let api : HttpHandler =
-    Remoting.createApi()
-    |> Remoting.withRouteBuilder Route.builder
-    |> Remoting.fromValue CompositionRoot.api
-    #if DEBUG
-    |> Remoting.withDiagnosticsLogger (printfn "%s")
-    #endif
-    |> Remoting.withErrorHandler apiErrorHandler
-    |> Remoting.buildHttpHandler
+let secureApi : HttpHandler =
+    let api' =
+        Remoting.createApi()
+        |> Remoting.withRouteBuilder Route.builder
+        |> Remoting.fromValue CompositionRoot.api
+        #if DEBUG
+        |> Remoting.withDiagnosticsLogger (printfn "%s")
+        #endif
+        |> Remoting.withErrorHandler apiErrorHandler
+        |> Remoting.buildHttpHandler
     
+    Authentication.requireLoggedIn >=> api'
     
 let health : HttpHandler =
     let checkHealth : HttpHandler =
@@ -121,8 +214,9 @@ let notFoundHandler : HttpHandler =
 let webApp =
     choose [
         health
-        api
-        browser
+        browserRouter
+        secureBrowserRouter
+        secureApi
         notFoundHandler
     ]
     
@@ -137,17 +231,14 @@ let errorHandler : ErrorHandler =
             let msg = sprintf "Exception for %s%s" ctx.Request.Path.Value ctx.Request.QueryString.Value
             logger.LogError(exn, msg)
             Response.internalError ctx ()
-            
 
-let app = application {
+application {
     error_handler errorHandler
     pipe_through endpointPipe
     url ("http://*:" + CompositionRoot.config.ServerPort.ToString() + "/")
-//    use_token_authentication
+    use_auth0_open_id
     use_router webApp
     use_cached_static_files_with_max_age CompositionRoot.config.PublicPath 31536000
     use_gzip
     logging ignore
-}
-
-run app
+} |> run

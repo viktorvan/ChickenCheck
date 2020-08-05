@@ -16,6 +16,19 @@ let loading =
             ]
         ]
         
+let error =
+    Html.span
+        [
+            Bulma.icon [
+                color.hasTextWhite
+                prop.children [
+                    Html.i [
+                        prop.classes [ "fa-3x fas fa-exclamation-circle" ]
+                    ]
+                ]
+            ]
+        ]
+        
 [<AutoOpen>]
 module MyExtensions =
     type prop with

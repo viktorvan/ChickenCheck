@@ -70,6 +70,17 @@ spec:
           limits:
             memory: 1Gi
             cpu: 1000m
+        env:
+          - name: ChickenCheck_Authentication__ClientSecret
+            valueFrom:
+              secretKeyRef:
+                name: chickencheck-secret
+                key: AuthenticationClientSecret
+          - name: ChickenCheck_Authentication__ClientId
+            valueFrom:
+              secretKeyRef:
+                name: chickencheck-secret
+                key: AuthenticationClientId
         envFrom:
           - configMapRef:
               name: chickencheck-config

@@ -4,18 +4,37 @@ open ChickenCheck.Backend
 open Feliz.ViewEngine
 open Feliz.Bulma.ViewEngine
 open ChickenCheck.Shared
+open ChickenCheck.Backend.Extensions
 
-let logInLink =
-    Bulma.navbarItem.a [ 
-        prop.href "/login"
-        prop.text "log in" ]
+let layout (user: User) content =
+    let logInLink =
+        Bulma.navbarItem.a [
+            prop.disableTurbolinks
+            prop.href "/login"
+            prop.text "log in" ]
 
-let logOutLink =
-    Bulma.navbarItem.a [ 
-        prop.href "/logout"
-        prop.text "log out" ]
-          
-let layout user content =
+    let logOutLink (username: string) =
+        Bulma.navbarItem.div [
+            navbarItem.hasDropdown
+            navbarItem.isHoverable
+            prop.children [
+                Bulma.navbarLink.a username
+                Bulma.navbarDropdown.div [
+                    Bulma.navbarItem.a [
+                        prop.disableTurbolinks
+                        prop.href "/logout"
+                        prop.text "log out"
+                    ]
+                ]
+            ]
+        ]
+    
+    let userAttribute =
+        let userStr =
+            match user with
+            | ApiUser { Name = name } -> sprintf "ApiUser:%s" name
+            | Anonymous -> "Anonymous"
+        prop.custom (DataAttributes.User, userStr)
     Html.html [
         Html.head [
             Html.meta [
@@ -47,52 +66,53 @@ let layout user content =
                 prop.rel "manifest" 
                 prop.href "Icons/site.json"
             ]
-            Html.link [
-                prop.rel "stylesheet" 
-                prop.href "https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
-            ]
             yield! Bundle.bundle
         ]
         Html.body [
-            Bulma.navbar [
-                prop.id "chickencheck-navbar"
-                prop.custom ("data-turbolinks-permanent", "")
-                color.isInfo
-                prop.children [ 
-                    Bulma.navbarBrand.div [
-                        Bulma.navbarItem.a [
-                            prop.href "/chickens"
+            userAttribute
+            prop.children [
+                Bulma.navbar [
+                    prop.id "chickencheck-navbar"
+                    prop.custom ("data-turbolinks-permanent", "")
+                    color.isInfo
+                    prop.children [ 
+                        Bulma.navbarBrand.div [
                             prop.children [
-                                Html.img [
-                                    prop.src "/Icons/android-chrome-512x512.png"
-                                    prop.alt "Icon"
-                                    prop.style [ style.width (length.px 28); style.height (length.px 28)]
+                                Bulma.navbarItem.a [
+                                    prop.href "/chickens"
+                                    prop.children [
+                                        Html.img [
+                                            prop.src "/Icons/android-chrome-512x512.png"
+                                            prop.alt "Icon"
+                                            prop.style [ style.width (length.px 28); style.height (length.px 28)]
+                                        ]
+                                        Html.text "ChickenCheck"
+                                    ]
                                 ]
-                                Html.text "ChickenCheck"
+                                Bulma.navbarBurger [
+                                    prop.id "chickencheck-navbar-burger"
+                                    navbarItem.hasDropdown
+                                    prop.children [ yield! List.replicate 3 (Html.span []) ] 
+                                ] 
                             ]
                         ]
-                        Bulma.navbarBurger [
-                            prop.id "chickencheck-navbar-burger"
-                            navbarItem.hasDropdown
-                            prop.children [ yield! List.replicate 3 (Html.span []) ] 
-                        ] 
-                    ]
-                    Bulma.navbarMenu [
-                        prop.id "chickencheck-navbar-menu"
-                        prop.children [ 
-                            Bulma.navbarEnd.div [
-                                Bulma.navbarItem.div [
-                                    prop.text Version.version
+                        Bulma.navbarMenu [
+                            prop.id "chickencheck-navbar-menu"
+                            prop.children [ 
+                                Bulma.navbarEnd.div [
+                                    match user with
+                                    | Anonymous -> logInLink
+                                    | ApiUser { Name = name } -> logOutLink name
                                 ]
-                                match user with
-                                | Anonymous -> logInLink
-                                | ApiUser _ -> logOutLink
-                            ]
+                            ] 
                         ] 
                     ] 
-                ] 
+                ]
+                content
+                Bulma.footer [
+                    Html.text ("Version: " + Version.version)
+                ]
             ]
-            content
         ]
     ]
     |> Render.htmlDocument

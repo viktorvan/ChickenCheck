@@ -3,8 +3,11 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <UserSecretsId>450c1a87-2f77-4e5b-b5d2-37975ef0123d</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="Configuration.fs" />
     <Compile Include="Pages\ChickensPage.fs" />
     <Compile Include="Tests\Chickens.fs" />
     <Compile Include="Program.fs" />

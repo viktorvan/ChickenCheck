@@ -5,8 +5,8 @@ module Async =
 
 module String =
     let notNullOrEmpty str =
-        if System.String.IsNullOrEmpty str then invalidArg "" "String cannot be empty"
-        else str
+        if System.String.IsNullOrEmpty str then None
+        else Some str
         
 module List =
     let batchesOf size input = 

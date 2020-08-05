@@ -14,9 +14,7 @@ type Password = Password of string
 type UserId = UserId of Guid
 
 type ApiUser =
-    { Id: UserId
-      Name: string
-      Email: Email }
+    { Name: string }
 
 type User =
     | Anonymous
@@ -215,5 +213,7 @@ module DataAttributes =
 
     [<Literal>]
     let CurrentDate = "data-current-date"
+    [<Literal>]
+    let User = "data-user"
 
     let chickenIdStr (id: ChickenId) = sprintf "%s=\"%s\"" ChickenId (id.Value.ToString())

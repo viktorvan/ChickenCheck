@@ -6,6 +6,7 @@
 #r "netstandard"
 #endif
 #load "src/tools/common.fsx"
+#load "src/tools/chickenCheckConfiguration.fsx"
 open System
 open Fake.Core
 open Fake.DotNet
@@ -44,6 +45,9 @@ let webTestPort = 8087
 let k8sDeployment = rootPath @@ "k8s" @@ "ChickenCheckApp.yaml"
 let releaseTagPrefix = "Release-"
 let prodDeployTagPrefix = "PROD-"
+let auth0Domain = ChickenCheckConfiguration.config.Value.Authentication.Domain
+let auth0ClientSecret = ChickenCheckConfiguration.config.Value.Authentication.ClientSecret
+let auth0ClientId = ChickenCheckConfiguration.config.Value.Authentication.ClientId
 
 //-----------------------------------------------------------------------------
 // Helpers
@@ -133,6 +137,12 @@ let dockerRunWebTestContainer (version: string) dbFile =
           "ChickenCheck_ConnectionString=Data Source=/var/lib/chickencheck/" + dbFile
           "-e"
           "ChickenCheck_PublicPath=server/public"
+          "-e"
+          sprintf "ChickenCheck_Authentication__Domain=%s" auth0Domain
+          "-e"
+          sprintf "ChickenCheck_Authentication__ClientSecret=%s" auth0ClientSecret
+          "-e"
+          sprintf "ChickenCheck_Authentication__ClientId=%s" auth0ClientId
           "-v"
           rootPath + ":/var/lib/chickencheck"
           version |> dockerImageFullName]

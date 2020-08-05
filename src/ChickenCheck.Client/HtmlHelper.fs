@@ -5,6 +5,11 @@ open Browser.Types
 open Fable.Core.JsInterop
 open ChickenCheck.Shared
 
+        
+let isAuthenticated() =
+    (document.querySelector(sprintf "[%s]" DataAttributes.User)?dataset?user.ToString()).StartsWith("ApiUser")
+         
+let removeClass className (e: Element) = e.className <- e.className.Replace(className, "")
 let toggleClass className (e: Element) =
     let newClasses =
         if e.className.Contains(className) then
