@@ -159,6 +159,7 @@ module Authentication =
                 |> Option.defaultValue "/"
                 |> toAbsolutePath ctx.Request
             task {
+                printfn "Using return url: %s" returnUrl
                 do! ctx.ChallengeAsync("Auth0", AuthenticationProperties(RedirectUri = returnUrl))
                 return! next ctx
             }
