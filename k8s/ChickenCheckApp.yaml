@@ -5,6 +5,7 @@ metadata:
 data:
   ChickenCheck_ConnectionString: "Data Source=/var/lib/chickencheck/database.db"
   ChickenCheck_PublicPath: "server/public"
+  ChickenCheck_Authentication__Domain: "dev-ws160qwj.eu.auth0.com"
 
 ---
 
@@ -75,12 +76,12 @@ spec:
             valueFrom:
               secretKeyRef:
                 name: chickencheck-secret
-                key: AuthenticationClientSecret
+                key: Auth0ClientSecret
           - name: ChickenCheck_Authentication__ClientId
             valueFrom:
               secretKeyRef:
                 name: chickencheck-secret
-                key: AuthenticationClientId
+                key: Auth0ClientId
         envFrom:
           - configMapRef:
               name: chickencheck-config

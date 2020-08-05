@@ -29,6 +29,13 @@ open Fable.Remoting.Giraffe
 open Microsoft.AspNetCore.Authentication
 open Microsoft.Extensions.DependencyInjection
 
+let toAbsolutePath (req: HttpRequest) (path: string) =
+    match path.StartsWith("/") with
+    | true ->
+        let scheme = if req.Host.Value.Contains("localhost", StringComparison.InvariantCultureIgnoreCase) then req.Scheme else "https"
+        scheme + "://" + req.Host.Value + req.PathBase.Value + path
+    | _ -> path
+
 type Saturn.Application.ApplicationBuilder with
     [<CustomOperation("use_cached_static_files_with_max_age")>]
     member __.UseStaticWithCacheMaxAge(state, path : string, maxAge) =
@@ -56,14 +63,6 @@ type Saturn.Application.ApplicationBuilder with
                 .UseCookiePolicy()
                 .UseAuthorization()
 
-        let toAbsolutePath (ctx: RedirectContext) (path: string) =
-            match path.StartsWith("/") with
-            | true ->
-                let req = ctx.Request
-                req.Scheme + "://" + req.Host.Value + req.PathBase.Value + path
-            | _ -> path
-//            |> Uri.EscapeDataString
-            
         let service (services: IServiceCollection) =
             services.Configure<CookiePolicyOptions>(fun (o:CookiePolicyOptions) ->
                     o.Secure <- CookieSecurePolicy.SameAsRequest
@@ -89,7 +88,7 @@ type Saturn.Application.ApplicationBuilder with
                         let redirectQueryParameter =
                             ctx.Properties.RedirectUri
                             |> String.notNullOrEmpty
-                            |> Option.map (toAbsolutePath ctx)
+                            |> Option.map (toAbsolutePath ctx.Request)
                             |> Option.map (sprintf "&returnTo=%s")
                             |> Option.defaultValue ""
                     
@@ -143,11 +142,13 @@ let endpointPipe = pipeline {
 }
 
 module Authentication =
+        
     let challenge : HttpHandler =
         fun next ctx ->
             let returnUrl = 
                 ctx.TryGetQueryStringValue "returnUrl"
                 |> Option.defaultValue "/"
+                |> toAbsolutePath ctx.Request
             task {
                 do! ctx.ChallengeAsync("Auth0", AuthenticationProperties(RedirectUri = returnUrl))
                 return! next ctx
