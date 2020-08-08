@@ -29,21 +29,12 @@ open Fable.Remoting.Giraffe
 open Microsoft.AspNetCore.Authentication
 open Microsoft.Extensions.DependencyInjection
 
-let setPathScheme (path: string) =
-    // application is running as http, but is ssl-terminated in production, we need to change scheme to https.
-    printfn "setting pathscheme for %s" path
-    if path.Contains("localhost", StringComparison.InvariantCultureIgnoreCase) then 
-        path
-    else
-        path.Replace("http", "https")
-    
 let toAbsolutePath (req: HttpRequest) (path: string) =
     match path.StartsWith("/") with
     | true ->
         req.Scheme + "://" + req.Host.Value + req.PathBase.Value + path
     | false -> 
         path
-    |> setPathScheme
         
 type Saturn.Application.ApplicationBuilder with
     [<CustomOperation("use_cached_static_files_with_max_age")>]
@@ -246,7 +237,7 @@ let errorHandler : ErrorHandler =
 application {
     error_handler errorHandler
     pipe_through endpointPipe
-    url ("http://*:" + CompositionRoot.config.ServerPort.ToString() + "/")
+    url ("https://*:" + CompositionRoot.config.ServerPort.ToString() + "/")
     use_auth0_open_id
     use_router webApp
     use_cached_static_files_with_max_age CompositionRoot.config.PublicPath 31536000

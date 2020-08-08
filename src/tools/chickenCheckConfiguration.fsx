@@ -10,12 +10,13 @@ type Authentication =
       ClientId: string
       ClientSecret: string }
 type Config =
-    { Authentication: Authentication }
+    { Dev: Authentication 
+      Prod: Authentication }
 
 let configRoot =
     ConfigurationBuilder()
         .SetBasePath(Directory.GetCurrentDirectory())
-        .AddUserSecrets("f1dcbf68-77d8-40ba-807d-b98d9be91d5e")
+        .AddUserSecrets("de84dfcb-ba79-4405-8811-8124e96a1b3b")
         .Build()
 
 let [<Literal>] ConfigErrorMsg =

@@ -60,3 +60,4 @@ src/ChickenCheck.Backend/Views/Bundle.fs
 tmp.fsx
 
 **/build
+chickencheck*.tgz

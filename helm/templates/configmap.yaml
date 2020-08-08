@@ -1,0 +1,9 @@
+kind: ConfigMap 
+apiVersion: v1 
+metadata:
+  name: {{ .Release.Name }}-config
+data:
+  ChickenCheck_ConnectionString: {{ printf "Data Source=%s/%s" .Values.databasePath .Values.databaseName }}
+  ChickenCheck_PublicPath: "server/public"
+  ChickenCheck_Authentication__Domain: {{ .Values.authentication.domain }}
+  ChickenCheck_Authentication__ClientId: {{ .Values.authentication.clientId }}

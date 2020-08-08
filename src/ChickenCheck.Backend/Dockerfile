@@ -5,8 +5,8 @@ RUN ln -snf /usr/share/zoneinfo/Europe/Stockholm /etc/localtime && echo Europe/S
 
 # Copy 
 WORKDIR /app
-COPY ./output ./
+COPY ./output/server ./
 
 EXPOSE 8085
 
-ENTRYPOINT ["dotnet", "server/ChickenCheck.Backend.dll"]
+ENTRYPOINT ["dotnet", "ChickenCheck.Backend.dll"]

@@ -6,6 +6,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.0] - 2020-08-08
+### Changed
+* Deploy with helm
+* Use https
+
 ## [1.5.0] - 2020-08-05
 ### Added
 * Authentication with Auth0

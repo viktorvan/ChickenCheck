@@ -1,0 +1,51 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ .Release.Name }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  minReadySeconds: 10
+  template:
+    metadata:
+      labels:
+        app: {{ .Release.Name }}
+    spec:
+      containers:
+      - name: {{ .Release.Name }}
+        image: {{ printf "localhost:32000/chickencheck:%s-arm64" .Chart.AppVersion }}
+        ports: 
+          - containerPort: {{ .Values.applicationPort }}
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: {{ .Values.applicationPort }}
+          initialDelaySeconds: 5
+          periodSeconds: 60
+        resources:
+          limits:
+            memory: 1Gi
+            cpu: 1000m
+        env:
+          - name: ChickenCheck_Authentication__ClientSecret
+            valueFrom:
+              secretKeyRef:
+                name: {{ .Release.Name }}-secret
+                key: Auth0ClientSecret
+        envFrom:
+          - configMapRef:
+              name: {{ .Release.Name }}-config
+        volumeMounts:
+          - name: {{ .Release.Name }}-pvc
+            mountPath: {{ .Values.databasePath }}
+      volumes:
+        - name: {{ .Release.Name }}-pvc
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-claim

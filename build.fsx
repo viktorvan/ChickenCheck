@@ -32,22 +32,25 @@ let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.UnitTests"
 let webTestsPath = rootPath @@ "test" @@ "ChickenCheck.WebTests"
 let connectionString = sprintf "Data Source=%s/database-dev.db" serverPath
 let dockerRegistry = "microk8s-1.local:32000"
-let dockerImageName = "chickencheck"
-let dockerfile = "Dockerfile"
-let dockerfileArm64 = "Dockerfile-arm64"
+let appName = "chickencheck"
+let serverDockerFile = serverPath @@ "Dockerfile"
+let migrationsDockerFile = migrationsPath @@ "Dockerfile"
 let arm64ImageSuffix = "-arm64"
 let dockerWebTestContainerName = "chickencheckwebtest"
+let helmPackagesGlob = rootPath @@ appName + "*.tgz"
 let srcGlob = src @@ "**/*.??proj"
 let testsGlob = rootPath  @@ "test/**/*.??proj"
 let changelog = Fake.Core.Changelog.load "CHANGELOG.md"
 let semVersion = changelog.LatestEntry.SemVer
-let webTestPort = 8087
-let k8sDeployment = rootPath @@ "k8s" @@ "ChickenCheckApp.yaml"
 let releaseTagPrefix = "Release-"
 let prodDeployTagPrefix = "PROD-"
-let auth0Domain = ChickenCheckConfiguration.config.Value.Authentication.Domain
-let auth0ClientSecret = ChickenCheckConfiguration.config.Value.Authentication.ClientSecret
-let auth0ClientId = ChickenCheckConfiguration.config.Value.Authentication.ClientId
+let devDomain = ChickenCheckConfiguration.config.Value.Dev.Domain
+let dev0ClientId = ChickenCheckConfiguration.config.Value.Dev.ClientId
+let dev0ClientSecret = ChickenCheckConfiguration.config.Value.Dev.ClientSecret
+let prodDomain = ChickenCheckConfiguration.config.Value.Prod.Domain
+let prod0ClientId = ChickenCheckConfiguration.config.Value.Prod.ClientId
+let prod0ClientSecret = ChickenCheckConfiguration.config.Value.Prod.ClientSecret
+
 
 //-----------------------------------------------------------------------------
 // Helpers
@@ -104,56 +107,18 @@ let getBuildVersion() =
         version.AsString
     | Some v -> v.AsString
 
-let getDeployVersion() =
-    let pattern = sprintf "image: localhost:32000\/%s:(.*)%s" dockerImageName arm64ImageSuffix
-    let regex = String.getRegEx pattern
-    File.readAsString k8sDeployment
-    |> regex.Match
-    |> (fun m -> m.Groups.[1].Value)
-    |> SemVer.parse
+let dockerImageFullName imageName version =
+    sprintf "%s/%s:%s" dockerRegistry imageName version
 
-let dockerImageFullName version =
-    sprintf "%s/%s:%s" dockerRegistry dockerImageName version
-
-let dockerBuildImage dockerfile version =
-    let fullName = dockerImageFullName version
+let dockerBuildImage dockerfile imageName version =
+    let fullName = dockerImageFullName imageName version
     let args = [ "build"; "-t"; fullName; "-f"; dockerfile; "." ]
     Common.docker args ""
 
-let dockerPushImage version =
-    let fullName = dockerImageFullName version
+let dockerPushImage imageName version =
+    let fullName = dockerImageFullName imageName version
     let args = [ "push"; fullName ]
     Common.docker args ""
-
-let dockerRunWebTestContainer (version: string) dbFile =
-    let args = 
-        [ "run"
-          "-d"
-          "-p"
-          sprintf "%i:8085" webTestPort
-          "--name"
-          dockerWebTestContainerName
-          "-e"
-          "ChickenCheck_ConnectionString=Data Source=/var/lib/chickencheck/" + dbFile
-          "-e"
-          "ChickenCheck_PublicPath=server/public"
-          "-e"
-          sprintf "ChickenCheck_Authentication__Domain=%s" auth0Domain
-          "-e"
-          sprintf "ChickenCheck_Authentication__ClientSecret=%s" auth0ClientSecret
-          "-e"
-          sprintf "ChickenCheck_Authentication__ClientId=%s" auth0ClientId
-          "-v"
-          rootPath + ":/var/lib/chickencheck"
-          version |> dockerImageFullName]
-    Common.docker (args) ""
-
-let dockerCleanUp _ =
-    try
-        Common.docker [ "stop"; dockerWebTestContainerName ] ""
-        Common.docker [ "rm"; dockerWebTestContainerName ] ""
-    with
-        | e -> Trace.tracef "Failed to stop running docker container: %s" e.Message
 
 //-----------------------------------------------------------------------------
 // Build Target Implementations
@@ -171,6 +136,9 @@ let clean _ =
             IO.Path.GetDirectoryName p @@ sp)
         )
     |> Shell.cleanDirs
+
+    !! helmPackagesGlob
+    |> Seq.iter Shell.rm
 
     [ "paket-files/paket.restore.cached" ]
     |> Seq.iter Shell.rm
@@ -228,18 +196,35 @@ let dotnetPublishServer ctx =
             Common =
                 c.Common
                 |> DotNet.Options.withAdditionalArgs args
-            OutputPath = Some (outputDir @@ "Server")
+            OutputPath = Some (outputDir @@ "server")
         }) serverProj
 
+let dotnetPublishMigrations ctx =
+    let args =
+        [
+            sprintf "/p:PackageVersion=%s" (fullVersion semVersion).AsString
+        ]
+    DotNet.publish(fun c ->
+        { c with
+            Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+            NoBuild = true
+            NoRestore = true
+            SelfContained = Some false
+            Common =
+                c.Common
+                |> DotNet.Options.withAdditionalArgs args
+            OutputPath = Some (outputDir @@ "migrations")
+        }) migrationsPath
+
 let dockerBuild _ =
-    let tag = getBuildVersion()
-    dockerBuildImage dockerfile tag
-    let tagArm64 = tag + arm64ImageSuffix
-    dockerBuildImage dockerfileArm64 tagArm64
+    let tag = getBuildVersion() + arm64ImageSuffix
+    dockerBuildImage serverDockerFile appName tag
+    dockerBuildImage migrationsDockerFile (appName + "-migrations") tag
 
 let dockerPush _ =
-    let tag = getBuildVersion() + "-arm64"
-    dockerPushImage tag
+    let tag = getBuildVersion() + arm64ImageSuffix
+    dockerPushImage appName tag
+    dockerPushImage (appName + "-migrations") tag
 
 let runUnitTests ctx =
     let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
@@ -249,42 +234,13 @@ let runUnitTests ctx =
             WorkingDirectory = unitTestsPath }) "run" args
     |> (fun res -> if not res.OK then failwithf "RunUnitTests failed")
 
-let runDocker _ =
-    Target.activateBuildFailure "DockerCleanUp"
-    let dbFile = "debug.db"
-    try
-        rootPath @@ dbFile 
-        |> sprintf "Data Source=%s" 
-        |> Common.runMigrations migrationsPath
-        let version = getReleaseVersionTags() |> List.last
-
-        Trace.tracefn "\n\n****************************************\nRunning docker container v%s at \n\thttp://localhost:%i\n****************************************\n\n" version webTestPort
-        dockerRunWebTestContainer version dbFile
-
-        printfn "Press Ctrl+C (or Ctrl+Break) to stop..."
-        let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
-        cancelEvent.Cancel <- true
-
-        dockerCleanUp()
-    finally
-        File.delete dbFile   
-
 let runWebTests ctx =
     Target.activateBuildFailure "DockerCleanUp"
-    let dbFile = "webtest.db"
     let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
-    let args = sprintf "--configuration %s --no-restore --no-build -- http://localhost:%i" (configuration.ToString()) webTestPort
-    try
-        rootPath @@ dbFile 
-        |> sprintf "Data Source=%s" 
-        |> Common.runMigrations migrationsPath
-        dockerRunWebTestContainer (getBuildVersion()) dbFile
-        DotNet.exec (fun c ->
-            { c with WorkingDirectory = webTestsPath }) "run" args
-        |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
-        dockerCleanUp()
-    finally
-        File.delete dbFile   
+    let args = sprintf "--configuration %s --no-restore --no-build -- https://dev.chickens.viktorvan.com" (configuration.ToString())
+    DotNet.exec (fun c ->
+        { c with WorkingDirectory = webTestsPath }) "run" args
+    |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
 
 // Using DotNet.test to run the tests would give us better test result reporting in Azure DevOps, but:
 // There is a bug in DotNet.test that, it does not use RunSettingsArguments https://github.com/fsharp/FAKE/issues/2376
@@ -336,44 +292,53 @@ let gitTagRelease _ =
     releaseTag version |> Git.Branches.tag ""
     releaseTag version |> Git.Branches.pushTag "" "origin"
 
-let gitCommitReleaseFiles _ =
-    let stageReleaseFiles() =
-        [ Git.Staging.stageFile "" "k8s/ChickenCheckApp.yaml" ]
-
-    if stageReleaseFiles() |> List.map (fun (r,_,_) -> r) |> List.exists (fun success -> not success) then failwith "Git staging release files failed"
-
-    let msg = sprintf "Creating release v%s" (getBuildVersion())
-    Git.Commit.exec "" msg
-
-let gitTagDeployment _ =
-    let version = "PROD-" + getDeployVersion().AsString
+let gitTagDeployment prefix _ =
+    let version = prefix + getBuildVersion()
     let existingTags = getProdDeployVersionTags()
 
     if not (List.contains version existingTags) then
         Git.Branches.tag "" version
     else
-        Trace.tracefn "prod tag already exists for this version" 
+        Trace.tracefn "%s tag already exists for this version" prefix
 
-    Git.Branches.pushBranch "" "origin" "master"
+let helmPackage _ =
+    let version = getBuildVersion()
+    let packageArgs = [
+        "package"
+        "--app-version"
+        version
+        "./helm"
+    ]
+    Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
+    Common.helm packageArgs ""
 
-
-let updateDeployVersion _ =
-    let deployImageName = sprintf "localhost:32000/%s:%s%s" dockerImageName (getBuildVersion()) arm64ImageSuffix
-    Trace.tracefn "Updating kubernetes deployment file %s with new image version %s" k8sDeployment deployImageName
-    let pattern = sprintf "image: localhost:32000\/%s:.*%s" dockerImageName arm64ImageSuffix
-    File.readAsString k8sDeployment
-    |> String.regex_replace pattern ("image: " + deployImageName)
-    |> File.writeString false k8sDeployment
-
-let deploy _ = 
+let helmInstallDev _ = 
     let deployArgs = [
-        "apply"
+        "upgrade"
+        sprintf "%s-dev" appName
         "-f"
-        k8sDeployment
+        "./helm/values.dev.yaml"
+        "--set"
+        sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Dev.ClientSecret
+        "chickencheck-0.1.2.tgz"
     ]
 
     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
-    Common.kubectl deployArgs ""
+    Common.helm deployArgs rootPath
+
+let helmInstallProd _ = 
+    let deployArgs = [
+        "upgrade"
+        appName
+        "-f"
+        "./helm/values.prod.yaml"
+        "--set"
+        sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Prod.ClientSecret
+        rootPath @@ sprintf "%s*.tgz" appName
+    ]
+
+    Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
+    Common.helm deployArgs ""
 
 //-----------------------------------------------------------------------------
 // Build Target Declaration
@@ -391,21 +356,19 @@ Target.create "WatchApp" watchApp
 Target.create "WatchTests" watchTests
 Target.create "Build" ignore
 Target.create "DotnetPublishServer" dotnetPublishServer
+Target.create "DotnetPublishMigrations" dotnetPublishMigrations
 Target.create "Package" ignore
 Target.create "DockerBuild" dockerBuild
-Target.create "RunWebTests" runWebTests
-Target.create "RunDocker" runDocker
 Target.create "DockerPush" dockerPush
+Target.create "HelmPackage" helmPackage
+Target.create "HelmInstallDev" helmInstallDev
+Target.create "GitTagDevDeployment" (gitTagDeployment "DEV-")
+Target.create "RunWebTests" runWebTests
 Target.create "VerifyCleanWorkingDirectory" verifyCleanWorkingDirectory
-Target.create "GitCommitReleaseFiles" gitCommitReleaseFiles
 Target.create "GitTagRelease" gitTagRelease
 Target.create "CreateRelease" ignore
-Target.create "UpdateDeployVersion" updateDeployVersion
-Target.create "DeployToKubernetes" deploy
-Target.create "GitTagDeployment" gitTagDeployment
-Target.create "Deploy" ignore
-Target.create "DeployOnly" ignore
-Target.createBuildFailure "DockerCleanUp" dockerCleanUp
+Target.create "helmInstallProd" helmInstallProd
+Target.create "GitTagProdDeployment" (gitTagDeployment "PROD-")
 
 //-----------------------------------------------------------------------------
 // Build Target Dependencies
@@ -421,6 +384,9 @@ Target.createBuildFailure "DockerCleanUp" dockerCleanUp
     ==> "RunMigrations" 
     ==> "DotNetBuild"
 
+"WriteVersionToFile"
+    ?=> "WatchApp"
+
 "DotnetRestore" <=> "InstallClient"
     ==> "BundleClient"
     ==> "WriteVersionToFile"
@@ -428,31 +394,22 @@ Target.createBuildFailure "DockerCleanUp" dockerCleanUp
     ==> "RunUnitTests"
     ==> "Build"
     ==> "DotnetPublishServer"
+    ==> "DotnetPublishMigrations"
     ==> "Package"
     ==> "DockerBuild"
-    ==> "RunWebTests"
     ==> "DockerPush"
-    ==> "UpdateDeployVersion"
-    ==> "GitCommitReleaseFiles"
+    ==> "HelmPackage"
+    ==> "HelmInstallDev"
+    ==> "GitTagDevDeployment"
+    ==> "RunWebTests"
     ==> "GitTagRelease"
+    ==> "HelmInstallProd"
+    ==> "GitTagProdDeployment"
     ==> "CreateRelease"
-    ==> "Deploy"
-
-"CreateRelease"
-    ?=> "DeployToKubernetes"
-    ?=> "GitTagDeployment"
-
-"DeployToKubernetes"
-    ==> "GitTagDeployment"
-    ==> "Deploy"
 
 "Clean" ?=> "VerifyCleanWorkingDirectory"
 "VerifyCleanWorkingDirectory" ?=> "BundleClient"
 "VerifyCleanWorkingDirectory" ==> "CreateRelease"
-
-"DeployToKubernetes"
-    ==> "GitTagDeployment"
-    ==> "DeployOnly"
 
 "DotnetRestore"
     ==> "WatchTests"

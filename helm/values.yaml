@@ -1,0 +1,12 @@
+authentication:
+  domain: "dev-ws160qwj.eu.auth0.com"
+  clientId: "client-id"
+  clientSecret: "client-secret"
+
+applicationPort: 8085
+externalPort: 443
+  
+replicaCount: 1
+
+databasePath: "/var/lib/chickencheck"
+databaseName: "database.db"
