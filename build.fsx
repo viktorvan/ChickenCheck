@@ -17,6 +17,10 @@ open Fake.IO.FileSystemOperators
 open Fake.IO.Globbing.Operators
 
 
+type Environment =
+    | Dev
+    | Prod
+
 //-----------------------------------------------------------------------------
 // Metadata and Configuration
 //-----------------------------------------------------------------------------
@@ -42,8 +46,6 @@ let srcGlob = src @@ "**/*.??proj"
 let testsGlob = rootPath  @@ "test/**/*.??proj"
 let changelog = Fake.Core.Changelog.load "CHANGELOG.md"
 let semVersion = changelog.LatestEntry.SemVer
-let releaseTagPrefix = "Release-"
-let prodDeployTagPrefix = "PROD-"
 let devDomain = ChickenCheckConfiguration.config.Value.Dev.Domain
 let dev0ClientId = ChickenCheckConfiguration.config.Value.Dev.ClientId
 let dev0ClientSecret = ChickenCheckConfiguration.config.Value.Dev.ClientSecret
@@ -55,6 +57,14 @@ let prod0ClientSecret = ChickenCheckConfiguration.config.Value.Prod.ClientSecret
 //-----------------------------------------------------------------------------
 // Helpers
 //-----------------------------------------------------------------------------
+
+type FakeVarService<'T>(key) =
+    member __.Get() : 'T option = FakeVar.get key
+    member __.GetOrFail() : 'T = FakeVar.getOrFail key
+    member __.Set(value: 'T) = FakeVar.set key value
+
+let buildVersionService = FakeVarService<SemVerInfo> "buildVersion"
+let helmPackageVersionService = FakeVarService<string> "helmPackageVersion"
 
 let fullVersion (semVer: SemVerInfo) =
     if semVer.Build = bigint(0) then
@@ -70,23 +80,8 @@ let getGitTags() =
     | true, existingTags, _ -> 
         existingTags 
 
-let getReleaseVersionTags() =
-    getGitTags()
-    |> List.filter (fun t -> t.StartsWith releaseTagPrefix)
-    |> List.map (fun t -> t.Substring(releaseTagPrefix.Length))
-
-let getProdDeployVersionTags() =
-    getGitTags()
-    |> List.filter (fun t -> t.StartsWith prodDeployTagPrefix)
-    |> List.map (fun t -> t.Substring(prodDeployTagPrefix.Length))
-
 let getBuildVersion() =
-    let storeVersion (v: SemVerInfo) =
-        FakeVar.set "tagVersion" v
-    let getStoredVersion() : SemVerInfo option =
-        FakeVar.get<SemVerInfo> "tagVersion"
-
-    match getStoredVersion() with
+    match buildVersionService.Get() with
     | None ->
         let getNextVersion existingVersionTags version =
             let nextVersions = 
@@ -101,9 +96,9 @@ let getBuildVersion() =
 
             validVersion
 
-        let existingTags = getReleaseVersionTags()
+        let existingTags = getGitTags()
         let version = getNextVersion existingTags (fullVersion semVersion)
-        storeVersion version
+        buildVersionService.Set version
         version.AsString
     | Some v -> v.AsString
 
@@ -234,14 +229,6 @@ let runUnitTests ctx =
             WorkingDirectory = unitTestsPath }) "run" args
     |> (fun res -> if not res.OK then failwithf "RunUnitTests failed")
 
-let runWebTests ctx =
-    Target.activateBuildFailure "DockerCleanUp"
-    let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
-    let args = sprintf "--configuration %s --no-restore --no-build -- https://dev.chickens.viktorvan.com" (configuration.ToString())
-    DotNet.exec (fun c ->
-        { c with WorkingDirectory = webTestsPath }) "run" args
-    |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
-
 // Using DotNet.test to run the tests would give us better test result reporting in Azure DevOps, but:
 // There is a bug in DotNet.test that, it does not use RunSettingsArguments https://github.com/fsharp/FAKE/issues/2376
 // Until it is fixed we can run the tests with dotnet run (above) to be able to pass arguments.
@@ -252,6 +239,13 @@ let runWebTests ctx =
 //                NoBuild = true
 //                RunSettingsArguments = Some "-- Expecto.fail-on-focused-tests=true" })
 //        sln
+
+let runWebTests ctx =
+    let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+    let args = sprintf "--configuration %s --no-restore --no-build -- https://dev.chickens.viktorvan.com" (configuration.ToString())
+    DotNet.exec (fun c ->
+        { c with WorkingDirectory = webTestsPath }) "run" args
+    |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
 
 let watchApp _ =
 
@@ -282,26 +276,34 @@ let watchTests _ =
     let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
     cancelEvent.Cancel <- true
 
-let gitTagRelease _ =
-    let releaseTag (version: string) =
-        match Git.Information.getBranchName "" with
-        | "master" -> releaseTagPrefix + version
-        | branch -> releaseTagPrefix + version + "-" + branch
+let gitTagDeployment (env: Environment) _ =
+    let tagEnvironment envStr =
+        try 
+            Git.Branches.deleteTag "" envStr
+        with _ -> 
+            Trace.tracef "Could not find existing tag %s" envStr
+        Git.Branches.tag "" envStr
 
-    let version = getBuildVersion()
-    releaseTag version |> Git.Branches.tag ""
-    releaseTag version |> Git.Branches.pushTag "" "origin"
-
-let gitTagDeployment prefix _ =
-    let version = prefix + getBuildVersion()
-    let existingTags = getProdDeployVersionTags()
-
-    if not (List.contains version existingTags) then
+    let tagVersion version =
+        let existingTags = getGitTags()
+        if existingTags |> List.contains version then
+            Git.Branches.deleteTag "" version
         Git.Branches.tag "" version
-    else
-        Trace.tracefn "%s tag already exists for this version" prefix
+
+    let gitPush() =
+        let branch = Git.Information.getBranchName ""
+        Git.Branches.pushBranch "" "origin" branch
+
+    let envStr = (env.ToString().ToUpper())
+    let version = envStr + "-" + getBuildVersion()
+
+    tagEnvironment envStr
+    tagVersion version
+
+    if env = Prod then gitPush()
 
 let helmPackage _ =
+    let parsePackageName (output:string) = output.Split('/') |> Array.last
     let version = getBuildVersion()
     let packageArgs = [
         "package"
@@ -311,6 +313,8 @@ let helmPackage _ =
     ]
     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
     Common.helm packageArgs ""
+    |> parsePackageName
+    |> helmPackageVersionService.Set
 
 let helmInstallDev _ = 
     let deployArgs = [
@@ -320,11 +324,11 @@ let helmInstallDev _ =
         "./helm/values.dev.yaml"
         "--set"
         sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Dev.ClientSecret
-        "chickencheck-0.1.2.tgz"
+        helmPackageVersionService.GetOrFail()
     ]
 
     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
-    Common.helm deployArgs rootPath
+    Common.helm deployArgs rootPath |> ignore
 
 let helmInstallProd _ = 
     let deployArgs = [
@@ -334,11 +338,11 @@ let helmInstallProd _ =
         "./helm/values.prod.yaml"
         "--set"
         sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Prod.ClientSecret
-        rootPath @@ sprintf "%s*.tgz" appName
+        helmPackageVersionService.GetOrFail()
     ]
 
     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
-    Common.helm deployArgs ""
+    Common.helm deployArgs rootPath |> ignore
 
 //-----------------------------------------------------------------------------
 // Build Target Declaration
@@ -362,13 +366,12 @@ Target.create "DockerBuild" dockerBuild
 Target.create "DockerPush" dockerPush
 Target.create "HelmPackage" helmPackage
 Target.create "HelmInstallDev" helmInstallDev
-Target.create "GitTagDevDeployment" (gitTagDeployment "DEV-")
+Target.create "GitTagDevDeployment" (gitTagDeployment Dev)
 Target.create "RunWebTests" runWebTests
 Target.create "VerifyCleanWorkingDirectory" verifyCleanWorkingDirectory
-Target.create "GitTagRelease" gitTagRelease
 Target.create "CreateRelease" ignore
-Target.create "helmInstallProd" helmInstallProd
-Target.create "GitTagProdDeployment" (gitTagDeployment "PROD-")
+Target.create "HelmInstallProd" helmInstallProd
+Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
 
 //-----------------------------------------------------------------------------
 // Build Target Dependencies
@@ -402,7 +405,6 @@ Target.create "GitTagProdDeployment" (gitTagDeployment "PROD-")
     ==> "HelmInstallDev"
     ==> "GitTagDevDeployment"
     ==> "RunWebTests"
-    ==> "GitTagRelease"
     ==> "HelmInstallProd"
     ==> "GitTagProdDeployment"
     ==> "CreateRelease"

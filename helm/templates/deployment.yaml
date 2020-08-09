@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}
-        image: {{ printf "localhost:32000/chickencheck:%s-arm64" .Chart.AppVersion }}
+        image: "localhost:32000/chickencheck:{{ .Chart.AppVersion }}-arm64" 
         ports: 
           - containerPort: {{ .Values.applicationPort }}
         livenessProbe:
@@ -28,7 +28,7 @@ spec:
             path: /health
             port: {{ .Values.applicationPort }}
           initialDelaySeconds: 5
-          periodSeconds: 60
+          periodSeconds: 10
         resources:
           limits:
             memory: 1Gi

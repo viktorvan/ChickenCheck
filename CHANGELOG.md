@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.6.1] - 2020-08-09
+### Changed
+* Use http, and instead set scheme according to x-forwarded-proto.
+
 ## [1.6.0] - 2020-08-08
 ### Changed
 * Deploy with helm

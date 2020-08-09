@@ -51,18 +51,31 @@ module Tools =
     let helm = platformTool "helm" "helm.exe"
     let kubectl = platformTool "kubectl" "kubectl.exe"
 
-    let runTool cmd args workingDir =
+    let private createProcess cmd args workingDir =   
         let arguments = args |> Arguments.OfArgs
         Command.RawCommand (cmd, arguments)
         |> CreateProcess.fromCommand
         |> CreateProcess.withWorkingDirectory workingDir
         |> CreateProcess.ensureExitCode
+    let logOutput x = Trace.tracef "%s" x; x
+    let runToolWithResult cmd args workingDir =
+        createProcess cmd args workingDir
+        |> CreateProcess.redirectOutput
+        |> Proc.run
+        |> (fun r -> Trace.traceErrorfn "%s" r.Result.Error; r)
+        |> (fun r -> r.Result.Output)
+        |> logOutput
+
+    let runTool cmd args workingDir = 
+        createProcess cmd args workingDir 
         |> Proc.run
         |> ignore
+
+
 
 let node (args: string list) = Tools.runTool Tools.nodeTool args
 let npm (args: string list) = Tools.runTool Tools.npmTool args
 let npx (args: string list) = Tools.runTool Tools.npxTool args
 let docker (args: string list) = Tools.runTool Tools.docker args
 let kubectl (args: string list) = Tools.runTool Tools.kubectl args
-let helm (args: string list) = Tools.runTool Tools.helm args
+let helm (args: string list) = Tools.runToolWithResult Tools.helm args
