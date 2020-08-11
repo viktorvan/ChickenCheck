@@ -17,7 +17,9 @@ open Fake.IO.FileSystemOperators
 open Fake.IO.Globbing.Operators
 
 
-type Environment =
+type Tag =
+    | Build
+    | Docker
     | Dev
     | Prod
 
@@ -94,7 +96,7 @@ let getBuildVersion() =
 
             validVersion
 
-        let existingTags = getGitTags()
+        let existingTags = getGitTags() |> List.filter (fun (str:string) -> str.StartsWith("BUILD")) |> List.map (fun str -> str.Substring(6))
         let version = getNextVersion existingTags (fullVersion semVersion)
         buildVersionService.Set version
         version.AsString
@@ -275,7 +277,7 @@ let watchTests _ =
     let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
     cancelEvent.Cancel <- true
 
-let gitTagDeployment (env: Environment) _ =
+let gitTagDeployment (env: Tag) _ =
     let tagEnvironment envStr =
         try 
             Git.Branches.deleteTag "" envStr
@@ -362,8 +364,10 @@ Target.create "Build" ignore
 Target.create "DotnetPublishServer" dotnetPublishServer
 Target.create "DotnetPublishMigrations" dotnetPublishMigrations
 Target.create "Package" ignore
+Target.create "GitTagBuild" (gitTagDeployment Build)
 Target.create "DockerBuild" dockerBuild
 Target.create "DockerPush" dockerPush
+Target.create "GitTagDockerDeployment" (gitTagDeployment Docker)
 Target.create "HelmPackage" helmPackage
 Target.create "HelmInstallDev" helmInstallDev
 Target.create "GitTagDevDeployment" (gitTagDeployment Dev)
@@ -398,9 +402,11 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
     ==> "Build"
     ==> "DotnetPublishServer"
     ==> "DotnetPublishMigrations"
+    ==> "GitTagBuild"
     ==> "Package"
     ==> "DockerBuild"
     ==> "DockerPush"
+    ==> "GitTagDockerDeployment"
     ==> "HelmPackage"
     ==> "HelmInstallDev"
     ==> "GitTagDevDeployment"

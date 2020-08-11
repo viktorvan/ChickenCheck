@@ -6,7 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.6.1] - 2020-08-09
+## [1.6.2] - 2020-08-11
 ### Changed
 * Use http, and instead set scheme according to x-forwarded-proto.
 
