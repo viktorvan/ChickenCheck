@@ -43,7 +43,7 @@ group Client
 
 group Migrations
     source https://api.nuget.org/v3/index.json
-    framework: netcoreapp3.1
+    framework: netcoreapp2.2
     storage: none
 
     nuget Argu

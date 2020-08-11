@@ -16,7 +16,7 @@ metadata:
 spec:
   template:
     metadata:
-      name: "{{ .Release.Name }}"
+      name: "{{ .Release.Name }}-migrations"
       labels:
         app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
@@ -24,7 +24,7 @@ spec:
     spec:
       restartPolicy: Never
       containers:
-      - name: {{ .Release.Name }}-migrations-job
+      - name: {{ .Release.Name }}-migrations
         image: "localhost:32000/chickencheck-migrations:{{ .Chart.AppVersion }}-arm64" 
         command: ["dotnet", "ChickenCheck.Migrations.dll", "--connectionString", {{ include "helpers.connectionString" . }}]
   backoffLimit: 1
