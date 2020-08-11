@@ -279,11 +279,14 @@ let watchTests _ =
 
 let gitTagDeployment (env: Tag) _ =
     let tagEnvironment envStr =
-        try 
-            Git.Branches.deleteTag "" envStr
-        with _ -> 
-            Trace.tracef "Could not find existing tag %s" envStr
-        Git.Branches.tag "" envStr
+        match env with
+        | Build | Docker -> ()
+        | Dev | Prod ->
+            try 
+                Git.Branches.deleteTag "" envStr
+            with _ -> 
+                Trace.tracef "Could not find existing tag %s" envStr
+            Git.Branches.tag "" envStr
 
     let tagVersion version =
         let existingTags = getGitTags()

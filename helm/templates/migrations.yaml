@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: "{{ .Release.Name }}"
+  name: "{{ .Release.Name }}-migrations"
   labels:
     app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
     app.kubernetes.io/instance: {{ .Release.Name | quote }}
@@ -26,5 +26,5 @@ spec:
       containers:
       - name: {{ .Release.Name }}-migrations
         image: "localhost:32000/chickencheck-migrations:{{ .Chart.AppVersion }}-arm64" 
-        command: ["dotnet", "ChickenCheck.Migrations.dll", "--connectionString", {{ include "helpers.connectionString" . }}]
+        command: ["dotnet", "ChickenCheck.Migrations.dll", "--connectionstring", {{ include "helpers.connectionString" . }}]
   backoffLimit: 0
