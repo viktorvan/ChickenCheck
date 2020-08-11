@@ -724,17 +724,17 @@ NUGET
 
 GROUP Migrations
 STORAGE: NONE
-RESTRICTION: == netcoreapp2.2
+RESTRICTION: == netcoreapp3.1
 NUGET
   remote: https://api.nuget.org/v3/index.json
-    Argu (5.5)
+    Argu (6.1.1)
       FSharp.Core (>= 4.3.2)
       System.Configuration.ConfigurationManager (>= 4.4)
     FSharp.Core (4.7)
-    Microsoft.Data.Sqlite (3.1.4)
-      Microsoft.Data.Sqlite.Core (>= 3.1.4)
+    Microsoft.Data.Sqlite (3.1.6)
+      Microsoft.Data.Sqlite.Core (>= 3.1.6)
       SQLitePCLRaw.bundle_e_sqlite3 (>= 2.0.2)
-    Microsoft.Data.Sqlite.Core (3.1.4)
+    Microsoft.Data.Sqlite.Core (3.1.6)
       SQLitePCLRaw.core (>= 2.0.2)
     Microsoft.NETCore.Platforms (2.2.2)
     Microsoft.NETCore.Targets (2.1)
@@ -752,11 +752,11 @@ NUGET
     SQLitePCLRaw.bundle_e_sqlite3 (2.0.3)
       SQLitePCLRaw.core (>= 2.0.3)
       SQLitePCLRaw.lib.e_sqlite3 (>= 2.0.3)
-      SQLitePCLRaw.provider.e_sqlite3 (>= 2.0.3)
+      SQLitePCLRaw.provider.dynamic_cdecl (>= 2.0.3)
     SQLitePCLRaw.core (2.0.3)
       System.Memory (>= 4.5.3)
     SQLitePCLRaw.lib.e_sqlite3 (2.0.3)
-    SQLitePCLRaw.provider.e_sqlite3 (2.0.3)
+    SQLitePCLRaw.provider.dynamic_cdecl (2.0.3)
       SQLitePCLRaw.core (>= 2.0.3)
     System.Collections (4.3)
       Microsoft.NETCore.Platforms (>= 1.1)
