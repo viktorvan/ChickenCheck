@@ -13,7 +13,6 @@ metadata:
     "helm.sh/hook": pre-install
     "helm.sh/hook": pre-upgrade
     "helm.sh/hook-weight": "-5"
-    "helm.sh/hook-delete-policy": hook-succeeded
 spec:
   template:
     metadata:
@@ -25,6 +24,7 @@ spec:
     spec:
       restartPolicy: Never
       containers:
-      - name: post-install-job
+      - name: {{ .Release.Namee }}-migrations-job
         image: "localhost:32000/chickencheck-migrations:{{ .Chart.AppVersion }}-arm64" 
         command: ["dotnet", "ChickenCheck.Migrations.dll", "--connectionString", {{ include "helpers.connectionString" . }}]
+  backoffLimit: 1
