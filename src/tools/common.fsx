@@ -61,26 +61,14 @@ module Tools =
         |> CreateProcess.fromCommand
         |> CreateProcess.withWorkingDirectory workingDir
         |> CreateProcess.ensureExitCode
-    let logOutput (r: ProcessResult<_>) = 
-        Trace.tracefn "%s" r.Result.Output
-        Trace.traceErrorfn "%s" r.Result.Error
-    let runToolWithResult cmd args workingDir =
-        createProcess cmd args workingDir
-        |> CreateProcess.redirectOutput
-        |> Proc.run
-        |> tee logOutput
-        |> (fun r -> r.Result)
-
     let runTool cmd args workingDir = 
         createProcess cmd args workingDir 
         |> Proc.run
         |> ignore
-
-
 
 let node (args: string list) = Tools.runTool Tools.nodeTool args
 let npm (args: string list) = Tools.runTool Tools.npmTool args
 let npx (args: string list) = Tools.runTool Tools.npxTool args
 let docker (args: string list) = Tools.runTool Tools.docker args
 let kubectl (args: string list) = Tools.runTool Tools.kubectl args
-let helm (args: string list) = Tools.runToolWithResult Tools.helm args
+let helm (args: string list) = Tools.runTool Tools.helm args

@@ -41,7 +41,6 @@ let serverDockerFile = serverPath @@ "Dockerfile"
 let migrationsDockerFile = migrationsPath @@ "Dockerfile"
 let arm64ImageSuffix = "-arm64"
 let dockerWebTestContainerName = "chickencheckwebtest"
-let helmPackagesGlob = rootPath @@ appName + "*.tgz"
 let srcGlob = src @@ "**/*.??proj"
 let testsGlob = rootPath  @@ "test/**/*.??proj"
 let changelog = Fake.Core.Changelog.load "CHANGELOG.md"
@@ -64,7 +63,6 @@ type FakeVarService<'T>(key) =
     member __.Set(value: 'T) = FakeVar.set key value
 
 let buildVersionService = FakeVarService<SemVerInfo> "buildVersion"
-let helmPackageVersionService = FakeVarService<string> "helmPackageVersion"
 
 let fullVersion (semVer: SemVerInfo) =
     if semVer.Build = bigint(0) then
@@ -115,6 +113,9 @@ let dockerPushImage imageName version =
     let args = [ "push"; fullName ]
     Common.docker args ""
 
+let getHelmPackageName() =
+    Directory.findFirstMatchingFile "*.tgz" rootPath
+
 //-----------------------------------------------------------------------------
 // Build Target Implementations
 //-----------------------------------------------------------------------------
@@ -131,9 +132,6 @@ let clean _ =
             IO.Path.GetDirectoryName p @@ sp)
         )
     |> Shell.cleanDirs
-
-    !! helmPackagesGlob
-    |> Seq.iter Shell.rm
 
     [ "paket-files/paket.restore.cached" ]
     |> Seq.iter Shell.rm
@@ -304,7 +302,6 @@ let gitTagDeployment (env: Environment) _ =
     if env = Prod then gitPush()
 
 let helmPackage _ =
-    let parsePackageName (result: ProcessOutput) = result.Output.Split('/') |> Array.last
     let version = getBuildVersion()
     let packageArgs = [
         "package"
@@ -312,10 +309,12 @@ let helmPackage _ =
         version
         "./helm"
     ]
+
+    !! "*.tgz"
+    |> Seq.iter Shell.rm
+
     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
     Common.helm packageArgs ""
-    |> parsePackageName
-    |> helmPackageVersionService.Set
 
 let helmInstallDev _ = 
     let deployArgs = [
@@ -325,7 +324,7 @@ let helmInstallDev _ =
         "./helm/values.dev.yaml"
         "--set"
         sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Dev.ClientSecret
-        helmPackageVersionService.GetOrFail()
+        getHelmPackageName()
     ]
 
     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
@@ -339,7 +338,7 @@ let helmInstallProd _ =
         "./helm/values.prod.yaml"
         "--set"
         sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Prod.ClientSecret
-        helmPackageVersionService.GetOrFail()
+        getHelmPackageName()
     ]
 
     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
