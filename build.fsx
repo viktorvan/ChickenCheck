@@ -202,7 +202,6 @@ let dotnetPublishMigrations ctx =
             Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
             NoBuild = true
             NoRestore = true
-            Framework = Some "netcoreapp3.1"
             SelfContained = Some false
             Common =
                 c.Common
