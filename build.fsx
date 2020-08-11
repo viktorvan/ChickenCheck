@@ -35,7 +35,7 @@ let migrationsPath = src @@ "ChickenCheck.Migrations"
 let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.UnitTests"
 let webTestsPath = rootPath @@ "test" @@ "ChickenCheck.WebTests"
 let connectionString = sprintf "Data Source=%s/database-dev.db" serverPath
-let dockerRegistry = "microk8s-1.local:32000"
+let dockerRegistry = "192.168.50.201:32000"
 let appName = "chickencheck"
 let serverDockerFile = serverPath @@ "Dockerfile"
 let migrationsDockerFile = migrationsPath @@ "Dockerfile"
@@ -212,6 +212,7 @@ let dotnetPublishMigrations ctx =
         }) migrationsPath
 
 let dockerBuild _ =
+    Common.docker [ "--version" ] ""
     let tag = getBuildVersion() + arm64ImageSuffix
     dockerBuildImage serverDockerFile appName tag
     dockerBuildImage migrationsDockerFile (appName + "-migrations") tag
@@ -303,7 +304,7 @@ let gitTagDeployment (env: Environment) _ =
     if env = Prod then gitPush()
 
 let helmPackage _ =
-    let parsePackageName (output:string) = output.Split('/') |> Array.last
+    let parsePackageName (result: ProcessOutput) = result.Output.Split('/') |> Array.last
     let version = getBuildVersion()
     let packageArgs = [
         "package"

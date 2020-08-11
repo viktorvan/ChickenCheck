@@ -6,6 +6,10 @@ open System
 open Fake.Core
 open Fake.DotNet
 
+let tee f x =
+    f x |> ignore
+    x
+
 let invokeAsync f = async { f () }
 
 let isRelease (targets : Target list) =
@@ -57,14 +61,15 @@ module Tools =
         |> CreateProcess.fromCommand
         |> CreateProcess.withWorkingDirectory workingDir
         |> CreateProcess.ensureExitCode
-    let logOutput x = Trace.tracef "%s" x; x
+    let logOutput (r: ProcessResult<_>) = 
+        Trace.tracefn "%s" r.Result.Output
+        Trace.traceErrorfn "%s" r.Result.Error
     let runToolWithResult cmd args workingDir =
         createProcess cmd args workingDir
         |> CreateProcess.redirectOutput
         |> Proc.run
-        |> (fun r -> Trace.traceErrorfn "%s" r.Result.Error; r)
-        |> (fun r -> r.Result.Output)
-        |> logOutput
+        |> tee logOutput
+        |> (fun r -> r.Result)
 
     let runTool cmd args workingDir = 
         createProcess cmd args workingDir 
