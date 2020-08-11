@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/core/aspnet:2.2-buster-slim-arm64v8
+FROM mcr.microsoft.com/dotnet/core/aspnet:3.1.6-buster-slim-arm64v8
 
 # Copy 
 WORKDIR /app

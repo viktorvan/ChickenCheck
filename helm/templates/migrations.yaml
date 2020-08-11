@@ -27,4 +27,4 @@ spec:
       - name: {{ .Release.Name }}-migrations
         image: "localhost:32000/chickencheck-migrations:{{ .Chart.AppVersion }}-arm64" 
         command: ["dotnet", "ChickenCheck.Migrations.dll", "--connectionString", {{ include "helpers.connectionString" . }}]
-  backoffLimit: 1
+  backoffLimit: 0

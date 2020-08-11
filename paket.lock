@@ -724,7 +724,7 @@ NUGET
 
 GROUP Migrations
 STORAGE: NONE
-RESTRICTION: == netcoreapp2.2
+RESTRICTION: == netcoreapp3.1
 NUGET
   remote: https://api.nuget.org/v3/index.json
     Argu (6.1.1)
@@ -752,11 +752,11 @@ NUGET
     SQLitePCLRaw.bundle_e_sqlite3 (2.0.3)
       SQLitePCLRaw.core (>= 2.0.3)
       SQLitePCLRaw.lib.e_sqlite3 (>= 2.0.3)
-      SQLitePCLRaw.provider.e_sqlite3 (>= 2.0.3)
+      SQLitePCLRaw.provider.dynamic_cdecl (>= 2.0.3)
     SQLitePCLRaw.core (2.0.3)
       System.Memory (>= 4.5.3)
     SQLitePCLRaw.lib.e_sqlite3 (2.0.3)
-    SQLitePCLRaw.provider.e_sqlite3 (2.0.3)
+    SQLitePCLRaw.provider.dynamic_cdecl (2.0.3)
       SQLitePCLRaw.core (>= 2.0.3)
     System.Collections (4.3)
       Microsoft.NETCore.Platforms (>= 1.1)
