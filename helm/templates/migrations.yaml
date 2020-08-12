@@ -27,4 +27,13 @@ spec:
       - name: {{ .Release.Name }}-migrations
         image: "localhost:32000/chickencheck-migrations:{{ .Chart.AppVersion }}-arm64" 
         command: ["dotnet", "ChickenCheck.Migrations.dll", "--connectionstring", {{ include "helpers.connectionString" . }}]
+        volumeMounts:
+          - name: {{ .Release.Name }}-pvc
+            mountPath: {{ .Values.databasePath }}
+      volumes:
+        - name: {{ .Release.Name }}-pvc
+          persistentVolumeClaim:
+            claimName: {{ .Release.Name }}-claim
+
   backoffLimit: 0
+  activeDeadlineSeconds: 30
