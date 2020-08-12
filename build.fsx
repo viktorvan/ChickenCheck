@@ -355,6 +355,8 @@ let waitForDeployment env _ =
         waitForResponse'()
 
 
+    Trace.tracefn "Waiting 5 seconds before warmup tests..."
+    System.Threading.Thread.Sleep 5000
     match env with
     | Dev ->
         waitForResponse (TimeSpan.FromSeconds(30.)) "https://dev.chickens.viktorvan.com/chickens"
@@ -401,6 +403,7 @@ Target.create "GitTagDockerDeployment" (gitTagDeployment Docker)
 Target.create "HelmPackage" helmPackage
 Target.create "HelmInstallDev" helmInstallDev
 Target.create "WaitForDevDeployment" (waitForDeployment Dev)
+Target.create "WaitForProdDeployment" (waitForDeployment Prod)
 Target.create "GitTagDevDeployment" (gitTagDeployment Dev)
 Target.create "RunWebTests" runWebTests
 Target.create "VerifyCleanWorkingDirectory" verifyCleanWorkingDirectory
@@ -445,6 +448,7 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
     ==> "RunWebTests"
     ==> "HelmInstallProd"
     ==> "GitTagProdDeployment"
+    ==> "WaitForProdDeployment"
     ==> "CreateRelease"
 
 "Clean" ?=> "VerifyCleanWorkingDirectory"
