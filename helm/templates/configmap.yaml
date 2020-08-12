@@ -4,6 +4,6 @@ metadata:
   name: {{ .Release.Name }}-config
 data:
   ChickenCheck_ConnectionString: {{ include "helpers.connectionString" . }}
-  ChickenCheck_PublicPath: "server/public"
+  ChickenCheck_PublicPath: "public"
   ChickenCheck_Authentication__Domain: {{ .Values.authentication.domain }}
   ChickenCheck_Authentication__ClientId: {{ .Values.authentication.clientId }}

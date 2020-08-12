@@ -338,17 +338,20 @@ let helmInstallDev _ =
 let waitForDeployment env _ =
     let waitForResponse timeout url =
         let sw = System.Diagnostics.Stopwatch.StartNew()
+        let mutable lastExceptionMsg = ""
         let rec waitForResponse'() =
             if sw.Elapsed < timeout then
                 try 
                     Fake.Net.Http.get "" "" url |> ignore
                     Trace.tracefn "Site %s responded after %f s" url sw.Elapsed.TotalSeconds
                 with exn ->
-                    Trace.traceErrorfn "%O" exn 
+                    lastExceptionMsg <- exn.ToString()
                     Trace.tracefn "Site %s not responding after %f s, waiting..." url sw.Elapsed.TotalSeconds
                     System.Threading.Thread.Sleep 2000
                     waitForResponse'()
-            else failwithf "Site %s is not running after %f s" url timeout.TotalSeconds
+            else 
+                Trace.traceErrorfn "%O" lastExceptionMsg 
+                failwithf "Site %s is not running after %f s" url timeout.TotalSeconds
         waitForResponse'()
 
 
