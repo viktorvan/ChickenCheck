@@ -343,7 +343,8 @@ let waitForDeployment env _ =
                 try 
                     Fake.Net.Http.get "" "" url |> ignore
                     Trace.tracefn "Site %s responded after %f s" url sw.Elapsed.TotalSeconds
-                with _ ->
+                with exn ->
+                    Trace.traceErrorfn "%O" exn 
                     Trace.tracefn "Site %s not responding after %f s, waiting..." url sw.Elapsed.TotalSeconds
                     System.Threading.Thread.Sleep 2000
                     waitForResponse'()
@@ -353,9 +354,9 @@ let waitForDeployment env _ =
 
     match env with
     | Dev ->
-        waitForResponse (TimeSpan.FromSeconds(30.)) "dev.chickens.viktorvan.com"
+        waitForResponse (TimeSpan.FromSeconds(30.)) "https://dev.chickens.viktorvan.com/chickens"
     | Prod ->
-        waitForResponse (TimeSpan.FromSeconds(30.)) "chickens.viktorvan.com"
+        waitForResponse (TimeSpan.FromSeconds(30.)) "https://chickens.viktorvan.com/chickens"
     | _ -> ()
 
 let helmInstallProd _ = 
