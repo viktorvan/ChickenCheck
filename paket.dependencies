@@ -22,7 +22,7 @@ group Backend
     nuget FsToolkit.ErrorHandling
     nuget FsToolkit.ErrorHandling.TaskResult
     nuget Fable.Remoting.Server
-    nuget Microsoft.Data.Sqlite
+    nuget Microsoft.Data.Sqlite 3.1.7
     nuget Dapper
     nuget FsConfig
     nuget Microsoft.Extensions.Configuration.UserSecrets 
@@ -48,7 +48,7 @@ group Migrations
 
     nuget Argu
     nuget Simple.Migrations
-    nuget Microsoft.Data.Sqlite
+    nuget Microsoft.Data.Sqlite 3.1.7
     
 group UnitTests
     source https://www.nuget.org/api/v2
@@ -60,7 +60,7 @@ group UnitTests
     nuget Unquote
     nuget Fable.Elmish ~> 3
     nuget Simple.Migrations
-    nuget Microsoft.Data.Sqlite
+    nuget Microsoft.Data.Sqlite 3.1.7
     
 group WebTests
     source https://www.nuget.org/api/v2
