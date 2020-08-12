@@ -12,9 +12,9 @@ canopy.configuration.failFast := true
 [<EntryPoint>]
 let main args =
 
-    let rootUrl = args |> Array.tryHead |> Option.defaultValue "https://localhost:8085"
+    let rootUrl = args |> Array.tryHead |> Option.defaultValue "http://localhost:8085"
     start BrowserStartMode.ChromeHeadless
-//    start BrowserStartMode.Chrome
+    // start BrowserStartMode.Chrome
     resize (1920, 1080)
     
     "Root url redirects to chickens page" &&& fun _ ->

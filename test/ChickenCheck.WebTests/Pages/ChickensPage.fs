@@ -12,7 +12,7 @@ let url rootUrl (date: DateTime) =
     rootUrl + "/chickens?date=" + date.ToString("yyyy-MM-dd")
 let parseChickenId (element: IWebElement) = element.GetAttribute(DataAttributes.ChickenId) |> ChickenId.parse
 let waitForCurrentDate (date: DateTime) =
-    let selector = sprintf "[data-current-date=\"%s\"" (date.ToString("yyyy-MM-dd"))
+    let selector = sprintf "[data-current-date=\"%s\"]" (date.ToString("yyyy-MM-dd"))
     waitForElement selector
 
 module Selectors =
@@ -22,4 +22,4 @@ module Selectors =
     let chickenCardById (id: ChickenId) = sprintf ".chicken-card[%s]" (DataAttributes.chickenIdStr id)
     let eggIcon (id: ChickenId) = sprintf ".egg-icon[%s]" (DataAttributes.chickenIdStr id)
     let datePicker = ".datetimepicker-dummy-wrapper"
-    let dayButton = ".date-item"
+    let dayButton (date: DateTime) = sprintf "[data-date*=\"%s\"]" (date.ToString("MMM dd"))

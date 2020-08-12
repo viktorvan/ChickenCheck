@@ -46,15 +46,15 @@ let all rootUrl =
         click Selectors.nextDateLink
         onn (chickensUrl today)
         
-    "navigate by datepicker" &&& fun _ ->
+    "navigate by datepicker" &&&& fun _ ->
         let testNavigateToDay (day: DateTime) =
             click Selectors.datePicker
-            let dayButton = elementWithText Selectors.dayButton (day.Day.ToString())
-            click dayButton
-            waitForCurrentDate day
+            click (Selectors.dayButton day)
             onn (chickensUrl day)
+            waitForCurrentDate day
         
-        let inAPreviousMonth = today.AddDays(-40.0)
+        let inAPreviousMonth = today.AddMonths(-1)
+        describe (inAPreviousMonth.ToString())
         url (chickensUrl inAPreviousMonth)
         
         let firstDayOfMonth = DateTime(inAPreviousMonth.Year, inAPreviousMonth.Month, 1)
