@@ -46,7 +46,7 @@ let all rootUrl =
         click Selectors.nextDateLink
         onn (chickensUrl today)
         
-    "navigate by datepicker" &&&& fun _ ->
+    "navigate by datepicker" &&& fun _ ->
         let testNavigateToDay (day: DateTime) =
             click Selectors.datePicker
             click (Selectors.dayButton day)

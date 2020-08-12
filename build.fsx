@@ -243,7 +243,7 @@ let runUnitTests ctx =
 
 let runWebTests ctx =
     let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
-    let args = sprintf "--configuration %s --no-restore --no-build -- https://dev.chickens.viktorvan.com" (configuration.ToString())
+    let args = sprintf "--configuration %s --no-restore --no-build -- https://dev.chickens.viktorvan.com true" (configuration.ToString())
     DotNet.exec (fun c ->
         { c with WorkingDirectory = webTestsPath }) "run" args
     |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
