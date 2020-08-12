@@ -335,6 +335,29 @@ let helmInstallDev _ =
     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
     Common.helm deployArgs rootPath |> ignore
 
+let waitForDeployment env _ =
+    let waitForResponse timeout url =
+        let sw = System.Diagnostics.Stopwatch.StartNew()
+        let rec waitForResponse'() =
+            if sw.Elapsed < timeout then
+                try 
+                    Fake.Net.Http.get "" "" url |> ignore
+                    Trace.tracefn "Site %s responded after %f s" url sw.Elapsed.TotalSeconds
+                with _ ->
+                    Trace.tracefn "Site %s not responding after %f s, waiting..." url sw.Elapsed.TotalSeconds
+                    System.Threading.Thread.Sleep 2000
+                    waitForResponse'()
+            else failwithf "Site %s is not running after %f s" url timeout.TotalSeconds
+        waitForResponse'()
+
+
+    match env with
+    | Dev ->
+        waitForResponse (TimeSpan.FromSeconds(30.)) "dev.chickens.viktorvan.com"
+    | Prod ->
+        waitForResponse (TimeSpan.FromSeconds(30.)) "chickens.viktorvan.com"
+    | _ -> ()
+
 let helmInstallProd _ = 
     let deployArgs = [
         "upgrade"
@@ -373,6 +396,7 @@ Target.create "DockerPush" dockerPush
 Target.create "GitTagDockerDeployment" (gitTagDeployment Docker)
 Target.create "HelmPackage" helmPackage
 Target.create "HelmInstallDev" helmInstallDev
+Target.create "WaitForDevDeployment" (waitForDeployment Dev)
 Target.create "GitTagDevDeployment" (gitTagDeployment Dev)
 Target.create "RunWebTests" runWebTests
 Target.create "VerifyCleanWorkingDirectory" verifyCleanWorkingDirectory
@@ -413,6 +437,7 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
     ==> "HelmPackage"
     ==> "HelmInstallDev"
     ==> "GitTagDevDeployment"
+    ==> "WaitForDevDeployment"
     ==> "RunWebTests"
     ==> "HelmInstallProd"
     ==> "GitTagProdDeployment"

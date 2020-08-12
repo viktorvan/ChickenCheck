@@ -75,7 +75,6 @@ group WebTests
 
 
 group Build
-
     source https://www.nuget.org/api/v2
     source https://api.nuget.org/v3/index.json
     framework: netstandard2.0
@@ -83,6 +82,7 @@ group Build
     nuget Fake.Core.ReleaseNotes
     nuget FAKE.Core.Environment
     nuget FAKE.Core.Process
+    nuget FAKE.Net.Http
     nuget Fake.DotNet.Cli
     nuget Fake.IO.FileSystem
     nuget Fake.Tools.Git
