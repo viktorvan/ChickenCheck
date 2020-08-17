@@ -7,7 +7,8 @@ open System.IO
 type Authentication =
     { Domain: string
       ClientId: string
-      ClientSecret: string }
+      ClientSecret: string
+      AccessRole: string }
 type Config =
     { ConnectionString: string
       [<DefaultValue("8085")>]

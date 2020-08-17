@@ -12,12 +12,13 @@ open Microsoft.AspNetCore.StaticFiles
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Primitives
 open Microsoft.IdentityModel.Protocols.OpenIdConnect
+open Microsoft.IdentityModel.Tokens
 open Microsoft.Net.Http.Headers
 open Saturn
 open ChickenCheck.Backend
 open ChickenCheck.Shared
 
-type Saturn.Application.ApplicationBuilder with
+type Application.ApplicationBuilder with
     [<CustomOperation("use_cached_static_files_with_max_age")>]
     member __.UseStaticWithCacheMaxAge(state, path : string, maxAge) =
         let middleware (app : IApplicationBuilder) =
@@ -70,19 +71,24 @@ type Saturn.Application.ApplicationBuilder with
                     o.Scope.Add "openid"
                     o.CallbackPath <- PathString "/callback" // Also ensure that you have added the URL as an Allowed Callback URL in your Auth0 dashboard
                     o.ClaimsIssuer <- "Auth0"
-                    o.Events <- OpenIdConnectEvents(OnRedirectToIdentityProviderForSignOut = fun ctx ->
-                        let logoutUri = sprintf "https://%s/v2/logout?client_id=%s" CompositionRoot.config.Authentication.Domain CompositionRoot.config.Authentication.ClientId
+                    o.TokenValidationParameters <- TokenValidationParameters(NameClaimType = "name", RoleClaimType = sprintf "https://schemas.viktorvan.com/roles")
+                    o.Events <- OpenIdConnectEvents(
+                        OnRedirectToIdentityProviderForSignOut = (fun ctx ->
+                            let logoutUri = sprintf "https://%s/v2/logout?client_id=%s" CompositionRoot.config.Authentication.Domain CompositionRoot.config.Authentication.ClientId
+                            
+                            let redirectQueryParameter =
+                                ctx.Properties.RedirectUri
+                                |> String.notNullOrEmpty
+                                |> Option.map (toAbsolutePath ctx.Request)
+                                |> Option.map (sprintf "&returnTo=%s")
+                                |> Option.defaultValue ""
                         
-                        let redirectQueryParameter =
-                            ctx.Properties.RedirectUri
-                            |> String.notNullOrEmpty
-                            |> Option.map (toAbsolutePath ctx.Request)
-                            |> Option.map (sprintf "&returnTo=%s")
-                            |> Option.defaultValue ""
-                    
-                        ctx.Response.Redirect (logoutUri + redirectQueryParameter)
-                        ctx.HandleResponse()
-                        System.Threading.Tasks.Task.CompletedTask))
+                            ctx.Response.Redirect (logoutUri + redirectQueryParameter)
+                            ctx.HandleResponse()
+                            System.Threading.Tasks.Task.CompletedTask),
+                        OnUserInformationReceived = fun ctx ->
+                            printfn "received user info"
+                            System.Threading.Tasks.Task.CompletedTask))
                 |> ignore
             services
 

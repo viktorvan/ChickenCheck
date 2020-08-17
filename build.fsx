@@ -277,9 +277,9 @@ let watchTests _ =
     let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
     cancelEvent.Cancel <- true
 
-let gitTagDeployment (env: Tag) _ =
-    let tagEnvironment envStr =
-        match env with
+let gitTagDeployment (tag: Tag) _ =
+    let addTag envStr =
+        match tag with
         | Build | Docker -> ()
         | Dev | Prod ->
             try 
@@ -288,7 +288,7 @@ let gitTagDeployment (env: Tag) _ =
                 Trace.tracef "Could not find existing tag %s" envStr
             Git.Branches.tag "" envStr
 
-    let tagVersion version =
+    let addTagWithVersion version =
         let existingTags = getGitTags()
         if existingTags |> List.contains version then
             Git.Branches.deleteTag "" version
@@ -298,13 +298,13 @@ let gitTagDeployment (env: Tag) _ =
         let branch = Git.Information.getBranchName ""
         Git.Branches.pushBranch "" "origin" branch
 
-    let envStr = (env.ToString().ToUpper())
+    let envStr = (tag.ToString().ToUpper())
     let version = envStr + "-" + getBuildVersion()
 
-    tagEnvironment envStr
-    tagVersion version
+    addTag envStr
+    addTagWithVersion version
 
-    if env = Prod then gitPush()
+    if tag = Prod then gitPush()
 
 let helmPackage _ =
     let version = getBuildVersion()

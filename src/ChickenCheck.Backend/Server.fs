@@ -47,15 +47,13 @@ let listChickens : HttpHandler =
                               TotalEggCount = c.TotalCount
                               EggCountOnDate = snd c.Count })
                     let user = getUser ctx
-                    return! ctx.WriteHtmlStringAsync (Chickens.layout model date |> App.layout user)
+                    return! ctx.WriteHtmlStringAsync (layout model date |> App.layout user)
                 }
 
 let setScheme : HttpHandler =
     fun next (ctx: HttpContext) ->
         task {
-            if ctx.Request.Headers.["x-forwarded-proto"] = StringValues "https" then
-
-                ctx.Request.Scheme <- "https"
+            if ctx.Request.Headers.["x-forwarded-proto"] = StringValues "https" then ctx.Request.Scheme <- "https"
             return! next ctx
         }
 let endpointPipe = pipeline {
@@ -69,12 +67,12 @@ let browserRouter = router {
     get "/" (redirectTo false (defaultRoute)) 
     get "/chickens" listChickens
     get "/login" Authentication.challenge
+    get "/logout" (Authentication.requiresLoggedIn >> Authentication.logout)
 }
 
 let secureBrowserRouter = router {
     pipe_through turbolinks
-    pipe_through Authentication.requireLoggedIn
-    get "/logout" Authentication.logout
+    pipe_through (Authentication.authorizeUser CompositionRoot.config.Authentication.AccessRole)
 }
 
 let apiErrorHandler (ex: Exception) (routeInfo: RouteInfo<HttpContext>) =
@@ -96,7 +94,7 @@ let secureApi : HttpHandler =
         |> Remoting.withErrorHandler apiErrorHandler
         |> Remoting.buildHttpHandler
     
-    Authentication.requireLoggedIn >=> api'
+    Authentication.authorizeUser CompositionRoot.config.Authentication.AccessRole >=> api'
     
 let health : HttpHandler =
     let checkHealth : HttpHandler =

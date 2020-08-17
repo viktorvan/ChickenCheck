@@ -6,6 +6,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.7.0] - 2020-08-17
+### Added
+* Role-based authorization
+
 ## [1.6.2] - 2020-08-11
 ### Changed
 * Use http, and instead set scheme according to x-forwarded-proto.

@@ -1,4 +1,4 @@
-module ChickenCheck.Backend.Authentication
+﻿module ChickenCheck.Backend.Authentication
 
 open Microsoft.AspNetCore.Authentication.Cookies
 open Giraffe
@@ -13,13 +13,18 @@ let challenge : HttpHandler =
             ctx.TryGetQueryStringValue "returnUrl"
             |> Option.defaultValue "/"
         task {
-            printfn "Using return url: %s" returnUrl
             do! ctx.ChallengeAsync("Auth0", AuthenticationProperties(RedirectUri = returnUrl))
             return! next ctx
         }
         
-let requireLoggedIn : HttpHandler = requiresAuthentication challenge
+let requiresLoggedIn : HttpHandler = requiresAuthentication challenge
+let authorizeUser role : HttpHandler = 
+    let forbidden =
+        RequestErrors.FORBIDDEN
+            "Permission denied. You do not have access to this application."
+    requiresLoggedIn >> requiresRole role forbidden
+
 let logout : HttpHandler =
-    Giraffe.Auth.signOut "Auth0"
-    >=> Giraffe.Auth.signOut CookieAuthenticationDefaults.AuthenticationScheme
+    Auth.signOut "Auth0"
+    >=> Auth.signOut CookieAuthenticationDefaults.AuthenticationScheme
     
