@@ -143,6 +143,9 @@ let verifyCleanWorkingDirectory _ =
     let currentBranchName = Git.Information.getBranchName "" 
     if (currentBranchName <> "master") then failwithf "Can only release master, current branch is: %s" currentBranchName 
 
+let verifyDockerInstallation _ =
+    Common.docker [ "version" ] ""
+
 let dotnetRestore _ = DotNet.restore id sln
 
 let runMigrations _ = Common.runMigrations migrationsPath connectionString
@@ -397,6 +400,7 @@ Target.create "DotnetPublishServer" dotnetPublishServer
 Target.create "DotnetPublishMigrations" dotnetPublishMigrations
 Target.create "Package" ignore
 Target.create "GitTagBuild" (gitTagDeployment Build)
+Target.create "VerifyDockerInstallation" verifyDockerInstallation
 Target.create "DockerBuild" dockerBuild
 Target.create "DockerPush" dockerPush
 Target.create "GitTagDockerDeployment" (gitTagDeployment Docker)
@@ -454,6 +458,7 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
 "Clean" ?=> "VerifyCleanWorkingDirectory"
 "VerifyCleanWorkingDirectory" ?=> "BundleClient"
 "VerifyCleanWorkingDirectory" ==> "CreateRelease"
+"VerifyDockerInstallation" ==> "DockerBuild"
 
 "DotnetRestore"
     ==> "WatchTests"
