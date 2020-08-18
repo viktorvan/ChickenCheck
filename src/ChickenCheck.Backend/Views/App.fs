@@ -6,7 +6,7 @@ open Feliz.Bulma.ViewEngine
 open ChickenCheck.Shared
 open ChickenCheck.Backend.Extensions
 
-let layout (user: User) content =
+let layout domain (user: User) content =
     let logInLink =
         Bulma.navbarItem.a [
             prop.disableTurbolinks
@@ -35,6 +35,7 @@ let layout (user: User) content =
             | ApiUser { Name = name } -> sprintf "ApiUser:%s" name
             | Anonymous -> "Anonymous"
         prop.custom (DataAttributes.User, userStr)
+        
     Html.html [
         Html.head [
             Html.meta [
@@ -65,6 +66,12 @@ let layout (user: User) content =
             Html.link [ 
                 prop.rel "manifest" 
                 prop.href "Icons/site.json"
+            ]
+            Html.script [
+                prop.async true
+                prop.defer true
+                prop.custom ("data-domain", domain)
+                prop.src "https://plausible.io/js/plausible.js"
             ]
             yield! Bundle.bundle
         ]

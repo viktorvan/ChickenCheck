@@ -47,7 +47,7 @@ let listChickens : HttpHandler =
                               TotalEggCount = c.TotalCount
                               EggCountOnDate = snd c.Count })
                     let user = getUser ctx
-                    return! ctx.WriteHtmlStringAsync (layout model date |> App.layout user)
+                    return! ctx.WriteHtmlStringAsync (layout model date |> App.layout CompositionRoot.config.Domain user)
                 }
 
 let setScheme : HttpHandler =

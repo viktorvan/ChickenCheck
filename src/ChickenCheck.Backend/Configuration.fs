@@ -15,7 +15,9 @@ type Config =
       ServerPort: uint16
       [<DefaultValue("../../output/server/public")>]
       PublicPath: string
-      Authentication: Authentication }
+      Authentication: Authentication
+      [<DefaultValue("localhost")>]
+      Domain: string }
 
 let configRoot =
     ConfigurationBuilder()
@@ -45,7 +47,8 @@ let config =
             {| ConnectionString = Database.ConnectionString.create config.ConnectionString
                ServerPort = config.ServerPort
                PublicPath = config.PublicPath |> Path.GetFullPath
-               Authentication = config.Authentication |}
+               Authentication = config.Authentication
+               Domain = config.Domain |}
         | Error msg ->
             match msg with
             | BadValue (name, msg) -> invalidArg name msg

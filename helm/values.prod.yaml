@@ -1,3 +1,5 @@
 authentication:
   clientId: "0HeTgJ3mt3HFKJc5KBmneWbQnNWvn0KZ" 
   accessRole: "chickencheck-prod"
+
+domain: chickens.viktorvan.com

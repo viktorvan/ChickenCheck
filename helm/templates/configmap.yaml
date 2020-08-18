@@ -8,3 +8,4 @@ data:
   ChickenCheck_Authentication__Domain: {{ .Values.authentication.domain }}
   ChickenCheck_Authentication__ClientId: {{ .Values.authentication.clientId }}
   ChickenCheck_Authentication__AccessRole: {{ .Values.authentication.accessRole }}
+  ChickenCheck_Domain: {{ .Values.domain }}
