@@ -133,12 +133,11 @@ let getEggCount (conn: ConnectionString) =
         |> List.map EggCountEntity.toDomain
         |> Map.ofList
 
-    fun (chickenIds: ChickenId list) { Year = year; Month = month; Day = day } ->
-        let dateTime = System.DateTime(year, month, day)
+    fun (chickenIds: ChickenId list) (date: NotFutureDate) ->
         let chickenStringIds = chickenIds |> List.map (fun (ChickenId id) -> id.ToString())
         async {
             use! connection = getConnection conn
-            let! entities = query connection sql !{| date = dateTime; chickenIds = chickenStringIds |}
+            let! entities = query connection sql !{| date = date.ToString(); chickenIds = chickenStringIds |}
             let result = toDomain entities
             return 
                 chickenIds 
@@ -170,7 +169,7 @@ let addEgg (conn: ConnectionString) =
             UPDATE Egg 
                 SET 
                     EggCount = EggCount + 1, 
-                    LastModified = date('now')
+                    LastModified = datetime('now')
                 WHERE ChickenId = @chickenId
                 AND Date = @date;
                   
@@ -181,14 +180,13 @@ let addEgg (conn: ConnectionString) =
             , Created
             , LastModified
             )
-            SELECT @chickenId, @date, 1 , date('now') , date('now')
+            SELECT @chickenId, @date, 1 , datetime('now') , datetime('now')
             WHERE (SELECT Changes() = 0);"""
 
-    fun (ChickenId id) date ->
-        let date = NotFutureDate.toDateTime date
+    fun (ChickenId id) (date: NotFutureDate) ->
         async {
             use! connection = getConnection conn
-            let! _ = execute connection sql !{| date = date; chickenId = id.ToString() |}
+            let! _ = execute connection sql !{| date = date.ToString(); chickenId = id.ToString() |}
             return ()
         }
 
@@ -197,7 +195,7 @@ let removeEgg (conn: ConnectionString) =
             UPDATE Egg 
                 SET 
                     EggCount = EggCount - 1, 
-                    LastModified = date('now')
+                    LastModified = datetime('now')
                 WHERE ChickenId = @chickenId
                 AND Date = @date;
                   
@@ -206,11 +204,10 @@ let removeEgg (conn: ConnectionString) =
             AND Date = @date
             AND EggCount < 1;"""
 
-    fun (ChickenId id) date ->
-        let date = NotFutureDate.toDateTime date
+    fun (ChickenId id) (date: NotFutureDate) ->
         async {
             use! connection = getConnection conn
-            let! _ = execute connection sql !{| chickenId = id.ToString(); date = date |}
+            let! _ = execute connection sql !{| chickenId = id.ToString(); date = date.ToString() |}
             return ()
         }
 

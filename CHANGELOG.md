@@ -6,6 +6,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.8.0] - 2020-08-18
+### Added
+* Plausible Analytics
+### Fixed
+* DateTime-format in database
+
 ## [1.7.0] - 2020-08-17
 ### Added
 * Role-based authorization
