@@ -67,7 +67,7 @@ let browserRouter = router {
     get "/" (redirectTo false (defaultRoute)) 
     get "/chickens" listChickens
     get "/login" Authentication.challenge
-    get "/logout" (Authentication.requiresLoggedIn >> Authentication.logout)
+    get "/logout" Authentication.logout
 }
 
 let secureBrowserRouter = router {
