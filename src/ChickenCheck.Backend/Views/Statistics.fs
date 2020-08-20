@@ -8,24 +8,25 @@ type Chicken =
     { Name: string
       EggCount: EggCount }
 
-let eggCountViews (chickens: Chicken list) =
-    let eggCountView (chicken: Chicken) =
-        Bulma.levelItem [
-            text.hasTextCentered
-            prop.children [
-                Html.div [
-                    Html.p [
-                        prop.classes [ "heading" ]
-                        prop.text chicken.Name
-                    ]
-                    Bulma.title.p chicken.EggCount.Value
+let private eggCountView (heading: string) (eggCount: int) =
+    Bulma.levelItem [
+        text.hasTextCentered
+        prop.children [
+            Html.div [
+                Html.p [
+                    prop.classes [ "heading" ]
+                    prop.text heading 
                 ]
+                Bulma.title.p eggCount
             ]
         ]
+    ]
+
+let eggCountViews (chickens: Chicken list) =
     
     chickens
     |> List.sortBy (fun c -> c.Name)
-    |> List.map eggCountView
+    |> List.map (fun c -> eggCountView c.Name c.EggCount.Value)
     |> Bulma.level
         
 
@@ -39,6 +40,7 @@ let layout (model: {| Chickens: Chicken list |}) =
         prop.style [ style.marginTop (length.px 10) ]
         prop.children [
             header
+            eggCountView "Totalt" (model.Chickens |> List.sumBy (fun c -> c.EggCount.Value))
             eggCountViews model.Chickens
         ]
     ]

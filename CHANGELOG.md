@@ -5,6 +5,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+* Expenses page
+* Statistics charts
+* DB Backup job
+* Changelog page, link from version in footer https://fsprojects.github.io/FSharp.Formatting/markdown.html
+
+## [1.8.1] - 2020-08-20
+### Added
+* Show total eggs in statistics
 
 ## [1.8.0] - 2020-08-18
 ### Added
