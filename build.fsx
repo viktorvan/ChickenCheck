@@ -118,6 +118,10 @@ let dockerPushImage imageName version =
 let getHelmPackageName() =
     Directory.findFirstMatchingFile "*.tgz" rootPath
 
+let escapeComma (str: string) =
+    str.Replace(",", "\,")
+
+
 //-----------------------------------------------------------------------------
 // Build Target Implementations
 //-----------------------------------------------------------------------------
@@ -333,7 +337,7 @@ let helmInstallDev _ =
         "--set"
         sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Dev.ClientSecret
         "--set"
-        sprintf "dataProtectionCertificatePassword=%s" ChickenCheckConfiguration.config.Value.DataProtectionCertificatePassword
+        sprintf "dataProtectionCertificatePassword=%s" ChickenCheckConfiguration.config.Value.DataProtectionCertificatePassword |> escapeComma
         getHelmPackageName()
     ]
 
@@ -378,7 +382,7 @@ let helmInstallProd _ =
         "--set"
         sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Prod.ClientSecret
         "--set"
-        sprintf "dataProtectionCertificatePassword=%s" ChickenCheckConfiguration.config.Value.DataProtectionCertificatePassword
+        sprintf "dataProtectionCertificatePassword=%s" ChickenCheckConfiguration.config.Value.DataProtectionCertificatePassword |> escapeComma
         getHelmPackageName()
     ]
 
