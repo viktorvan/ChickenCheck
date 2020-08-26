@@ -10,7 +10,8 @@ type Authentication =
       ClientId: string
       ClientSecret: string }
 type Config =
-    { Dev: Authentication 
+    { DataProtectionCertificatePassword: string
+      Dev: Authentication 
       Prod: Authentication }
 
 let configRoot =

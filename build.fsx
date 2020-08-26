@@ -332,6 +332,8 @@ let helmInstallDev _ =
         "./helm/values.dev.yaml"
         "--set"
         sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Dev.ClientSecret
+        "--set"
+        sprintf "dataProtection.certificatePassword=%s" ChickenCheckConfiguration.config.Value.DataProtectionCertificatePassword
         getHelmPackageName()
     ]
 
@@ -375,6 +377,8 @@ let helmInstallProd _ =
         "./helm/values.prod.yaml"
         "--set"
         sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Prod.ClientSecret
+        "--set"
+        sprintf "dataProtection.certificatePassword=%s" ChickenCheckConfiguration.config.Value.DataProtectionCertificatePassword
         getHelmPackageName()
     ]
 

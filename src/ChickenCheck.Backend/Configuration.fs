@@ -9,12 +9,19 @@ type Authentication =
       ClientId: string
       ClientSecret: string
       AccessRole: string }
+type DataProtection =
+    { [<DefaultValue("../../dataprotection/keys")>]
+      Path: string
+      [<DefaultValue("../../dataprotection/chickencheck.pfx")>]
+      Certificate: string
+      CertificatePassword: string }
 type Config =
     { ConnectionString: string
       [<DefaultValue("8085")>]
       ServerPort: uint16
       [<DefaultValue("../../output/server/public")>]
       PublicPath: string
+      DataProtection: DataProtection
       Authentication: Authentication
       [<DefaultValue("localhost")>]
       Domain: string }
@@ -47,6 +54,10 @@ let config =
             {| ConnectionString = Database.ConnectionString.create config.ConnectionString
                ServerPort = config.ServerPort
                PublicPath = config.PublicPath |> Path.GetFullPath
+               DataProtection = 
+                   {| Path = DirectoryInfo config.DataProtection.Path
+                      Certificate = config.DataProtection.Certificate
+                      CertificatePassword = config.DataProtection.CertificatePassword |}
                Authentication = config.Authentication
                Domain = config.Domain |}
         | Error msg ->

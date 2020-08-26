@@ -3,6 +3,11 @@ authentication:
   clientId: "client-id"
   clientSecret: "client-secret"
 
+dataProtection:
+  path: /var/lib/chickencheck/dataprotection/keys
+  certificate: /var/lib/chickencheck/dataprotection/chickencheck.pfx
+  certificatePassword: password
+
 applicationPort: 8085
 externalPort: 443
   

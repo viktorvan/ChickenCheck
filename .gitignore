@@ -61,3 +61,6 @@ tmp.fsx
 
 **/build
 chickencheck*.tgz
+
+#keys
+dataprotection

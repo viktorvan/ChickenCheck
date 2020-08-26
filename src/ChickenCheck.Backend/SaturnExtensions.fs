@@ -34,7 +34,7 @@ type Application.ApplicationBuilder with
         { state with
             AppConfigs = middleware::state.AppConfigs
             WebHostConfigs = host::state.WebHostConfigs }
-    
+            
     [<CustomOperation("use_auth0_open_id")>]
     member __.UseAuth0OpenId(state: ApplicationState) =
         // https://auth0.com/docs/quickstart/webapp/aspnet-core-3?download=true#install-and-configure-openid-connect-middleware
