@@ -35,6 +35,20 @@ let layout domain (user: User) content =
             | ApiUser { Name = name } -> sprintf "ApiUser:%s" name
             | Anonymous -> "Anonymous"
         prop.custom (DataAttributes.User, userStr)
+
+    let githubLink =
+        Html.a [
+            prop.href "https://github.com/viktorvan/chickencheck"
+            prop.children [
+                Bulma.icon [
+                    prop.children [
+                        Html.i [
+                            prop.classes [ "fab fa-fw fa-github" ]
+                        ]
+                    ]
+                ]
+            ]
+        ]
         
     Html.html [
         Html.head [
@@ -117,6 +131,7 @@ let layout domain (user: User) content =
                 ]
                 content
                 Bulma.footer [
+                    githubLink
                     Html.text ("Version: " + Version.version)
                 ]
             ]
