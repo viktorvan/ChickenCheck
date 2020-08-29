@@ -9,6 +9,7 @@
     <ItemGroup>
         <Compile Include="ScrollPositionService.fs" />
         <Compile Include="BrowserService.fs" />
+        <Compile Include="PlausibleAnalytics.fs" />
         <Compile Include="Turbolinks.fs" />
         <Compile Include="HtmlHelper.fs" />
         <Compile Include="DatePicker.fs" />

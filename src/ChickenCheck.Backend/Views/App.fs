@@ -87,6 +87,9 @@ let layout domain (user: User) content =
                 prop.custom ("data-domain", domain)
                 prop.src "https://plausible.io/js/plausible.js"
             ]
+            Html.script [
+                Html.text "window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }"
+            ]
             yield! Bundle.bundle
         ]
         Html.body [

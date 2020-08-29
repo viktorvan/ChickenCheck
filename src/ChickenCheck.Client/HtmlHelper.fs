@@ -59,3 +59,10 @@ module EventTargets =
         |> isNavbarBurger
         |> Option.map (fun _ -> NavbarBurger)
         
+    let (|GithubRepoLink|_|) (target: Element) =
+        let isGithubLink (target: Element) =
+            target.closest("""a[href="https://github.com/viktorvan/chickencheck"]""")
+            
+        target
+        |> isGithubLink
+        |> Option.map (fun _ -> GithubRepoLink)

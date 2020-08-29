@@ -17,6 +17,7 @@ document.onclick <-
         | ChickenCard chickenId -> ifAuthenticated CompositionRoot.addEgg chickenId 
         | EggIcon chickenId -> ifAuthenticated CompositionRoot.removeEgg chickenId 
         | NavbarBurger -> CompositionRoot.toggleNavbarMenu()
+        | GithubRepoLink -> PlausibleAnalytics.raiseCustomEvent "GithubRepo"
         | _ -> ()
 
 document.addEventListener("turbolinks:load", fun _ ->
