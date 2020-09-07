@@ -1,3 +1,4 @@
+{{ if .Values.runBackup }}
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
@@ -32,3 +33,4 @@ spec:
               persistentVolumeClaim:
                 claimName: {{ .Release.Name }}-claim
           restartPolicy: OnFailure
+{{ end }}
