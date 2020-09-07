@@ -9,24 +9,26 @@ metadata:
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
 spec:
   schedule: "5 23 * * *"
-  jobtemplate:
+  jobTemplate:
     metadata:
       name: "{{ .Release.Name }}-dbbackup"
       labels:
         app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    
     spec:
-      restartPolicy: OnFailure
-      containers:
-      - name: {{ .Release.Name }}-dbbackup
-        image: "localhost:32000/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
-        command: ["dotnet", "dbBackup/ChickenCheck.DbBackup.dll", "--databasepath", {{ .Values.databasePath }}/{{ .Values.databaseName }}, "--azurestorageconnectionstring", {{ .Values.azureStorageConnectionString }}]
-        volumeMounts:
-          - name: {{ .Release.Name }}-pvc
-            mountPath: {{ .Values.databasePath }}
-      volumes:
-        - name: {{ .Release.Name }}-pvc
-          persistentVolumeClaim:
-            claimName: {{ .Release.Name }}-claim
-
+      template:
+        spec:
+          containers:
+          - name: {{ .Release.Name }}-dbbackup
+            image: "localhost:32000/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
+            command: ["dotnet", "dbBackup/ChickenCheck.DbBackup.dll", "--databasepath", {{ .Values.databasePath }}/{{ .Values.databaseName }}, "--azurestorageconnectionstring", {{ .Values.azureStorageConnectionString }}]
+            volumeMounts:
+              - name: {{ .Release.Name }}-pvc
+                mountPath: {{ .Values.databasePath }}
+          volumes:
+            - name: {{ .Release.Name }}-pvc
+              persistentVolumeClaim:
+                claimName: {{ .Release.Name }}-claim
+          restartPolicy: OnFailure
