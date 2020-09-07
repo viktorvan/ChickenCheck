@@ -5,3 +5,6 @@ authentication:
 domain: chickens.viktorvan.com
 
 replicaCount: 2
+
+runBackup: true
+azureStorageConnectionString: "azure connection string"

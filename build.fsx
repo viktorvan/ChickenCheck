@@ -34,13 +34,14 @@ let src = rootPath @@ "src"
 let serverPath = src @@ "ChickenCheck.Backend"
 let serverProj = serverPath @@ "ChickenCheck.Backend.fsproj"
 let migrationsPath = src @@ "ChickenCheck.Migrations"
+let dbBackupPath = src @@ "ChickenCheck.DbBackup"
 let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.UnitTests"
 let webTestsPath = rootPath @@ "test" @@ "ChickenCheck.WebTests"
 let connectionString = sprintf "Data Source=%s/database-dev.db" serverPath
 let dockerRegistry = "192.168.50.201:32000"
 let appName = "chickencheck"
-let serverDockerFile = serverPath @@ "Dockerfile"
-let migrationsDockerFile = migrationsPath @@ "Dockerfile"
+let serverDockerfile = "Backend.Dockerfile"
+let toolsDockerfile = "Tools.Dockerfile"
 let arm64ImageSuffix = "-arm64"
 let dockerWebTestContainerName = "chickencheckwebtest"
 let srcGlob = src @@ "**/*.??proj"
@@ -218,11 +219,28 @@ let dotnetPublishMigrations ctx =
             OutputPath = Some (outputDir @@ "migrations")
         }) migrationsPath
 
+let dotnetPublishDbBackup ctx =
+    let args =
+        [
+            sprintf "/p:PackageVersion=%s" (fullVersion semVersion).AsString
+        ]
+    DotNet.publish(fun c ->
+        { c with
+            Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+            NoBuild = true
+            NoRestore = true
+            SelfContained = Some false
+            Common =
+                c.Common
+                |> DotNet.Options.withAdditionalArgs args
+            OutputPath = Some (outputDir @@ "dbbackup")
+        }) dbBackupPath
+
 let dockerBuild _ =
     Common.docker [ "--version" ] ""
     let tag = getBuildVersion() + arm64ImageSuffix
-    dockerBuildImage serverDockerFile appName tag
-    dockerBuildImage migrationsDockerFile (appName + "-migrations") tag
+    dockerBuildImage serverDockerfile appName tag
+    dockerBuildImage toolsDockerfile (appName + "-tools") tag
 
 let dockerPush _ =
     let tag = getBuildVersion() + arm64ImageSuffix
@@ -383,6 +401,8 @@ let helmInstallProd _ =
         sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Prod.ClientSecret
         "--set"
         sprintf "dataProtectionCertificatePassword=%s" ChickenCheckConfiguration.config.Value.DataProtectionCertificatePassword |> escapeComma
+        "--set"
+        sprintf "azureStorageConnectionString=%s" ChickenCheckConfiguration.config.Value.Backup.AzureStorageConnectionString
         getHelmPackageName()
     ]
 
@@ -406,6 +426,7 @@ Target.create "WatchTests" watchTests
 Target.create "Build" ignore
 Target.create "DotnetPublishServer" dotnetPublishServer
 Target.create "DotnetPublishMigrations" dotnetPublishMigrations
+Target.create "DotnetPublishDbBackup" dotnetPublishDbBackup
 Target.create "Package" ignore
 Target.create "GitTagBuild" (gitTagDeployment Build)
 Target.create "VerifyDockerInstallation" verifyDockerInstallation

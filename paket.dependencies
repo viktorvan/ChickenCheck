@@ -89,3 +89,13 @@ group Build
     nuget Fake.Core.UserInput
     nuget FsConfig
     nuget Microsoft.Extensions.Configuration.UserSecrets 
+
+group DbBackup
+    source https://api.nuget.org/v3/index.json
+    framework: netcoreapp3.1
+    storage: none
+
+    nuget FSharp.Core
+    nuget Argu
+    nuget Microsoft.Azure.Storage.Blob
+    nuget TaskBuilder.fs

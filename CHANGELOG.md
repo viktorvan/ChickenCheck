@@ -8,8 +8,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 * Expenses page
 * Statistics charts
-* DB Backup job
 * Changelog page, link from version in footer https://fsprojects.github.io/FSharp.Formatting/markdown.html
+
+
+## [1.8.2] - 2020-09-07
+### Added
+* DB Backup job
 
 ## [1.8.1] - 2020-08-20
 ### Added

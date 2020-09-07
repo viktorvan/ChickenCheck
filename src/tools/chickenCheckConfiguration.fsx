@@ -9,10 +9,13 @@ type Authentication =
     { Domain: string
       ClientId: string
       ClientSecret: string }
+type Backup =
+    { AzureStorageConnectionString: string}
 type Config =
     { DataProtectionCertificatePassword: string
       Dev: Authentication 
-      Prod: Authentication }
+      Prod: Authentication
+      Backup: Backup }
 
 let configRoot =
     ConfigurationBuilder()

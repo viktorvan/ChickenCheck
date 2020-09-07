@@ -20,7 +20,6 @@ with
 
 let parser = ArgumentParser.Create<CLIArguments>(programName = "ChickenCheck.Migrations.exe")
 
-
 let printUsage() = parser.PrintUsage() |> printfn "%s"
 
 [<EntryPoint>]

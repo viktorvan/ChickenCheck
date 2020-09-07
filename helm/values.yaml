@@ -14,3 +14,5 @@ replicaCount: 1
 
 databasePath: "/var/lib/chickencheck"
 databaseName: "database.db"
+
+runBackup: false

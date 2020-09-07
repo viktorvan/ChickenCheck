@@ -1,31 +1,27 @@
 apiVersion: batch/v1
-kind: Job
+kind: CronJob
 metadata:
-  name: "{{ .Release.Name }}-migrations"
+  name: "{{ .Release.Name }}-dbbackup"
   labels:
     app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
     app.kubernetes.io/instance: {{ .Release.Name | quote }}
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-  annotations:
-    # This is what defines this resource as a hook. Without this line, the
-    # job is considered part of the release.
-    "helm.sh/hook": pre-upgrade
-    "helm.sh/hook-weight": "-5"
 spec:
-  template:
+  schedule: "5 23 * * *"
+  jobtemplate:
     metadata:
-      name: "{{ .Release.Name }}-migrations"
+      name: "{{ .Release.Name }}-dbbackup"
       labels:
         app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     spec:
-      restartPolicy: Never
+      restartPolicy: OnFailure
       containers:
-      - name: {{ .Release.Name }}-migrations
+      - name: {{ .Release.Name }}-dbbackup
         image: "localhost:32000/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
-        command: ["dotnet", "migrations/ChickenCheck.Migrations.dll", "--connectionstring", {{ include "helpers.connectionString" . }}]
+        command: ["dotnet", "dbBackup/ChickenCheck.DbBackup.dll", "--databasepath", {{ .Values.databasePath }}/{{ .Values.databaseName }}, "--azurestorageconnectionstring", {{ .Values.azureStorageConnectionString }}]
         volumeMounts:
           - name: {{ .Release.Name }}-pvc
             mountPath: {{ .Values.databasePath }}
@@ -34,5 +30,3 @@ spec:
           persistentVolumeClaim:
             claimName: {{ .Release.Name }}-claim
 
-  backoffLimit: 0
-  activeDeadlineSeconds: 30

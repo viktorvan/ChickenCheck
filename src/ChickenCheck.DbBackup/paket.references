@@ -1,0 +1,4 @@
+group DbBackup
+    Argu
+    Microsoft.Azure.Storage.Blob
+    TaskBuilder.fs
