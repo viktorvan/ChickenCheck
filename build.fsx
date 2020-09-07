@@ -245,7 +245,7 @@ let dockerBuild _ =
 let dockerPush _ =
     let tag = getBuildVersion() + arm64ImageSuffix
     dockerPushImage appName tag
-    dockerPushImage (appName + "-migrations") tag
+    dockerPushImage (appName + "-tools") tag
 
 let runUnitTests ctx =
     let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
