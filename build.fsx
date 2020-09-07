@@ -469,6 +469,7 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
     ==> "Build"
     ==> "DotnetPublishServer"
     ==> "DotnetPublishMigrations"
+    ==> "DotnetPublishDbBackup"
     ==> "GitTagBuild"
     ==> "Package"
     ==> "DockerBuild"
