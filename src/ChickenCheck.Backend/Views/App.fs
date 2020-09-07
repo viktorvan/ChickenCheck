@@ -42,7 +42,6 @@ let layout domain (user: User) content =
             prop.children [
                 Bulma.icon [
                     prop.children [
-                        d
                         Html.i [
                             prop.classes [ "fab fa-fw fa-github" ]
                         ]
