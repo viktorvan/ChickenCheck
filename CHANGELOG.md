@@ -10,6 +10,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Statistics charts
 * Changelog page, link from version in footer https://fsprojects.github.io/FSharp.Formatting/markdown.html
 
+## [1.8.3] - 2020-09-08
+### Fixed
+* DbBackup job filename bug.
+
 
 ## [1.8.2] - 2020-09-07
 ### Added

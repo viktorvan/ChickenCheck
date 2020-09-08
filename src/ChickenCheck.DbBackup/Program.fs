@@ -26,12 +26,12 @@ let uploadFile : UploadFile =
     fun (ConnString conn) (Path filepath) ->
         let storageAccount = CloudStorageAccount.Parse(conn)   
         let blobClient = storageAccount.CreateCloudBlobClient()
-        let suffix = DateTime.UtcNow.ToString("yyyyMMddHHmm")
+        let suffix() = DateTime.UtcNow.ToString("yyyyMMddHHmm")
         
         task {
             let container = blobClient.GetContainerReference("chickencheck-backups")
             let! _ = container.CreateIfNotExistsAsync() 
-            let blockBlob = container.GetBlockBlobReference(sprintf "chickencheck_db_backup_%s.db" suffix)
+            let blockBlob = container.GetBlockBlobReference(sprintf "chickencheck_db_backup_%s.db" (suffix()))
             return! blockBlob.UploadFromFileAsync filepath
         }
     
