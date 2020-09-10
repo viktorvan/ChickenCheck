@@ -6,6 +6,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+* Antiforgery token
 * Expenses page
 * Statistics charts
 * Changelog page, link from version in footer https://fsprojects.github.io/FSharp.Formatting/markdown.html

@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
 spec:
-  schedule: "5 23 * * *"
+  schedule: "*/5 * * * *"
   jobTemplate:
     metadata:
       name: "{{ .Release.Name }}-dbbackup"
@@ -24,10 +24,17 @@ spec:
           containers:
           - name: {{ .Release.Name }}-dbbackup
             image: "localhost:32000/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
-            command: ["dotnet", "dbBackup/ChickenCheck.DbBackup.dll", "--databasepath", {{ .Values.databasePath }}/{{ .Values.databaseName }}, "--azurestorageconnectionstring", {{ .Values.azureStorageConnectionString }}]
+            command: ["dotnet", "dbBackup/ChickenCheck.DbBackup.dll", "--databasepath", {{ .Values.databasePath }}/{{ .Values.databaseName }}]
             volumeMounts:
               - name: {{ .Release.Name }}-pvc
                 mountPath: {{ .Values.databasePath }}
+
+            env:
+              - name: ChickenCheck_DbBackup__AzureStorageConnectionString
+                valueFrom:
+                  secretKeyRef:
+                    name: {{ .Release.Name }}-secret
+                    key: AzureStorageConnectionString
           volumes:
             - name: {{ .Release.Name }}-pvc
               persistentVolumeClaim:
