@@ -10,6 +10,7 @@ metadata:
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
 spec:
   schedule: "*/5 * * * *"
+  startingDeadlineSeconds: 10
   successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 1
   jobTemplate:
