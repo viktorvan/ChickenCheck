@@ -28,7 +28,7 @@ spec:
           containers:
           - name: {{ .Release.Name }}-dbbackup
             image: "localhost:32000/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
-            command: ["dotnet", "dbBackup/ChickenCheck.DbBackup.dll", "--databasepath", {{ .Values.databasePath }}/{{ .Values.databaseName }}]
+            command: ["dotnet", "dbbackup/ChickenCheck.DbBackup.dll", "--databasepath", {{ .Values.databasePath }}/{{ .Values.databaseName }}]
             volumeMounts:
               - name: {{ .Release.Name }}-pvc
                 mountPath: {{ .Values.databasePath }}
