@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/version: {{ .Chart.AppVersion }}
     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
 spec:
-  schedule: "*/5 * * * *"
+  schedule: "55 23 * * *"
   startingDeadlineSeconds: 10
   concurrencyPolicy: Replace
   successfulJobsHistoryLimit: 2
