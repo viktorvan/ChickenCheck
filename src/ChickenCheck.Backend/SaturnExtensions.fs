@@ -1,6 +1,7 @@
 module ChickenCheck.Backend.SaturnExtensions
 
 open System.IO
+open ChickenCheck.Backend.Configuration
 open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Authentication.OpenIdConnect
@@ -15,7 +16,6 @@ open Microsoft.IdentityModel.Protocols.OpenIdConnect
 open Microsoft.IdentityModel.Tokens
 open Microsoft.Net.Http.Headers
 open Saturn
-open ChickenCheck.Backend
 open ChickenCheck.Shared
 
 type Application.ApplicationBuilder with
@@ -36,7 +36,7 @@ type Application.ApplicationBuilder with
             WebHostConfigs = host::state.WebHostConfigs }
             
     [<CustomOperation("use_auth0_open_id")>]
-    member __.UseAuth0OpenId(state: ApplicationState) =
+    member __.UseAuth0OpenId(state: ApplicationState, config: Authentication) =
         // https://auth0.com/docs/quickstart/webapp/aspnet-core-3?download=true#install-and-configure-openid-connect-middleware
         
         let toAbsolutePath (req: HttpRequest) (path: string) =
@@ -64,9 +64,9 @@ type Application.ApplicationBuilder with
                     o.DefaultChallengeScheme <- CookieAuthenticationDefaults.AuthenticationScheme)
                 .AddCookie()
                 .AddOpenIdConnect("Auth0", fun (o:OpenIdConnectOptions) ->
-                    o.Authority <- sprintf "https://%s" CompositionRoot.config.Authentication.Domain
-                    o.ClientId <- CompositionRoot.config.Authentication.ClientId
-                    o.ClientSecret <- CompositionRoot.config.Authentication.ClientSecret
+                    o.Authority <- sprintf "https://%s" config.Domain
+                    o.ClientId <- config.ClientId
+                    o.ClientSecret <- config.ClientSecret
                     o.ResponseType <- OpenIdConnectResponseType.Code
                     o.Scope.Add "openid"
                     o.CallbackPath <- PathString "/callback" // Also ensure that you have added the URL as an Allowed Callback URL in your Auth0 dashboard
@@ -74,7 +74,7 @@ type Application.ApplicationBuilder with
                     o.TokenValidationParameters <- TokenValidationParameters(NameClaimType = "name", RoleClaimType = sprintf "https://schemas.viktorvan.com/roles")
                     o.Events <- OpenIdConnectEvents(
                         OnRedirectToIdentityProviderForSignOut = (fun ctx ->
-                            let logoutUri = sprintf "https://%s/v2/logout?client_id=%s" CompositionRoot.config.Authentication.Domain CompositionRoot.config.Authentication.ClientId
+                            let logoutUri = sprintf "https://%s/v2/logout?client_id=%s" config.Domain config.ClientId
                             
                             let redirectQueryParameter =
                                 ctx.Properties.RedirectUri

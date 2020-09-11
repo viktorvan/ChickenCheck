@@ -22,9 +22,10 @@
     <Compile Include="Views\Statistics.fs" />
     <Compile Include="Views\Chickens.fs" />
     <Compile Include="Turbolinks.fs" />
-    <Compile Include="CompositionRoot.fs" />
-    <Compile Include="SaturnExtensions.fs" />
     <Compile Include="Authentication.fs" />
+    <Compile Include="SaturnExtensions.fs" />
+    <Compile Include="CompositionRoot.fs" />
+    <Compile Include="ChickensController.fs" />
     <Compile Include="Server.fs" />
   </ItemGroup>
   <ItemGroup>
