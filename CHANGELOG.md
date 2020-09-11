@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Expenses page
 * Statistics charts
 * Changelog page, link from version in footer https://fsprojects.github.io/FSharp.Formatting/markdown.html
+
+
+## [1.9.3] - 2020-09-11
 ### Fix
 * Flaky health-check webtest
 

@@ -28,9 +28,10 @@ let main args =
     Chickens.all rootUrl
 
     "Health endpoint returns time in timezone /Europe/Stockholm" &&& fun _ ->
-        let now = DateTime.Now
         url (rootUrl + "/health")
-        contains (now.ToString("yyyy-MM-dd hh:mm")) (read "#healthCheckTime")
+        let actual = read "#healthCheckTime"
+        let expected = DateTime.Now.ToString("yyyy-MM-dd hh:mm")
+        contains expected actual
         
     run()
     

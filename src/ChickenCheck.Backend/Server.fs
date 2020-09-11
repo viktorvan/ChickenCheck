@@ -34,7 +34,6 @@ let browserRouter =
     router {
         pipe_through turbolinks
         get "/" (redirectTo false (CompositionRoot.defaultRoute))
-        get "/test" (fun next ctx -> Response.accepted ctx ())
         get "/login" Authentication.challenge
         get "/logout" Authentication.logout
         forward "/chickens" (ChickensController.chickensController)
