@@ -6,10 +6,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
-* Antiforgery token
 * Expenses page
 * Statistics charts
 * Changelog page, link from version in footer https://fsprojects.github.io/FSharp.Formatting/markdown.html
+
+
+## [1.9.1] - 2020-09-11
+### Added
+* Antiforgery token
+
+### Changed
+* Replace Fable.Remoting with Saturn controllers and Fable.SimpleHttp
 
 ## [1.8.3] - 2020-09-08
 ### Fixed
