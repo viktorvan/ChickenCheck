@@ -9,7 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Expenses page
 * Statistics charts
 * Changelog page, link from version in footer https://fsprojects.github.io/FSharp.Formatting/markdown.html
+### Fix
+* Flaky health-check webtest
 
+## [1.9.2] - 2020-09-11
+### Changed
+* Chickens page header to show total egg count for day
 
 ## [1.9.1] - 2020-09-11
 ### Added
