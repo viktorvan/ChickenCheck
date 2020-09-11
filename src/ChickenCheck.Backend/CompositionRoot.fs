@@ -23,13 +23,7 @@ let chickenStore = Database.ChickenStore config.ConnectionString
 
 // workflows
 let healthCheck() = Workflows.healthCheck chickenStore ()
-    
 let getAllChickens date = Workflows.getAllChickens chickenStore date
-    
 let addEgg (chicken, date) = Workflows.addEgg chickenStore chicken date
-    
 let removeEgg (chicken, date) = Workflows.removeEgg chickenStore chicken date
 
-let api : IChickensApi =
-    { AddEgg = addEgg
-      RemoveEgg = removeEgg }
