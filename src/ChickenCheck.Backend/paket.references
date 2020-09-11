@@ -1,7 +1,6 @@
 group Backend
 FsToolkit.ErrorHandling
 FsToolkit.ErrorHandling.TaskResult
-Fable.Remoting.Giraffe
 Dapper
 Microsoft.Data.Sqlite
 FsConfig

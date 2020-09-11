@@ -14,7 +14,6 @@ group Backend
     storage: none
 
     nuget Giraffe
-    nuget Fable.Remoting.Giraffe
     nuget Saturn
     nuget Saturn.Extensions.Authorization
 
@@ -38,8 +37,8 @@ group Client
 
     nuget Fable.Core ~> 3
     nuget fstoolkit.errorhandling
-    nuget Fable.Remoting.Client 5.10.2
     nuget Fable.Browser.Dom
+    nuget Fable.SimpleHttp
 
 group Migrations
     source https://api.nuget.org/v3/index.json

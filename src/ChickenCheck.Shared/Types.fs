@@ -52,8 +52,8 @@ type AuthenticationSettings =
       Audience: string }
 
 type IChickensApi =
-    { AddEgg: ChickenId * NotFutureDate -> Async<unit>
-      RemoveEgg: ChickenId * NotFutureDate -> Async<unit> }
+    abstract AddEgg: ChickenId * NotFutureDate -> Async<unit>
+    abstract RemoveEgg: ChickenId * NotFutureDate -> Async<unit>
 
 // types - implementation
 

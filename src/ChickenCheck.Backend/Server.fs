@@ -1,13 +1,14 @@
 module Server.Startup
 
 open System
-open System.IO
 open System.Security.Cryptography.X509Certificates
 open ChickenCheck.Backend
 open ChickenCheck.Backend.Turbolinks
 open ChickenCheck.Backend.Views
 open ChickenCheck.Backend.Views.Chickens
+open Feliz.ViewEngine
 open Giraffe
+open Microsoft.AspNetCore.Antiforgery
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Primitives
@@ -17,8 +18,6 @@ open ChickenCheck.Shared
 open FSharp.Control.Tasks.V2.ContextInsensitive
 open FsToolkit.ErrorHandling
 open Microsoft.Extensions.Logging
-open Fable.Remoting.Server
-open Fable.Remoting.Giraffe
 open ChickenCheck.Backend.SaturnExtensions
 
 
@@ -34,7 +33,19 @@ let getUser (ctx: HttpContext) =
                   |> Option.map (fun c -> c.Value)
                   |> Option.defaultValue "unknown" }
     | _ -> Anonymous
-
+    
+let csrfTokenInput (ctx: HttpContext) =
+        match ctx.GetService<IAntiforgery>() with
+        | null -> failwith "missing Antiforgery feature, setup with Saturn pipeline with 'use_antiforgery'"
+        | antiforgery ->
+            let tokens = antiforgery.GetAndStoreTokens(ctx)
+            Html.input [
+                prop.id "RequestVerificationToken"
+                prop.name tokens.FormFieldName
+                prop.value tokens.RequestToken
+                prop.type'.hidden
+            ]
+                               
 let listChickens: HttpHandler =
     fun next (ctx: HttpContext) ->
         ctx.TryGetQueryStringValue "date"
@@ -60,7 +71,34 @@ let listChickens: HttpHandler =
 
                 return! ctx.WriteHtmlStringAsync
                             (layout model date
-                             |> App.layout CompositionRoot.config.Domain user)
+                             |> App.layout (csrfTokenInput ctx) CompositionRoot.config.Domain user)
+            }
+
+let listChickens2 (ctx: HttpContext) =
+        ctx.TryGetQueryStringValue "date"
+        |> Option.map NotFutureDate.tryParse
+        |> Option.defaultValue (NotFutureDate.today () |> Ok)
+        |> function
+        | Error _ -> Controller.redirect ctx (defaultRoute) 
+        | Ok date ->
+            task {
+                let! chickensWithEggCounts = CompositionRoot.getAllChickens date
+
+                let model =
+                    chickensWithEggCounts
+                    |> List.map (fun c ->
+                        { Id = c.Chicken.Id
+                          Name = c.Chicken.Name
+                          ImageUrl = c.Chicken.ImageUrl
+                          Breed = c.Chicken.Breed
+                          TotalEggCount = c.TotalCount
+                          EggCountOnDate = snd c.Count })
+
+                let user = getUser ctx
+
+                return! ctx.WriteHtmlStringAsync
+                            (layout model date
+                             |> App.layout (csrfTokenInput ctx) CompositionRoot.config.Domain user)
             }
 
 let setScheme: HttpHandler =
@@ -77,47 +115,53 @@ let endpointPipe =
         plug setScheme
         plug head
     }
+    
+let eggsController (chickenId: string) =
+    let addEgg ctx (date: string) =
+        task {
+            let chickenId = ChickenId.parse chickenId
+            let date = NotFutureDate.parse date
+            let! _ = CompositionRoot.addEgg (chickenId, date)
+            return! Response.accepted ctx ()
+        }
+        
+    let removeEgg (ctx: HttpContext) (date: string) = 
+        task {
+            let chickenId = ChickenId.parse chickenId
+            let date = NotFutureDate.parse date
+            let! _ = CompositionRoot.removeEgg (chickenId, date)
+            return! Response.accepted ctx ()
+        }
+    
+    controller {
+        plug [All] (Authentication.authorizeUser CompositionRoot.config.Authentication.AccessRole >=> protectFromForgery >=> turbolinks) 
+        update addEgg
+        delete removeEgg
+    }
+    
+let chickensController =
+    controller {
+        subController "/eggs" eggsController
+        index listChickens2
+    }
 
 let browserRouter =
     router {
         pipe_through turbolinks
         get "/" (redirectTo false (defaultRoute))
-        get "/chickens" listChickens
+        get "/test" (fun next ctx -> Response.accepted ctx ())
+//        get "/chickens" listChickens
         get "/login" Authentication.challenge
         get "/logout" Authentication.logout
+        forward "/chickens" chickensController
     }
+    
 
 let secureBrowserRouter =
     router {
         pipe_through turbolinks
         pipe_through (Authentication.authorizeUser CompositionRoot.config.Authentication.AccessRole)
     }
-
-let apiErrorHandler (ex: Exception) (routeInfo: RouteInfo<HttpContext>) =
-    // do some logging
-    let logger =
-        routeInfo.httpContext.GetService<ILogger<IChickensApi>>()
-
-    let msg =
-        sprintf "Error at %s on method %s" routeInfo.path routeInfo.methodName
-
-    logger.LogError(ex, msg)
-    // decide whether or not you want to propagate the error to the client
-    Ignore
-
-let secureApi: HttpHandler =
-    let api' =
-        Remoting.createApi ()
-        |> Remoting.withRouteBuilder Route.builder
-        |> Remoting.fromValue CompositionRoot.api
-#if DEBUG
-        |> Remoting.withDiagnosticsLogger (printfn "%s")
-#endif
-        |> Remoting.withErrorHandler apiErrorHandler
-        |> Remoting.buildHttpHandler
-
-    Authentication.authorizeUser CompositionRoot.config.Authentication.AccessRole
-    >=> api'
 
 let health: HttpHandler =
     let checkHealth: HttpHandler =
@@ -146,8 +190,8 @@ let notFoundHandler: HttpHandler =
 let webApp =
     choose [ health
              browserRouter
-             secureBrowserRouter
-             secureApi
+//             secureBrowserRouter
+//             secureApi
              notFoundHandler ]
 
 let configureServices (services: IServiceCollection) =
@@ -170,13 +214,14 @@ let errorHandler: ErrorHandler =
 
             logger.LogError(exn, msg)
             Response.internalError ctx ()
-
+            
 application {
     error_handler errorHandler
     pipe_through endpointPipe
     url ("http://*:" + CompositionRoot.config.ServerPort.ToString() + "/")
     service_config configureServices
     use_auth0_open_id
+    use_antiforgery
     use_router webApp
     use_cached_static_files_with_max_age CompositionRoot.config.PublicPath 31536000
     use_gzip

@@ -1,5 +1,5 @@
 group Client
     FsToolkit.Errorhandling
     Fable.Core
-    Fable.Remoting.Client
     Fable.Browser.Dom
+    Fable.SimpleHttp

@@ -17,6 +17,10 @@ let toggleClass className (e: Element) =
         else
             e.className + " " + className
     e.className <- newClasses
+    
+module Csrf =
+    let getToken() =
+        document.getElementById("RequestVerificationToken")?value
         
 module DataAttributes =
     

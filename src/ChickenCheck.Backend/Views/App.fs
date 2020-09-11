@@ -6,7 +6,7 @@ open Feliz.Bulma.ViewEngine
 open ChickenCheck.Shared
 open ChickenCheck.Backend.Extensions
 
-let layout domain (user: User) content =
+let layout csrfTokenInput domain (user: User) content =
     let logInLink =
         Bulma.navbarItem.a [
             prop.disableTurbolinks
@@ -95,6 +95,7 @@ let layout domain (user: User) content =
         Html.body [
             userAttribute
             prop.children [
+                csrfTokenInput
                 Bulma.navbar [
                     prop.id "chickencheck-navbar"
                     prop.custom ("data-turbolinks-permanent", "")
