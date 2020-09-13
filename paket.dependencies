@@ -29,7 +29,7 @@ group Backend
     nuget Feliz.Bulma.ViewEngine
     nuget Microsoft.AspNetCore.Authentication.Cookies
     nuget Microsoft.AspNetCore.Authentication.OpenIdConnect
-
+    
 group Client
     source https://api.nuget.org/v3/index.json
     framework: netstandard2.0

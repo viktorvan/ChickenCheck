@@ -155,12 +155,12 @@ let dotnetRestore _ = DotNet.restore id sln
 
 let runMigrations _ = Common.runMigrations migrationsPath connectionString
 
-let writeVersionToFile  _ =
+let writeVersionToFile _ =
     let sb = System.Text.StringBuilder("module Version\n\n")
     Printf.bprintf sb "    let version = \"%s\"\n" (getBuildVersion())
 
     File.writeString false (serverPath @@ "Version.fs") (sb.ToString())
-
+    
 let installClient _ =
     printfn "Node version:"
     Common.node [ "--version" ] rootPath

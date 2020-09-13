@@ -136,7 +136,13 @@ let layout csrfTokenInput domain (user: User) content =
                 content
                 Bulma.footer [
                     githubLink
-                    Html.text ("Version: " + Version.version)
+                    Html.span [
+                        Html.text "Version: "
+                        Html.a [
+                            prop.href "https://github.com/viktorvan/ChickenCheck/blob/master/CHANGELOG.md"
+                            prop.target.blank
+                            prop.text Version.version ]
+                        ]
                 ]
             ]
         ]
