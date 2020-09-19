@@ -104,7 +104,7 @@ let layout csrfTokenInput domain (user: User) content =
                         Bulma.navbarBrand.div [
                             prop.children [
                                 Bulma.navbarItem.a [
-                                    prop.href "/chickens"
+                                    prop.href "/eggs"
                                     prop.children [
                                         Html.img [
                                             prop.src "/Icons/android-chrome-512x512.png"

@@ -210,6 +210,15 @@ let removeEgg (conn: ConnectionString) =
             let! _ = execute connection sql !{| chickenId = id.ToString(); date = date.ToString() |}
             return ()
         }
+        
+let removeAllEggs (conn: ConnectionString) =
+    let sql = """ DELETE FROM Egg WHERE Date = @date;"""
+    fun (date: NotFutureDate) ->
+        async {
+            use! connection = getConnection conn
+            let! _ = execute connection sql !{| date = date.ToString() |}
+            return ()
+        }
 
 type IChickenStore =
     abstract TestDatabaseAccess: unit -> Async<unit>
@@ -218,6 +227,7 @@ type IChickenStore =
     abstract GetTotalEggCount: ChickenId list -> Async<Map<ChickenId, EggCount>>
     abstract AddEgg: ChickenId -> NotFutureDate -> Async<unit>
     abstract RemoveEgg: ChickenId -> NotFutureDate -> Async<unit>
+    abstract RemoveAllEggs: NotFutureDate -> Async<unit>
     
 type ChickenStore(connectionString) =
     interface IChickenStore with
@@ -227,3 +237,4 @@ type ChickenStore(connectionString) =
         member this.GetTotalEggCount(chickens: ChickenId list) = getTotalEggCount connectionString chickens
         member this.AddEgg chicken date = addEgg connectionString chicken date
         member this.RemoveEgg chicken date = removeEgg connectionString chicken date
+        member this.RemoveAllEggs date = removeAllEggs connectionString date

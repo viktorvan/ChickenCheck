@@ -9,7 +9,7 @@ let parseDateQueryString (url: string) =
     DateTime.Parse(url.Split("?date=").[1])
     
 let url rootUrl (date: DateTime) =
-    rootUrl + "/chickens?date=" + date.ToString("yyyy-MM-dd")
+    rootUrl + "/eggs/" + date.ToString("yyyy-MM-dd")
 let parseChickenId (element: IWebElement) = element.GetAttribute(DataAttributes.ChickenId) |> ChickenId.parse
 let waitForCurrentDate (date: DateTime) =
     let selector = sprintf "[data-current-date=\"%s\"]" (date.ToString("yyyy-MM-dd"))

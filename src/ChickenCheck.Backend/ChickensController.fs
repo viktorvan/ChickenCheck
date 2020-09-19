@@ -9,7 +9,7 @@ open Saturn
 open Giraffe
 open ChickenCheck.Backend.Turbolinks
 
-let chickensController =
+let controller =
     let eggsController (chickenId: string) =
         let addEgg ctx (date: string) =
             task {

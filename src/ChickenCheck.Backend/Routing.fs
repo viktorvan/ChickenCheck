@@ -1,6 +1,6 @@
 module ChickenCheck.Backend.Routing
 
 open ChickenCheck.Shared
-let chickensPage (date: NotFutureDate) =
+let eggsPage (date: NotFutureDate) =
     date.ToString()
-    |> sprintf "/chickens?date=%s" 
+    |> sprintf "/eggs/%s" 

@@ -8,7 +8,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Configuration.fs" />
-    <Compile Include="Pages\ChickensPage.fs" />
+    <Compile Include="Pages\EggsPage.fs" />
     <Compile Include="Tests\Chickens.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>

@@ -36,7 +36,8 @@ let browserRouter =
         get "/" (redirectTo false (CompositionRoot.defaultRoute))
         get "/login" Authentication.challenge
         get "/logout" Authentication.logout
-        forward "/chickens" (ChickensController.chickensController)
+        forward "/eggs" EggsController.controller
+        forward "/chickens" ChickensController.controller
     }
 
 let health: HttpHandler =
@@ -66,8 +67,6 @@ let notFoundHandler: HttpHandler =
 let webApp =
     choose [ health
              browserRouter
-//             secureBrowserRouter
-//             secureApi
              notFoundHandler ]
 
 let configureServices (services: IServiceCollection) =

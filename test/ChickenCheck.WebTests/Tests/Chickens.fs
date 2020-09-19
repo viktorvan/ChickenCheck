@@ -27,12 +27,12 @@ let login() =
 let all rootUrl =
     let chickensUrl = ChickensPage.url rootUrl
     
-    url (rootUrl + "/chickens")
+    url (rootUrl + "/eggs")
     
-    "root redirects to chickens page for current date" &&& fun _ ->
+    "root redirects to eggs page for current date" &&& fun _ ->
         onn (chickensUrl today)
         
-    "chickens page for 'today' does not have next-date link" &&& fun _ ->
+    "eggs page for 'today' does not have next-date link" &&& fun _ ->
         let nextDateLink = element Selectors.nextDateLink
         let href = nextDateLink.GetAttribute("href")
         if not (isNull href) then failwith "href should be null"

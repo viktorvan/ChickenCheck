@@ -34,6 +34,9 @@ let addEgg (chickenStore: Database.IChickenStore) =
 let removeEgg (chickenStore: Database.IChickenStore) =
     fun chicken (date: NotFutureDate) ->
         chickenStore.RemoveEgg chicken date
+        
+let removeAllEggs (chickenStore: Database.IChickenStore) =
+    fun (date: NotFutureDate) -> chickenStore.RemoveAllEggs date
     
 let healthCheck (chickenStore: Database.IChickenStore) =
     fun () ->

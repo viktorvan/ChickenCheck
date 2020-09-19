@@ -10,12 +10,6 @@ open Microsoft.Extensions.Logging
 open Giraffe
 open Feliz.ViewEngine
 
-module Result =
-    let bindAsync fAsync argResult = 
-        match argResult with
-        | Ok arg -> fAsync arg |> Async.map Ok
-        | Error err -> Error err |> Async.retn
-    
 let config = Configuration.config.Value
 
 // Helpers
@@ -31,7 +25,7 @@ let csrfTokenInput (ctx: HttpContext) =
                 prop.type'.hidden
             ]
 
-let defaultRoute = "/chickens"
+let defaultRoute = "/eggs"
 
 let authorizeUser : HttpHandler = (Authentication.authorizeUser config.Authentication.AccessRole)
 
@@ -55,4 +49,5 @@ let healthCheck() = Workflows.healthCheck chickenStore ()
 let getAllChickens date = Workflows.getAllChickens chickenStore date
 let addEgg (chicken, date) = Workflows.addEgg chickenStore chicken date
 let removeEgg (chicken, date) = Workflows.removeEgg chickenStore chicken date
+let removeAllEggs date = Workflows.removeAllEggs chickenStore date
 
