@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Expenses page
 * Statistics charts
 
+## [1.10.4] - 2020-09-21
+### Fixed 
+* Title
 
 ## [1.10.3] - 2020-09-19
 ### Fixed
