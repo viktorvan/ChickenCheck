@@ -9,3 +9,4 @@ Saturn
 Saturn.Extensions.Authorization
 Feliz.ViewEngine
 Feliz.Bulma.ViewEngine
+Microsoft.AspNetCore.Authentication

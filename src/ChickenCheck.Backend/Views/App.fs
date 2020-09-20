@@ -6,35 +6,35 @@ open Feliz.Bulma.ViewEngine
 open ChickenCheck.Shared
 open ChickenCheck.Backend.Extensions
 
-let layout csrfTokenInput basePath domain (user: User) content =
-    let logInLink =
-        Bulma.navbarItem.a [
-            prop.disableTurbolinks
-            prop.href "/login"
-            prop.text "log in" ]
-
-    let logOutLink (username: string) =
-        Bulma.navbarItem.div [
-            navbarItem.hasDropdown
-            navbarItem.isHoverable
-            prop.children [
-                Bulma.navbarLink.a username
-                Bulma.navbarDropdown.div [
-                    Bulma.navbarItem.a [
-                        prop.disableTurbolinks
-                        prop.href "/logout"
-                        prop.text "log out"
-                    ]
-                ]
-            ]
-        ]
+let layout csrfTokenInput basePath domain  content =
+//    let logInLink =
+//        Bulma.navbarItem.a [
+//            prop.disableTurbolinks
+//            prop.href "/login"
+//            prop.text "log in" ]
+//
+//    let logOutLink (username: string) =
+//        Bulma.navbarItem.div [
+//            navbarItem.hasDropdown
+//            navbarItem.isHoverable
+//            prop.children [
+//                Bulma.navbarLink.a username
+//                Bulma.navbarDropdown.div [
+//                    Bulma.navbarItem.a [
+//                        prop.disableTurbolinks
+//                        prop.href "/logout"
+//                        prop.text "log out"
+//                    ]
+//                ]
+//            ]
+//        ]
     
-    let userAttribute =
-        let userStr =
-            match user with
-            | ApiUser { Name = name } -> sprintf "ApiUser:%s" name
-            | Anonymous -> "Anonymous"
-        prop.custom (DataAttributes.User, userStr)
+//    let userAttribute =
+//        let userStr =
+//            match user with
+//            | ApiUser { Name = name } -> sprintf "ApiUser:%s" name
+//            | Anonymous -> "Anonymous"
+//        prop.custom (DataAttributes.User, userStr)
 
     let githubLink =
         Html.a [
@@ -96,7 +96,7 @@ let layout csrfTokenInput basePath domain (user: User) content =
             yield! Bundle.bundle
         ]
         Html.body [
-            userAttribute
+//            userAttribute
             prop.children [
                 csrfTokenInput
                 Bulma.navbar [
@@ -126,13 +126,13 @@ let layout csrfTokenInput basePath domain (user: User) content =
                         ]
                         Bulma.navbarMenu [
                             prop.id "chickencheck-navbar-menu"
-                            prop.children [ 
-                                Bulma.navbarEnd.div [
-                                    match user with
-                                    | Anonymous -> logInLink
-                                    | ApiUser { Name = name } -> logOutLink name
-                                ]
-                            ] 
+//                            prop.children [ 
+//                                Bulma.navbarEnd.div [
+//                                    match user with
+//                                    | Anonymous -> logInLink
+//                                    | ApiUser { Name = name } -> logOutLink name
+//                                ]
+//                            ] 
                         ] 
                     ] 
                 ]

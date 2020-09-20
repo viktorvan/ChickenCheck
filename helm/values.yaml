@@ -18,3 +18,5 @@ databaseName: "database.db"
 runBackup: false
 
 requestScheme: http
+
+apiUser: Turing

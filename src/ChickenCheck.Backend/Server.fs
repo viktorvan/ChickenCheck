@@ -36,8 +36,12 @@ let browserRouter =
         get "/" (redirectTo false (CompositionRoot.defaultRoute()))
         get "/login" Authentication.challenge
         get "/logout" Authentication.logout
-        forward "/eggs" EggsController.controller
-        forward "/chickens" ChickensController.controller
+        forward "/eggs" EggsController.browserController
+    }
+    
+let apiRouter =
+    router {
+        forward "/api/eggs" EggsController.apiController
     }
 
 let health: HttpHandler =
@@ -67,6 +71,7 @@ let notFoundHandler: HttpHandler =
 let webApp =
     choose [ health
              browserRouter
+             apiRouter
              notFoundHandler ]
 
 let configureServices (services: IServiceCollection) =
@@ -95,7 +100,7 @@ application {
     pipe_through endpointPipe
     url (CompositionRoot.config.RequestScheme + "://*:" + CompositionRoot.config.ServerPort.ToString() + "/")
     service_config configureServices
-    use_auth0_open_id CompositionRoot.config.Authentication
+    use_basic_auth
     use_antiforgery
     use_router webApp
     use_cached_static_files_with_max_age CompositionRoot.config.PublicPath 31536000

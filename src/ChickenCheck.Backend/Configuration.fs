@@ -5,10 +5,10 @@ open System.IO
 
 
 type Authentication =
-    { Domain: string
-      ClientId: string
-      ClientSecret: string
-      AccessRole: string }
+    { [<DefaultValue("ApiUser")>]
+      ApiUsername: string
+      [<DefaultValue("secret")>]
+      ApiPassword: string }
 type DataProtection =
     { [<DefaultValue("../../dataprotection/keys")>]
       Path: string

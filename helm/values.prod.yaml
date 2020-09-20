@@ -2,10 +2,8 @@ authentication:
   clientId: "0HeTgJ3mt3HFKJc5KBmneWbQnNWvn0KZ" 
   accessRole: "chickencheck-prod"
 
-domain: chickens.viktorvan.com
-basePath: https://chickens.viktorvan.com/
+domain: www.eggtivesolution.se
+basePath: https://www.eggtivesolution.se/
 
 replicaCount: 2
 
-runBackup: true
-azureStorageConnectionString: "azure connection string"

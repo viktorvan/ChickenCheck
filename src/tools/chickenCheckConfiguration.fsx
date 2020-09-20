@@ -8,12 +8,12 @@ open System.IO
 type Authentication =
     { Domain: string
       ClientId: string
-      ClientSecret: string }
+      ClientSecret: string 
+      ApiPassword: string }
 type Backup =
     { AzureStorageConnectionString: string}
 type Config =
     { DataProtectionCertificatePassword: string
-      Dev: Authentication 
       Prod: Authentication
       Backup: Backup }
 

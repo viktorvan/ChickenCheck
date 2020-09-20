@@ -1,6 +1,5 @@
 module ChickenCheck.Backend.EggsController
 
-open System
 open ChickenCheck.Backend.Views
 open ChickenCheck.Backend.Views.Chickens
 open ChickenCheck.Shared
@@ -12,7 +11,42 @@ open Giraffe
 type EggRequest =
     { ChickenIds: System.Guid[] }
     
-let controller =
+let browserController =
+    let listChickens (ctx: HttpContext) date =
+        match NotFutureDate.tryParse date with
+        | Error _ -> Controller.redirect ctx (CompositionRoot.defaultRoute())
+        | Ok date -> 
+            task {
+                let! chickensWithEggCounts = CompositionRoot.getAllChickens date
+
+                let model =
+                    chickensWithEggCounts
+                    |> List.map (fun c ->
+                        { Id = c.Chicken.Id
+                          Name = c.Chicken.Name
+                          ImageUrl = c.Chicken.ImageUrl
+                          Breed = c.Chicken.Breed
+                          TotalEggCount = c.TotalCount
+                          EggCountOnDate = snd c.Count })
+
+                return! ctx.WriteHtmlStringAsync
+                            (layout model date
+                             |> App.layout (CompositionRoot.csrfTokenInput ctx) CompositionRoot.config.BasePath CompositionRoot.config.Domain)
+            }
+            
+    let indexChickens ctx =
+        Controller.redirect ctx (CompositionRoot.defaultRoute())
+        
+    controller {
+        index indexChickens
+        show listChickens
+    }
+    
+let apiController =
+    let authPipeline = pipeline {
+        requires_authentication (Giraffe.Auth.challenge "BasicAuthentication")
+    }
+    
     let addEggs (ctx: HttpContext) (date: string) =
         let date = NotFutureDate.parse date
         task {
@@ -37,34 +71,9 @@ let controller =
             return! Response.accepted ctx ()
         }
         
-    let listChickens (ctx: HttpContext) date =
-        match NotFutureDate.tryParse date with
-        | Error _ -> Controller.redirect ctx (CompositionRoot.defaultRoute())
-        | Ok date -> 
-            task {
-                let! chickensWithEggCounts = CompositionRoot.getAllChickens date
-
-                let model =
-                    chickensWithEggCounts
-                    |> List.map (fun c ->
-                        { Id = c.Chicken.Id
-                          Name = c.Chicken.Name
-                          ImageUrl = c.Chicken.ImageUrl
-                          Breed = c.Chicken.Breed
-                          TotalEggCount = c.TotalCount
-                          EggCountOnDate = snd c.Count })
-
-                return! ctx.WriteHtmlStringAsync
-                            (layout model date
-                             |> App.layout (CompositionRoot.csrfTokenInput ctx) CompositionRoot.config.BasePath CompositionRoot.config.Domain (CompositionRoot.getUser ctx))
-            }
-            
-    let indexChickens ctx =
-        Controller.redirect ctx (CompositionRoot.defaultRoute())
 
     controller {
-        index indexChickens
-        show listChickens
+        plug [All] (authPipeline) 
         update addEggs
         delete deleteEggs
     }

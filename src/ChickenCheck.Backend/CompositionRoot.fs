@@ -27,18 +27,18 @@ let csrfTokenInput (ctx: HttpContext) =
 
 let defaultRoute() = sprintf "/eggs/%s" (NotFutureDate.today().ToString())
 
-let authorizeUser : HttpHandler = (Authentication.authorizeUser config.Authentication.AccessRole)
+//let authorizeUser : HttpHandler = (Authentication.authorizeUser config.Authentication.AccessRole)
 
-let getUser (ctx: HttpContext) =
-    match ctx.User |> Option.ofObj with
-    | Some principal when principal.Identity.IsAuthenticated ->
-        ApiUser
-            { Name =
-                  principal.Claims
-                  |> Seq.tryFind (fun c -> c.Type = "name")
-                  |> Option.map (fun c -> c.Value)
-                  |> Option.defaultValue "unknown" }
-    | _ -> Anonymous
+//let getUser (ctx: HttpContext) =
+//    match ctx.User |> Option.ofObj with
+//    | Some principal when principal.Identity.IsAuthenticated ->
+//        ApiUser
+//            { Name =
+//                  principal.Claims
+//                  |> Seq.tryFind (fun c -> c.Type = "name")
+//                  |> Option.map (fun c -> c.Value)
+//                  |> Option.defaultValue "unknown" }
+//    | _ -> Anonymous
     
     
 // services

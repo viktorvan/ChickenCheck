@@ -20,7 +20,6 @@ open Fake.IO.Globbing.Operators
 type Tag =
     | Build
     | Docker
-    | Dev
     | Prod
 
 //-----------------------------------------------------------------------------
@@ -39,7 +38,7 @@ let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.UnitTests"
 let webTestsPath = rootPath @@ "test" @@ "ChickenCheck.WebTests"
 let connectionString = sprintf "Data Source=%s/database-dev.db" serverPath
 let dockerRegistry = "192.168.50.201:32000"
-let appName = "chickencheck"
+let appName = "eggtive"
 let serverDockerfile = "Backend.Dockerfile"
 let toolsDockerfile = "Tools.Dockerfile"
 let arm64ImageSuffix = "-arm64"
@@ -48,9 +47,9 @@ let srcGlob = src @@ "**/*.??proj"
 let testsGlob = rootPath  @@ "test/**/*.??proj"
 let changelog = Fake.Core.Changelog.load "CHANGELOG.md"
 let semVersion = changelog.LatestEntry.SemVer
-let devDomain = ChickenCheckConfiguration.config.Value.Dev.Domain
-let dev0ClientId = ChickenCheckConfiguration.config.Value.Dev.ClientId
-let dev0ClientSecret = ChickenCheckConfiguration.config.Value.Dev.ClientSecret
+// let devDomain = ChickenCheckConfiguration.config.Value.Dev.Domain
+// let dev0ClientId = ChickenCheckConfiguration.config.Value.Dev.ClientId
+// let dev0ClientSecret = ChickenCheckConfiguration.config.Value.Dev.ClientSecret
 let prodDomain = ChickenCheckConfiguration.config.Value.Prod.Domain
 let prod0ClientId = ChickenCheckConfiguration.config.Value.Prod.ClientId
 let prod0ClientSecret = ChickenCheckConfiguration.config.Value.Prod.ClientSecret
@@ -145,8 +144,8 @@ let clean _ =
 
 let verifyCleanWorkingDirectory _ =
     if not (Git.Information.isCleanWorkingCopy "") then failwith "Working directory is not clean"
-    let currentBranchName = Git.Information.getBranchName "" 
-    if (currentBranchName <> "master") then failwithf "Can only release master, current branch is: %s" currentBranchName 
+    // let currentBranchName = Git.Information.getBranchName "" 
+    // if (currentBranchName <> "master") then failwithf "Can only release master, current branch is: %s" currentBranchName 
 
 let verifyDockerInstallation _ =
     Common.docker [ "version" ] ""
@@ -266,12 +265,12 @@ let runUnitTests ctx =
 //                RunSettingsArguments = Some "-- Expecto.fail-on-focused-tests=true" })
 //        sln
 
-let runWebTests ctx =
-    let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
-    let args = sprintf "--configuration %s --no-restore --no-build -- https://dev.chickens.viktorvan.com true" (configuration.ToString())
-    DotNet.exec (fun c ->
-        { c with WorkingDirectory = webTestsPath }) "run" args
-    |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
+// let runWebTests ctx =
+//     let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+//     let args = sprintf "--configuration %s --no-restore --no-build -- https://dev.chickens.viktorvan.com true" (configuration.ToString())
+//     DotNet.exec (fun c ->
+//         { c with WorkingDirectory = webTestsPath }) "run" args
+//     |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
 
 let watchApp _ =
 
@@ -302,35 +301,6 @@ let watchTests _ =
     let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
     cancelEvent.Cancel <- true
 
-let gitTagDeployment (tag: Tag) _ =
-    let addTag envStr =
-        match tag with
-        | Build | Docker -> ()
-        | Dev | Prod ->
-            try 
-                Git.Branches.deleteTag "" envStr
-            with _ -> 
-                Trace.tracef "Could not find existing tag %s" envStr
-            Git.Branches.tag "" envStr
-
-    let addTagWithVersion version =
-        let existingTags = getGitTags()
-        if existingTags |> List.contains version then
-            Git.Branches.deleteTag "" version
-        Git.Branches.tag "" version
-
-    let gitPush() =
-        let branch = Git.Information.getBranchName ""
-        Git.Branches.pushBranch "" "origin" branch
-
-    let envStr = (tag.ToString().ToUpper())
-    let version = envStr + "-" + getBuildVersion()
-
-    addTag envStr
-    addTagWithVersion version
-
-    if tag = Prod then gitPush()
-
 let helmPackage _ =
     let version = getBuildVersion()
     let packageArgs = [
@@ -346,21 +316,21 @@ let helmPackage _ =
     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
     Common.helm packageArgs ""
 
-let helmInstallDev _ = 
-    let deployArgs = [
-        "upgrade"
-        sprintf "%s-dev" appName
-        "-f"
-        "./helm/values.dev.yaml"
-        "--set"
-        sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Dev.ClientSecret
-        "--set"
-        sprintf "dataProtectionCertificatePassword=%s" ChickenCheckConfiguration.config.Value.DataProtectionCertificatePassword |> escapeComma
-        getHelmPackageName()
-    ]
+// let helmInstallDev _ = 
+//     let deployArgs = [
+//         "upgrade"
+//         sprintf "%s-dev" appName
+//         "-f"
+//         "./helm/values.dev.yaml"
+//         "--set"
+//         sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Dev.ClientSecret
+//         "--set"
+//         sprintf "dataProtectionCertificatePassword=%s" ChickenCheckConfiguration.config.Value.DataProtectionCertificatePassword |> escapeComma
+//         getHelmPackageName()
+//     ]
 
-    Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
-    Common.helm deployArgs rootPath |> ignore
+//     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
+//     Common.helm deployArgs rootPath |> ignore
 
 let waitForDeployment env _ =
     let waitForResponse timeout url =
@@ -385,10 +355,8 @@ let waitForDeployment env _ =
     Trace.tracefn "Waiting 5 seconds before warmup tests..."
     System.Threading.Thread.Sleep 5000
     match env with
-    | Dev ->
-        waitForResponse (TimeSpan.FromSeconds(30.)) "https://dev.chickens.viktorvan.com/eggs"
     | Prod ->
-        waitForResponse (TimeSpan.FromSeconds(30.)) "https://chickens.viktorvan.com/eggs"
+        waitForResponse (TimeSpan.FromSeconds(30.)) "https://www.eggtivesolution.se/eggs"
     | _ -> ()
 
 let helmInstallProd _ = 
@@ -398,11 +366,9 @@ let helmInstallProd _ =
         "-f"
         "./helm/values.prod.yaml"
         "--set"
-        sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Prod.ClientSecret
-        "--set"
         sprintf "dataProtectionCertificatePassword=%s" ChickenCheckConfiguration.config.Value.DataProtectionCertificatePassword |> escapeComma
         "--set"
-        sprintf "azureStorageConnectionString=%s" ChickenCheckConfiguration.config.Value.Backup.AzureStorageConnectionString
+        sprintf "apiPassword=%s" ChickenCheckConfiguration.config.Value.Prod.ApiPassword
         getHelmPackageName()
     ]
 
@@ -428,21 +394,21 @@ Target.create "DotnetPublishServer" dotnetPublishServer
 Target.create "DotnetPublishMigrations" dotnetPublishMigrations
 Target.create "DotnetPublishDbBackup" dotnetPublishDbBackup
 Target.create "Package" ignore
-Target.create "GitTagBuild" (gitTagDeployment Build)
+// Target.create "GitTagBuild" (gitTagDeployment Build)
 Target.create "VerifyDockerInstallation" verifyDockerInstallation
 Target.create "DockerBuild" dockerBuild
 Target.create "DockerPush" dockerPush
-Target.create "GitTagDockerDeployment" (gitTagDeployment Docker)
+// Target.create "GitTagDockerDeployment" (gitTagDeployment Docker)
 Target.create "HelmPackage" helmPackage
-Target.create "HelmInstallDev" helmInstallDev
-Target.create "WaitForDevDeployment" (waitForDeployment Dev)
+// Target.create "HelmInstallDev" helmInstallDev
+// Target.create "WaitForDevDeployment" (waitForDeployment Dev)
 Target.create "WaitForProdDeployment" (waitForDeployment Prod)
-Target.create "GitTagDevDeployment" (gitTagDeployment Dev)
-Target.create "RunWebTests" runWebTests
+// Target.create "GitTagDevDeployment" (gitTagDeployment Dev)
+// Target.create "RunWebTests" runWebTests
 Target.create "VerifyCleanWorkingDirectory" verifyCleanWorkingDirectory
 Target.create "CreateRelease" ignore
 Target.create "HelmInstallProd" helmInstallProd
-Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
+// Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
 
 //-----------------------------------------------------------------------------
 // Build Target Dependencies
@@ -470,18 +436,18 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
     ==> "DotnetPublishServer"
     ==> "DotnetPublishMigrations"
     ==> "DotnetPublishDbBackup"
-    ==> "GitTagBuild"
+    // ==> "GitTagBuild"
     ==> "Package"
     ==> "DockerBuild"
     ==> "DockerPush"
-    ==> "GitTagDockerDeployment"
+    // ==> "GitTagDockerDeployment"
     ==> "HelmPackage"
-    ==> "HelmInstallDev"
-    ==> "GitTagDevDeployment"
-    ==> "WaitForDevDeployment"
-    ==> "RunWebTests"
+    // ==> "HelmInstallDev"
+    // ==> "GitTagDevDeployment"
+    // ==> "WaitForDevDeployment"
+    // ==> "RunWebTests"
     ==> "HelmInstallProd"
-    ==> "GitTagProdDeployment"
+    // ==> "GitTagProdDeployment"
     ==> "WaitForProdDeployment"
     ==> "CreateRelease"
 
