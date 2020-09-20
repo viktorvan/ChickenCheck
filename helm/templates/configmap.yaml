@@ -13,4 +13,4 @@ data:
   ChickenCheck_DataProtection__Path: {{ .Values.dataProtectionPath }}
   ChickenCheck_DataProtection__Certificate: {{ .Values.dataProtectionCertificate }}
   ChickenCheck_DataProtection__CertificatePassword: {{ .Values.dataProtectionCertificatePassword }}
-  ChickenCheck_DataProtection__RequestScheme: {{ .Values.requestScheme }}
+  ChickenCheck_RequestScheme: {{ .Values.requestScheme }}
