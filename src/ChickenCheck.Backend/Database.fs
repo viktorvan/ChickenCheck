@@ -164,6 +164,11 @@ let getTotalEggCount (conn: ConnectionString) =
                 |> Map.ofSeq
         }
         
+let private validChickenIds conn =
+    getAllChickens conn ()
+    |> Async.map (List.map (fun c -> c.Id))
+
+        
 let addEgg (conn: ConnectionString) =
     let sql = """
             UPDATE Egg 
@@ -182,12 +187,16 @@ let addEgg (conn: ConnectionString) =
             )
             SELECT @chickenId, @date, 1 , datetime('now') , datetime('now')
             WHERE (SELECT Changes() = 0);"""
-
-    fun (ChickenId id) (date: NotFutureDate) ->
+            
+    fun (id: ChickenId) (date: NotFutureDate) ->
         async {
-            use! connection = getConnection conn
-            let! _ = execute connection sql !{| date = date.ToString(); chickenId = id.ToString() |}
-            return ()
+            let! validChickenIds = validChickenIds conn
+            if not (List.contains id validChickenIds) then 
+                return invalidArg "ChickenId" "Invalid chicken-id"
+            else
+                use! connection = getConnection conn
+                let! _ = execute connection sql !{| date = date.ToString(); chickenId = id.Value.ToString() |}
+                return ()
         }
 
 let removeEgg (conn: ConnectionString) =
@@ -204,11 +213,15 @@ let removeEgg (conn: ConnectionString) =
             AND Date = @date
             AND EggCount < 1;"""
 
-    fun (ChickenId id) (date: NotFutureDate) ->
+    fun (id: ChickenId) (date: NotFutureDate) ->
         async {
-            use! connection = getConnection conn
-            let! _ = execute connection sql !{| chickenId = id.ToString(); date = date.ToString() |}
-            return ()
+            let! validChickenIds = validChickenIds conn
+            if not (List.contains id validChickenIds) then 
+                return invalidArg "ChickenId" "Invalid chicken-id"
+            else
+                use! connection = getConnection conn
+                let! _ = execute connection sql !{| chickenId = id.Value.ToString(); date = date.ToString() |}
+                return ()
         }
         
 let removeAllEggs (conn: ConnectionString) =
