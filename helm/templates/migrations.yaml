@@ -24,7 +24,7 @@ spec:
       restartPolicy: Never
       containers:
       - name: {{ .Release.Name }}-migrations
-        image: "localhost:32000/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
+        image: "localhost:32000/eggtive-tools:{{ .Chart.AppVersion }}-arm64" 
         command: ["dotnet", "migrations/ChickenCheck.Migrations.dll", "--connectionstring", {{ include "helpers.connectionString" . }}]
         volumeMounts:
           - name: {{ .Release.Name }}-pvc

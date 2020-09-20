@@ -20,7 +20,7 @@ spec:
     spec:
       containers:
       - name: {{ .Release.Name }}
-        image: "localhost:32000/chickencheck:{{ .Chart.AppVersion }}-arm64" 
+        image: "localhost:32000/eggtive:{{ .Chart.AppVersion }}-arm64" 
         ports: 
           - containerPort: {{ .Values.applicationPort }}
         livenessProbe:
