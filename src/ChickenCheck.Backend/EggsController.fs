@@ -65,7 +65,7 @@ let controller =
     controller {
         index indexChickens
         show listChickens
-        update addEggs
-        delete deleteEggs
+//        update addEggs
+//        delete deleteEggs
     }
 
