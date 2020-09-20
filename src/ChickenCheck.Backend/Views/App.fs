@@ -62,7 +62,7 @@ let layout csrfTokenInput basePath domain  content =
                 prop.content "width=device-width, initial-scale=1"
                 prop.name "viewport"
             ]
-            Html.title "ChickenCheck"
+            Html.title "Eggtive Solution"
             Html.link [
                 prop.rel "apple-touch-icon"
                 prop.sizes "180x180"
@@ -114,7 +114,7 @@ let layout csrfTokenInput basePath domain  content =
                                             prop.alt "Icon"
                                             prop.style [ style.width (length.px 28); style.height (length.px 28)]
                                         ]
-                                        Html.text "ChickenCheck"
+                                        Html.text "Eggtive Solution"
                                     ]
                                 ]
                                 Bulma.navbarBurger [
