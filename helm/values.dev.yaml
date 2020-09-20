@@ -3,3 +3,4 @@ authentication:
   accessRole: "chickencheck-dev"
 
 domain: dev.chickens.viktorvan.com
+basePath: https://dev.chickens.viktorvan.com/

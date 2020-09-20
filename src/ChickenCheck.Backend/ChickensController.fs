@@ -28,7 +28,7 @@ let controller =
             }
         
         controller {
-            plug [All] (CompositionRoot.authorizeUser >=> protectFromForgery >=> turbolinks) 
+            plug [All] (CompositionRoot.authorizeUser >=> protectFromForgery) 
             update addEgg
             delete removeEgg
         }
@@ -40,7 +40,7 @@ let controller =
     
     let listChickens (ctx: HttpContext) =
         match parseQueryDate (NotFutureDate.today()) ctx with
-        | Error _ -> Controller.redirect ctx CompositionRoot.defaultRoute 
+        | Error _ -> Controller.redirect ctx (CompositionRoot.defaultRoute()) 
         | Ok date ->
             task {
                 let! chickensWithEggCounts = CompositionRoot.getAllChickens date
@@ -57,7 +57,7 @@ let controller =
 
                 return! ctx.WriteHtmlStringAsync
                             (layout model date
-                             |> App.layout (CompositionRoot.csrfTokenInput ctx) CompositionRoot.config.Domain (CompositionRoot.getUser ctx))
+                             |> App.layout (CompositionRoot.csrfTokenInput ctx) CompositionRoot.config.BasePath CompositionRoot.config.Domain (CompositionRoot.getUser ctx))
             }
 
     controller {

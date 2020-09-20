@@ -57,6 +57,6 @@ let init (browser: IBrowserService) (turbolinks: ITurbolinks) currentDate =
                 |> Option.map NotFutureDate.create
                 |> Option.defaultValue (NotFutureDate.today())
             if date <> currentDate then
-                let dateQueryStr = sprintf "?date=%s" (date.ToString())
-                turbolinks.Visit(browser.UrlPath + dateQueryStr))
+                let newUrl = sprintf "/eggs/%s" (date.ToString())
+                turbolinks.Visit(newUrl))
         )

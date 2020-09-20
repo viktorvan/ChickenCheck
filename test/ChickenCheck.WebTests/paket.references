@@ -1,6 +1,7 @@
 group WebTests
     canopy
     Selenium.WebDriver.ChromeDriver
+    Selenium.WebDriver.GeckoDriver
     runtime.osx.10.10-x64.CoreCompat.System.Drawing
     FsConfig
     Microsoft.Extensions.Configuration.UserSecrets

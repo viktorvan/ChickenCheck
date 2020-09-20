@@ -386,9 +386,9 @@ let waitForDeployment env _ =
     System.Threading.Thread.Sleep 5000
     match env with
     | Dev ->
-        waitForResponse (TimeSpan.FromSeconds(30.)) "https://dev.chickens.viktorvan.com/chickens"
+        waitForResponse (TimeSpan.FromSeconds(30.)) "https://dev.chickens.viktorvan.com/eggs"
     | Prod ->
-        waitForResponse (TimeSpan.FromSeconds(30.)) "https://chickens.viktorvan.com/chickens"
+        waitForResponse (TimeSpan.FromSeconds(30.)) "https://chickens.viktorvan.com/eggs"
     | _ -> ()
 
 let helmInstallProd _ = 

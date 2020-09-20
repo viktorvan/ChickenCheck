@@ -3,6 +3,7 @@ authentication:
   accessRole: "chickencheck-prod"
 
 domain: chickens.viktorvan.com
+basePath: https://chickens.viktorvan.com/
 
 replicaCount: 2
 

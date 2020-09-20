@@ -33,7 +33,7 @@ let endpointPipe =
 let browserRouter =
     router {
         pipe_through turbolinks
-        get "/" (redirectTo false (CompositionRoot.defaultRoute))
+        get "/" (redirectTo false (CompositionRoot.defaultRoute()))
         get "/login" Authentication.challenge
         get "/logout" Authentication.logout
         forward "/eggs" EggsController.controller
@@ -93,7 +93,7 @@ let errorHandler: ErrorHandler =
 application {
     error_handler errorHandler
     pipe_through endpointPipe
-    url ("http://*:" + CompositionRoot.config.ServerPort.ToString() + "/")
+    url (CompositionRoot.config.RequestScheme + "://*:" + CompositionRoot.config.ServerPort.ToString() + "/")
     service_config configureServices
     use_auth0_open_id CompositionRoot.config.Authentication
     use_antiforgery

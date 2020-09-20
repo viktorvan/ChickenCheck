@@ -1,5 +1,6 @@
 module ChickenCheck.Backend.EggsController
 
+open System
 open ChickenCheck.Backend.Views
 open ChickenCheck.Backend.Views.Chickens
 open ChickenCheck.Shared
@@ -38,8 +39,8 @@ let controller =
         
     let listChickens (ctx: HttpContext) date =
         match NotFutureDate.tryParse date with
-        | Error _ -> Response.notFound ctx ()
-        | Ok date ->
+        | Error _ -> Controller.redirect ctx (CompositionRoot.defaultRoute())
+        | Ok date -> 
             task {
                 let! chickensWithEggCounts = CompositionRoot.getAllChickens date
 
@@ -55,11 +56,11 @@ let controller =
 
                 return! ctx.WriteHtmlStringAsync
                             (layout model date
-                             |> App.layout (CompositionRoot.csrfTokenInput ctx) CompositionRoot.config.Domain (CompositionRoot.getUser ctx))
+                             |> App.layout (CompositionRoot.csrfTokenInput ctx) CompositionRoot.config.BasePath CompositionRoot.config.Domain (CompositionRoot.getUser ctx))
             }
             
     let indexChickens ctx =
-        listChickens ctx (NotFutureDate.today().ToString())
+        Controller.redirect ctx (CompositionRoot.defaultRoute())
 
     controller {
         index indexChickens

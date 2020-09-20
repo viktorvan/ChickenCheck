@@ -16,3 +16,5 @@ databasePath: "/var/lib/chickencheck"
 databaseName: "database.db"
 
 runBackup: false
+
+requestScheme: http

@@ -9,6 +9,8 @@ data:
   ChickenCheck_Authentication__ClientId: {{ .Values.authentication.clientId }}
   ChickenCheck_Authentication__AccessRole: {{ .Values.authentication.accessRole }}
   ChickenCheck_Domain: {{ .Values.domain }}
+  ChickenCheck_BasePath: {{ .Values.basePath }}
   ChickenCheck_DataProtection__Path: {{ .Values.dataProtectionPath }}
   ChickenCheck_DataProtection__Certificate: {{ .Values.dataProtectionCertificate }}
   ChickenCheck_DataProtection__CertificatePassword: {{ .Values.dataProtectionCertificatePassword }}
+  ChickenCheck_DataProtection__RequestScheme: {{ .Values.requestScheme }}

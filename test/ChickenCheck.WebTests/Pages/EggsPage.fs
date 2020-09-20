@@ -1,4 +1,4 @@
-module ChickenCheck.WebTests.Pages.ChickensPage
+module ChickenCheck.WebTests.Pages.EggsPage
 
 open System
 open ChickenCheck.Shared

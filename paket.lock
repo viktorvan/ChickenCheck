@@ -1323,6 +1323,7 @@ NUGET
     Selenium.WebDriver (3.141)
       Newtonsoft.Json (>= 10.0.3)
     Selenium.WebDriver.ChromeDriver (84.0.4147.3001)
+    Selenium.WebDriver.GeckoDriver (0.27)
     System.Drawing.Common (4.7)
       Microsoft.NETCore.Platforms (>= 3.1)
       Microsoft.Win32.SystemEvents (>= 4.7)

@@ -6,7 +6,7 @@ open Feliz.Bulma.ViewEngine
 open ChickenCheck.Shared
 open ChickenCheck.Backend.Extensions
 
-let layout csrfTokenInput domain (user: User) content =
+let layout csrfTokenInput basePath domain (user: User) content =
     let logInLink =
         Bulma.navbarItem.a [
             prop.disableTurbolinks
@@ -52,6 +52,9 @@ let layout csrfTokenInput domain (user: User) content =
         
     Html.html [
         Html.head [
+            Html.base' [
+                prop.href basePath
+            ]
             Html.meta [
                 prop.charset.utf8
             ]

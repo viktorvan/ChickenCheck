@@ -9,7 +9,7 @@
   <ItemGroup>
     <Compile Include="Configuration.fs" />
     <Compile Include="Pages\EggsPage.fs" />
-    <Compile Include="Tests\Chickens.fs" />
+    <Compile Include="Tests\Eggs.fs" />
     <Compile Include="Program.fs" />
   </ItemGroup>
   <ItemGroup>

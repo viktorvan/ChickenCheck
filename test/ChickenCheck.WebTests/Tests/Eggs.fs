@@ -3,7 +3,7 @@ module ChickenCheck.WebTests.Tests.Chickens
 open System
 open ChickenCheck.WebTests
 open ChickenCheck.WebTests.Pages
-open ChickenCheck.WebTests.Pages.ChickensPage
+open ChickenCheck.WebTests.Pages.EggsPage
 open canopy.classic
 open canopy.runner.classic
 
@@ -25,12 +25,12 @@ let login() =
         displayed "Test-User"
 
 let all rootUrl =
-    let chickensUrl = ChickensPage.url rootUrl
+    let eggsUrl = EggsPage.url rootUrl
     
     url (rootUrl + "/eggs")
     
     "root redirects to eggs page for current date" &&& fun _ ->
-        onn (chickensUrl today)
+        onn (eggsUrl today)
         
     "eggs page for 'today' does not have next-date link" &&& fun _ ->
         let nextDateLink = element Selectors.nextDateLink
@@ -40,22 +40,22 @@ let all rootUrl =
     "go back to yesterday" &&& fun _ ->
         click Selectors.previousDateLink
         let yesterday = today.AddDays(-1.0)
-        onn (chickensUrl yesterday)
+        onn (eggsUrl yesterday)
         
     "go forward to today" &&& fun _ ->
         click Selectors.nextDateLink
-        onn (chickensUrl today)
+        onn (eggsUrl today)
         
     "navigate by datepicker" &&& fun _ ->
         let testNavigateToDay (day: DateTime) =
             click Selectors.datePicker
             click (Selectors.dayButton day)
-            onn (chickensUrl day)
+            onn (eggsUrl day)
             waitForCurrentDate day
         
         let inAPreviousMonth = today.AddMonths(-1)
         describe (inAPreviousMonth.ToString())
-        url (chickensUrl inAPreviousMonth)
+        url (eggsUrl inAPreviousMonth)
         
         let firstDayOfMonth = DateTime(inAPreviousMonth.Year, inAPreviousMonth.Month, 1)
         let secondDayOfMonth = DateTime(inAPreviousMonth.Year, inAPreviousMonth.Month, 2)
@@ -81,16 +81,16 @@ let all rootUrl =
     "browser navigation works" &&& fun _ ->
         click Selectors.previousDateLink
         let yesterday = today.AddDays(-1.0)
-        onn (chickensUrl yesterday)
+        onn (eggsUrl yesterday)
         navigate back
-        onn (chickensUrl today)
+        onn (eggsUrl today)
         navigate forward
-        onn (chickensUrl yesterday)
+        onn (eggsUrl yesterday)
         
     "navigation by url to future date defaults to 'today'" &&& fun _ ->
         let tomorrow = today.AddDays(1.)
-        url (chickensUrl tomorrow)
-        onn (chickensUrl today)
+        url (eggsUrl tomorrow)
+        onn (eggsUrl today)
         
     "browser navigation does not add multiple datepickers" &&& fun _ ->
         click Selectors.previousDateLink

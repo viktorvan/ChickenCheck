@@ -9,9 +9,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Expenses page
 * Statistics charts
 
+
+## [1.10.2] - 2020-09-19
+### Fixed
+* BasePath for scripts and css
+
 ## [1.10.1] - 2020-09-19
 ### Changed
 * Route naming
+* Use https for local development (required by chrome browser)
 ### Added
 * Changelog page, link from version in footer https://fsprojects.github.io/FSharp.Formatting/markdown.html
 

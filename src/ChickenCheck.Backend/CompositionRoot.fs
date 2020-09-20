@@ -25,7 +25,7 @@ let csrfTokenInput (ctx: HttpContext) =
                 prop.type'.hidden
             ]
 
-let defaultRoute = "/eggs"
+let defaultRoute() = sprintf "/eggs/%s" (NotFutureDate.today().ToString())
 
 let authorizeUser : HttpHandler = (Authentication.authorizeUser config.Authentication.AccessRole)
 

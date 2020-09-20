@@ -71,6 +71,7 @@ group WebTests
     nuget runtime.osx.10.10-x64.CoreCompat.System.Drawing
     nuget FsConfig
     nuget Microsoft.Extensions.Configuration.UserSecrets 
+    nuget Selenium.WebDriver.GeckoDriver
 
 
 group Build

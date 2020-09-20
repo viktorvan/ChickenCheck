@@ -24,7 +24,11 @@ type Config =
       DataProtection: DataProtection
       Authentication: Authentication
       [<DefaultValue("localhost")>]
-      Domain: string }
+      Domain: string
+      [<DefaultValue("https://localhost:8085/")>]
+      BasePath: string
+      [<DefaultValue("https")>]
+      RequestScheme: string }
 
 let configRoot =
     ConfigurationBuilder()
@@ -59,7 +63,9 @@ let config =
                       Certificate = config.DataProtection.Certificate
                       CertificatePassword = config.DataProtection.CertificatePassword |}
                Authentication = config.Authentication
-               Domain = config.Domain |}
+               Domain = config.Domain
+               BasePath = config.BasePath
+               RequestScheme = config.RequestScheme |}
         | Error msg ->
             match msg with
             | BadValue (name, msg) -> invalidArg name msg
