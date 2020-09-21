@@ -32,12 +32,8 @@ let endpointPipe =
     
 let routeToWWW : HttpHandler =
     fun next ctx ->
-        printfn "Host: %s" ctx.Request.Host.Value
-        printfn "Scheme: %s" ctx.Request.Scheme
-        printfn "PathBase: %s" ctx.Request.PathBase.Value
-        printfn "Path: %s" ctx.Request.Path.Value
-        if not (ctx.Request.Host.Value.StartsWith("www") || ctx.Request.Host.Value.StartsWith"localhost") then 
-            (redirectTo true ("www" + ctx.Request.Host.Value + CompositionRoot.defaultRoute()) next ctx)
+        if not (ctx.Request.Host.Value.StartsWith("www", StringComparison.InvariantCultureIgnoreCase) || ctx.Request.Host.Value.StartsWith("localhost", StringComparison.InvariantCultureIgnoreCase)) then 
+            (redirectTo true ("https://www." + ctx.Request.Host.Value + CompositionRoot.defaultRoute()) next ctx)
         else next ctx
     
 let browserRouter =
