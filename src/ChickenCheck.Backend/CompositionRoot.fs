@@ -13,17 +13,17 @@ open Feliz.ViewEngine
 let config = Configuration.config.Value
 
 // Helpers
-let csrfTokenInput (ctx: HttpContext) =
-        match ctx.GetService<IAntiforgery>() with
-        | null -> failwith "missing Antiforgery feature, setup with Saturn pipeline with 'use_antiforgery'"
-        | antiforgery ->
-            let tokens = antiforgery.GetAndStoreTokens(ctx)
-            Html.input [
-                prop.id "RequestVerificationToken"
-                prop.name tokens.FormFieldName
-                prop.value tokens.RequestToken
-                prop.type'.hidden
-            ]
+//let csrfTokenInput (ctx: HttpContext) =
+//        match ctx.GetService<IAntiforgery>() with
+//        | null -> failwith "missing Antiforgery feature, setup with Saturn pipeline with 'use_antiforgery'"
+//        | antiforgery ->
+//            let tokens = antiforgery.GetAndStoreTokens(ctx)
+//            Html.input [
+//                prop.id "RequestVerificationToken"
+//                prop.name tokens.FormFieldName
+//                prop.value tokens.RequestToken
+//                prop.type'.hidden
+//            ]
 
 let defaultRoute() = sprintf "/eggs/%s" (NotFutureDate.today().ToString())
 

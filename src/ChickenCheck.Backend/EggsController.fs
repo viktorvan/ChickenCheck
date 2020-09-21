@@ -31,7 +31,7 @@ let browserController =
 
                 return! ctx.WriteHtmlStringAsync
                             (layout model date
-                             |> App.layout (CompositionRoot.csrfTokenInput ctx) CompositionRoot.config.BasePath CompositionRoot.config.Domain)
+                             |> App.layout CompositionRoot.config.BasePath CompositionRoot.config.Domain)
             }
             
     let indexChickens ctx =
