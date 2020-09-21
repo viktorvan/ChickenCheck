@@ -20,3 +20,4 @@ runBackup: false
 requestScheme: http
 
 apiUser: Turing
+apiPassword: secret

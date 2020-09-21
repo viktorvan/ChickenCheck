@@ -5,9 +5,8 @@ metadata:
 data:
   ChickenCheck_ConnectionString: {{ include "helpers.connectionString" . }}
   ChickenCheck_PublicPath: "public"
-  ChickenCheck_Authentication__Domain: {{ .Values.authentication.domain }}
-  ChickenCheck_Authentication__ClientId: {{ .Values.authentication.clientId }}
-  ChickenCheck_Authentication__AccessRole: {{ .Values.authentication.accessRole }}
+  ChickenCheck_Authentication__ApiUsername: {{ .Values.apiUser }}
+  ChickenCheck_Authentication__ApiPassword: {{ .Values.apiPassword }}
   ChickenCheck_Domain: {{ .Values.domain }}
   ChickenCheck_BasePath: {{ .Values.basePath }}
   ChickenCheck_DataProtection__Path: {{ .Values.dataProtectionPath }}
