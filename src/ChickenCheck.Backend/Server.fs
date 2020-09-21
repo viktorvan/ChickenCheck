@@ -37,7 +37,7 @@ let routeToWWW : HttpHandler =
         printfn "PathBase: %s" ctx.Request.PathBase.Value
         printfn "Path: %s" ctx.Request.Path.Value
         if not (ctx.Request.Host.Value.StartsWith("https://www") || ctx.Request.Host.Value.StartsWith"localhost") then 
-            (redirectTo true ("https://www" + ctx.Request.Host.Value.Substring(8) + CompositionRoot.defaultRoute()) next ctx)
+            (redirectTo true ("https://www" + ctx.Request.Host.Value + CompositionRoot.defaultRoute()) next ctx)
         else next ctx
     
 let browserRouter =
