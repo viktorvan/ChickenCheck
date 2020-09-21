@@ -42,8 +42,6 @@ let browserRouter =
         pipe_through routeToWWW
         pipe_through turbolinks
         get "/" (redirectTo false (CompositionRoot.defaultRoute()))
-        get "/login" Authentication.challenge
-        get "/logout" Authentication.logout
         forward "/eggs" EggsController.browserController
     }
     
