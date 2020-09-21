@@ -21,6 +21,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}
         image: "localhost:32000/chickencheck:{{ .Chart.AppVersion }}-arm64" 
+        imagePullPolicy: Always
         ports: 
           - containerPort: {{ .Values.applicationPort }}
         livenessProbe:
