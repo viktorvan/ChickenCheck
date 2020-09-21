@@ -30,8 +30,18 @@ let endpointPipe =
         plug head
     }
     
+let routeToWWW : HttpHandler =
+    fun next ctx ->
+        printfn "Host: %s" ctx.Request.Host.Value
+        printfn "Scheme: %s" ctx.Request.Scheme
+        printfn "PathBase: %s" ctx.Request.PathBase.Value
+        printfn "Path: %s" ctx.Request.Path.Value
+        if not (ctx.Request.Host.Value.StartsWith("https://www") || ctx.Request.Host.Value.StartsWith"localhost") then (redirectTo true ("https://www" + ctx.Request.Path.Value.Substring(8)) next ctx)
+        else next ctx
+    
 let browserRouter =
     router {
+        pipe_through routeToWWW
         pipe_through turbolinks
         get "/" (redirectTo false (CompositionRoot.defaultRoute()))
         get "/login" Authentication.challenge

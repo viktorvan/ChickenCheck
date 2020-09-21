@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Expenses page
 * Statistics charts
 
+
+## [1.10.5] - 2020-09-21
+### Fixed 
+* Re-route to www for root domain
+
 ## [1.10.4] - 2020-09-21
 ### Fixed 
 * Title
