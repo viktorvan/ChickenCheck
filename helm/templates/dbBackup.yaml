@@ -28,6 +28,7 @@ spec:
           containers:
           - name: {{ .Release.Name }}-dbbackup
             image: "localhost:32000/eggtive-tools:{{ .Chart.AppVersion }}-arm64" 
+            imagePullPolicy: Always
             command: ["dotnet", "dbbackup/ChickenCheck.DbBackup.dll", "--databasepath", {{ .Values.databasePath }}/{{ .Values.databaseName }}]
             volumeMounts:
               - name: {{ .Release.Name }}-pvc

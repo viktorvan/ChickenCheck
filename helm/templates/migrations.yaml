@@ -25,6 +25,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}-migrations
         image: "localhost:32000/eggtive-tools:{{ .Chart.AppVersion }}-arm64" 
+        imagePullPolicy: Always
         command: ["dotnet", "migrations/ChickenCheck.Migrations.dll", "--connectionstring", {{ include "helpers.connectionString" . }}]
         volumeMounts:
           - name: {{ .Release.Name }}-pvc

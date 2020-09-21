@@ -21,6 +21,7 @@ spec:
       containers:
       - name: {{ .Release.Name }}
         image: "localhost:32000/eggtive:{{ .Chart.AppVersion }}-arm64" 
+        imagePullPolicy: Always
         ports: 
           - containerPort: {{ .Values.applicationPort }}
         livenessProbe:
