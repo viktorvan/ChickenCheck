@@ -48,20 +48,22 @@ let all rootUrl =
         
     "navigate by datepicker" &&& fun _ ->
         let testNavigateToDay (day: DateTime) =
+            describe ("navigating by datepicker to: " + day.ToString())
             click Selectors.datePicker
+            click Selectors.previousMonth
             click (Selectors.dayButton day)
             onn (eggsUrl day)
             waitForCurrentDate day
         
         let inAPreviousMonth = today.AddMonths(-1)
-        describe (inAPreviousMonth.ToString())
         url (eggsUrl inAPreviousMonth)
         
         let firstDayOfMonth = DateTime(inAPreviousMonth.Year, inAPreviousMonth.Month, 1)
-        let secondDayOfMonth = DateTime(inAPreviousMonth.Year, inAPreviousMonth.Month, 2)
+        let twentiethDayOfMonth = DateTime(inAPreviousMonth.Year, inAPreviousMonth.Month, 20)
         
         testNavigateToDay firstDayOfMonth
-        testNavigateToDay secondDayOfMonth
+        url (rootUrl + "/eggs")
+        testNavigateToDay twentiethDayOfMonth
         
     "add and remove egg" &&& fun _ ->
         login()

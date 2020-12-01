@@ -22,4 +22,5 @@ module Selectors =
     let chickenCardById (id: ChickenId) = sprintf ".chicken-card[%s]" (DataAttributes.chickenIdStr id)
     let eggIcon (id: ChickenId) = sprintf ".egg-icon[%s]" (DataAttributes.chickenIdStr id)
     let datePicker = ".datetimepicker-dummy-wrapper"
+    let previousMonth = ".datepicker-nav-previous"
     let dayButton (date: DateTime) = sprintf "[data-date*=\"%s\"]" (date.ToString("MMM dd"))
