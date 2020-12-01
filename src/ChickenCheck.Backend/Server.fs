@@ -33,7 +33,7 @@ let endpointPipe =
 let browserRouter =
     router {
         pipe_through turbolinks
-        get "/" (redirectTo false (CompositionRoot.defaultRoute()))
+        get "/" (warbler (fun _ -> (redirectTo false (CompositionRoot.defaultRoute()))))
         get "/login" Authentication.challenge
         get "/logout" Authentication.logout
         forward "/eggs" EggsController.controller

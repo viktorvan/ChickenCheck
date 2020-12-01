@@ -9,6 +9,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Expenses page
 * Statistics charts
 
+## [1.11.1] - 2020-12-01
+### Added
+* New chickens
+### Fixed
+* Startup date bug
 
 ## [1.10.3] - 2020-09-19
 ### Fixed
