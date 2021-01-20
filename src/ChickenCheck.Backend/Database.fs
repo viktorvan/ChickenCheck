@@ -13,7 +13,6 @@ module ConnectionString =
         if String.IsNullOrEmpty str then invalidArg "ConnectionString" "ConnectionString cannot be empty"
         else str |> ConnectionString
 
-
 [<AutoOpen>]
 module private DbHelpers =
     let getConnection (ConnectionString str) =
@@ -168,7 +167,6 @@ let private validChickenIds conn =
     getAllChickens conn ()
     |> Async.map (List.map (fun c -> c.Id))
 
-        
 let addEgg (conn: ConnectionString) =
     let sql = """
             UPDATE Egg 

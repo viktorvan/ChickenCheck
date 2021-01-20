@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Expenses page
 * Statistics charts
 
+## [1.11.2] - 2021-01-20
+### Changed
+* Helm chart
+
 ## [1.11.1] - 2020-12-01
 ### Added
 * New chickens
