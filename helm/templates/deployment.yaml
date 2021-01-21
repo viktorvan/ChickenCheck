@@ -18,10 +18,12 @@ spec:
       labels:
         app: {{ .Release.Name }}
     spec:
+      imagePullSecrets: 
+      - name: canister-registry-key
       containers:
       - name: {{ .Release.Name }}
-        image: "localhost:32000/chickencheck:{{ .Chart.AppVersion }}-arm64" 
-        imagePullPolicy: IfNotPresent
+        image: "cloud.canister.io:5000/viktorvan/chickencheck:{{ .Chart.AppVersion }}-arm64" 
+        imagePullPolicy: Always
         ports: 
           - containerPort: {{ .Values.applicationPort }}
         livenessProbe:

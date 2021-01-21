@@ -38,7 +38,7 @@ let dbBackupPath = src @@ "ChickenCheck.DbBackup"
 let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.UnitTests"
 let webTestsPath = rootPath @@ "test" @@ "ChickenCheck.WebTests"
 let connectionString = sprintf "Data Source=%s/database-dev.db" serverPath
-let dockerRegistry = "192.168.50.201:32000"
+let dockerRegistry = "cloud.canister.io:5000/viktorvan"
 let appName = "chickencheck"
 let serverDockerfile = "Backend.Dockerfile"
 let toolsDockerfile = "Tools.Dockerfile"

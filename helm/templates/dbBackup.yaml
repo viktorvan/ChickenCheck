@@ -25,9 +25,11 @@ spec:
     spec:
       template:
         spec:
+          imagePullSecrets: 
+          - name: canister-registry-key
           containers:
           - name: {{ .Release.Name }}-dbbackup
-            image: "localhost:32000/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
+            image: "cloud.canister.io:5000/viktorvan/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
             imagePullPolicy: Always
             command: ["dotnet", "dbbackup/ChickenCheck.DbBackup.dll", "--databasepath", {{ .Values.databasePath }}/{{ .Values.databaseName }}]
             volumeMounts:

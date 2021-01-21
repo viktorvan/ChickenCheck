@@ -21,10 +21,12 @@ spec:
         app.kubernetes.io/instance: {{ .Release.Name | quote }}
         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     spec:
+      imagePullSecrets: 
+      - name: canister-registry-key
       restartPolicy: Never
       containers:
       - name: {{ .Release.Name }}-migrations
-        image: "localhost:32000/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
+        image: "cloud.canister.io:5000/viktorvan/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
         imagePullPolicy: Always
         command: ["dotnet", "migrations/ChickenCheck.Migrations.dll", "--connectionstring", {{ include "helpers.connectionString" . }}]
         volumeMounts:
