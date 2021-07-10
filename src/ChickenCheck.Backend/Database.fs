@@ -41,7 +41,7 @@ module private DbHelpers =
             let! result = query<'T> conn sql parameters
             return List.tryHead result
         }
-        
+
     let (!) p = Some (box p)
 
 let inline private throwOnParsingError result =

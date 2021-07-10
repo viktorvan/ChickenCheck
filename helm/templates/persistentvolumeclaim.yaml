@@ -3,7 +3,7 @@ apiVersion: v1
 metadata:
   name: {{ .Release.Name }}-claim
 spec:
-  storageClassName: managed-nfs-storage
+  storageClassName: nsf-client
   accessModes:
     - ReadWriteMany
   resources:
