@@ -1,50 +1,50 @@
-{{ if .Values.runBackup }}
-apiVersion: batch/v1beta1
-kind: CronJob
-metadata:
-  name: "{{ .Release.Name }}-dbbackup"
-  labels:
-    app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
-    app.kubernetes.io/instance: {{ .Release.Name | quote }}
-    app.kubernetes.io/version: {{ .Chart.AppVersion }}
-    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
-spec:
-  schedule: "55 23 * * *"
-  startingDeadlineSeconds: 10
-  concurrencyPolicy: Replace
-  successfulJobsHistoryLimit: 2
-  failedJobsHistoryLimit: 1
-  jobTemplate:
-    metadata:
-      name: "{{ .Release.Name }}-dbbackup"
-      labels:
-        app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
-        app.kubernetes.io/instance: {{ .Release.Name | quote }}
-        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+# {{ if .Values.runBackup }}
+# apiVersion: batch/v1beta1
+# kind: CronJob
+# metadata:
+#   name: "{{ .Release.Name }}-dbbackup"
+#   labels:
+#     app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+#     app.kubernetes.io/instance: {{ .Release.Name | quote }}
+#     app.kubernetes.io/version: {{ .Chart.AppVersion }}
+#     helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+# spec:
+#   schedule: "55 23 * * *"
+#   startingDeadlineSeconds: 10
+#   concurrencyPolicy: Replace
+#   successfulJobsHistoryLimit: 2
+#   failedJobsHistoryLimit: 1
+#   jobTemplate:
+#     metadata:
+#       name: "{{ .Release.Name }}-dbbackup"
+#       labels:
+#         app.kubernetes.io/managed-by: {{ .Release.Service | quote }}
+#         app.kubernetes.io/instance: {{ .Release.Name | quote }}
+#         helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
     
-    spec:
-      template:
-        spec:
-          imagePullSecrets: 
-          - name: canister-registry-key
-          containers:
-          - name: {{ .Release.Name }}-dbbackup
-            image: "cloud.canister.io:5000/viktorvan/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
-            imagePullPolicy: Always
-            command: ["dotnet", "dbbackup/ChickenCheck.DbBackup.dll", "--databasepath", {{ .Values.databasePath }}/{{ .Values.databaseName }}]
-            volumeMounts:
-              - name: {{ .Release.Name }}-pvc
-                mountPath: {{ .Values.databasePath }}
+#     spec:
+#       template:
+#         spec:
+#           imagePullSecrets: 
+#           - name: canister-registry-key
+#           containers:
+#           - name: {{ .Release.Name }}-dbbackup
+#             image: "cloud.canister.io:5000/viktorvan/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
+#             imagePullPolicy: Always
+#             command: ["dotnet", "dbbackup/ChickenCheck.DbBackup.dll", "--databasepath", {{ .Values.databasePath }}/{{ .Values.databaseName }}]
+#             volumeMounts:
+#               - name: {{ .Release.Name }}-pvc
+#                 mountPath: {{ .Values.databasePath }}
 
-            env:
-              - name: ChickenCheck_DbBackup__AzureStorageConnectionString
-                valueFrom:
-                  secretKeyRef:
-                    name: {{ .Release.Name }}-secret
-                    key: AzureStorageConnectionString
-          volumes:
-            - name: {{ .Release.Name }}-pvc
-              persistentVolumeClaim:
-                claimName: {{ .Release.Name }}-claim
-          restartPolicy: OnFailure
-{{ end }}
+#             env:
+#               - name: ChickenCheck_DbBackup__AzureStorageConnectionString
+#                 valueFrom:
+#                   secretKeyRef:
+#                     name: {{ .Release.Name }}-secret
+#                     key: AzureStorageConnectionString
+#           volumes:
+#             - name: {{ .Release.Name }}-pvc
+#               persistentVolumeClaim:
+#                 claimName: {{ .Release.Name }}-claim
+#           restartPolicy: OnFailure
+# {{ end }}
