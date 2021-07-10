@@ -348,7 +348,6 @@ let helmPackage _ =
 
 let helmInstallDev _ = 
     let deployArgs = [
-        "upgrade"
         sprintf "%s-dev" appName
         "-f"
         "./helm/values.dev.yaml"
@@ -360,7 +359,11 @@ let helmInstallDev _ =
     ]
 
     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
-    Common.helm deployArgs rootPath |> ignore
+    try
+        Common.helm (["upgrade"] @ deployArgs) rootPath |> ignore
+    with _ ->
+        Common.helm (["install"] @ deployArgs) rootPath |> ignore
+
 
 let waitForDeployment env _ =
     let waitForResponse timeout url =
@@ -393,7 +396,6 @@ let waitForDeployment env _ =
 
 let helmInstallProd _ = 
     let deployArgs = [
-        "upgrade"
         appName
         "-f"
         "./helm/values.prod.yaml"
@@ -407,7 +409,10 @@ let helmInstallProd _ =
     ]
 
     Common.kubectl [ "config"; "use-context"; "microk8s" ] ""
-    Common.helm deployArgs rootPath |> ignore
+    try 
+        Common.helm ([ "upgrade" ] @ deployArgs) rootPath |> ignore
+    with _ ->
+        Common.helm ([ "install" ] @ deployArgs) rootPath |> ignore
 
 //-----------------------------------------------------------------------------
 // Build Target Declaration
