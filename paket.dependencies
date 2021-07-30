@@ -1,16 +1,8 @@
 version 5.245.1
 
-group Domain
-    source https://api.nuget.org/v3/index.json
-    framework: netstandard2.0
-    storage: none
-
-    nuget FSharp.Core
-    nuget FsToolkit.ErrorHandling
-
 group Backend
     source https://api.nuget.org/v3/index.json
-    framework: netcoreapp3.1
+    framework: net6.0
     storage: none
 
     nuget Giraffe
@@ -20,9 +12,8 @@ group Backend
     nuget FSharp.Core
     nuget FsToolkit.ErrorHandling
     nuget FsToolkit.ErrorHandling.TaskResult
-    nuget Fable.Remoting.Server
-    nuget Microsoft.Data.Sqlite 3.1.7
     nuget Dapper
+    nuget Npgsql
     nuget FsConfig
     nuget Microsoft.Extensions.Configuration.UserSecrets 
     nuget Feliz.ViewEngine
@@ -30,28 +21,18 @@ group Backend
     nuget Microsoft.AspNetCore.Authentication.Cookies
     nuget Microsoft.AspNetCore.Authentication.OpenIdConnect
     
-group Client
-    source https://api.nuget.org/v3/index.json
-    framework: netstandard2.0
-    storage: none
-
-    nuget Fable.Core ~> 3
-    nuget fstoolkit.errorhandling
-    nuget Fable.Browser.Dom
-    nuget Fable.SimpleHttp
-
 group Migrations
     source https://api.nuget.org/v3/index.json
-    framework: netcoreapp3.1
+    framework: net6.0
     storage: none
 
     nuget Argu
     nuget Simple.Migrations
-    nuget Microsoft.Data.Sqlite 3.1.7
+    nuget Npgsql
     
 group UnitTests
     source https://www.nuget.org/api/v2
-    framework: netcoreapp3.1
+    framework: net6.0
     storage: none
     
     nuget FSharp.Core
@@ -59,11 +40,11 @@ group UnitTests
     nuget Unquote
     nuget Fable.Elmish ~> 3
     nuget Simple.Migrations
-    nuget Microsoft.Data.Sqlite 3.1.7
+    nuget ThrowawayDb.Postgres
     
 group WebTests
     source https://www.nuget.org/api/v2
-    framework: netcoreapp3.1
+    framework: net6.0
     storage: none
     
     nuget canopy
@@ -77,7 +58,7 @@ group WebTests
 group Build
     source https://www.nuget.org/api/v2
     source https://api.nuget.org/v3/index.json
-    framework: netstandard2.0
+    framework: net5.0
     nuget Fake.Core.Target
     nuget Fake.Core.ReleaseNotes
     nuget FAKE.Core.Environment
@@ -89,10 +70,11 @@ group Build
     nuget Fake.Core.UserInput
     nuget FsConfig
     nuget Microsoft.Extensions.Configuration.UserSecrets 
+    nuget MSBuild.StructuredLogger (2.1.507)
 
 group DbBackup
     source https://api.nuget.org/v3/index.json
-    framework: netcoreapp3.1
+    framework: net5.0
     storage: none
 
     nuget FSharp.Core

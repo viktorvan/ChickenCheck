@@ -1,33 +1,28 @@
 [<RequireQualifiedAccess>]
 module ChickenCheck.Backend.Database
 
-open ChickenCheck.Shared
 open System
-open Microsoft.Data.Sqlite
 open FsToolkit.ErrorHandling
 open Dapper
+open Npgsql
+open ChickenCheck.Backend.Extensions
 
-type ConnectionString = private ConnectionString of string
-module ConnectionString =
-    let create str =
-        if String.IsNullOrEmpty str then invalidArg "ConnectionString" "ConnectionString cannot be empty"
-        else str |> ConnectionString
 
 [<AutoOpen>]
 module private DbHelpers =
     let getConnection (ConnectionString str) =
         async {
-            let conn = new SqliteConnection(str)
+            let conn = new NpgsqlConnection(str)
             let! _ = conn.OpenAsync() |> Async.AwaitTask
             return conn
         }
 
-    let execute (conn: SqliteConnection) (sql: string) parameters =
+    let execute (conn: NpgsqlConnection) (sql: string) parameters =
         match parameters with
         | None -> conn.ExecuteAsync(sql) |> Async.AwaitTask
         | Some p -> conn.ExecuteAsync(sql, p) |> Async.AwaitTask
 
-    let query<'T> (conn: SqliteConnection) (sql: string) parameters =
+    let query<'T> (conn: NpgsqlConnection) (sql: string) parameters =
         async {
             let! results =
                 match parameters with
@@ -36,7 +31,7 @@ module private DbHelpers =
             return List.ofSeq results
         }
 
-    let querySingle<'T> (conn: SqliteConnection) (sql: string) parameters =
+    let querySingle<'T> (conn: NpgsqlConnection) (sql: string) parameters =
         async {
             let! result = query<'T> conn sql parameters
             return List.tryHead result
@@ -62,8 +57,9 @@ let testConnection (conn: ConnectionString) =
                 ()
         }
 
+[<CLIMutable>]
 type private ChickenEntity =
-    { Id: string
+    { Id: Guid
       Name: string
       Breed: string
       ImageUrl: string option }
@@ -73,9 +69,9 @@ let getAllChickens (conn: ConnectionString) =
                  FROM Chicken c
                  ORDER BY c.Name"""
 
-    let toDomain (entity:ChickenEntity) =
+    let toDomain (entity: ChickenEntity) =
         result {
-            let id = entity.Id |> ChickenId.parse
+            let id = entity.Id |> ChickenId.create
             let! name = 
                 entity.Name 
                 |> String.notNullOrEmpty
@@ -105,14 +101,14 @@ let getAllChickens (conn: ConnectionString) =
         }
 
 type private EggCountEntity =
-    { ChickenId: string
+    { ChickenId: Guid
       EggCount: int64 option } 
     
 module private EggCountEntity =
     let toDomain (entity: EggCountEntity) =
         let chickenId = 
             entity.ChickenId
-            |> ChickenId.parse
+            |> ChickenId.create
         let eggsOrZero = 
             Option.defaultValue 0L entity.EggCount |> int
             |> EggCount.create
@@ -124,7 +120,7 @@ let getEggCount (conn: ConnectionString) =
             FROM Chicken c
             LEFT OUTER JOIN Egg e ON e.ChickenId = c.Id
                                   AND e.Date = @date
-            WHERE e.ChickenId in @chickenIds
+            WHERE e.ChickenId = ANY(@chickenIds)
             GROUP BY c.Id"""
             
     let toDomain (entity: EggCountEntity list) =
@@ -133,10 +129,10 @@ let getEggCount (conn: ConnectionString) =
         |> Map.ofList
 
     fun (chickenIds: ChickenId list) (date: NotFutureDate) ->
-        let chickenStringIds = chickenIds |> List.map (fun (ChickenId id) -> id.ToString())
+        let chickenGuidIds = chickenIds |> List.map ChickenId.value |> List.toArray
         async {
             use! connection = getConnection conn
-            let! entities = query connection sql !{| date = date.ToString(); chickenIds = chickenStringIds |}
+            let! entities = query connection sql !{| date = date.ToDateTime(); chickenIds = chickenGuidIds |}
             let result = toDomain entities
             return 
                 chickenIds 
@@ -149,14 +145,14 @@ let getTotalEggCount (conn: ConnectionString) =
             SELECT c.Id AS ChickenId, Sum(e.EggCount) AS EggCount 
             FROM Chicken c
             LEFT OUTER JOIN Egg e ON e.ChickenId = c.Id
-            WHERE e.ChickenId in @chickenIds
+            WHERE e.ChickenId = ANY(@chickenIds)
             GROUP BY c.Id"""
 
     fun chickenIds ->
-        let chickenStringIds = chickenIds |> List.map (fun (c:ChickenId) -> c.Value.ToString())
+        let chickenGuidIds = chickenIds |> List.map ChickenId.value |> List.toArray
         async {
             use! connection = getConnection conn
-            let! result = query connection sql !{| chickenIds = chickenStringIds |}
+            let! result = query connection sql !{| chickenIds = chickenGuidIds |}
             return 
                 result 
                 |> Seq.map EggCountEntity.toDomain 
@@ -169,13 +165,6 @@ let private validChickenIds conn =
 
 let addEgg (conn: ConnectionString) =
     let sql = """
-            UPDATE Egg 
-                SET 
-                    EggCount = EggCount + 1, 
-                    LastModified = datetime('now')
-                WHERE ChickenId = @chickenId
-                AND Date = @date;
-                  
             INSERT INTO Egg 
             ( ChickenId
             , Date
@@ -183,8 +172,18 @@ let addEgg (conn: ConnectionString) =
             , Created
             , LastModified
             )
-            SELECT @chickenId, @date, 1 , datetime('now') , datetime('now')
-            WHERE (SELECT Changes() = 0);"""
+            VALUES 
+            ( @chickenId
+            , @date
+            , 1
+            , NOW()
+            , NOW()
+            )
+            ON CONFLICT (ChickenId, Date)
+            DO UPDATE SET 
+                EggCount = Egg.EggCount + 1, 
+                LastModified = NOW()
+            """
             
     fun (id: ChickenId) (date: NotFutureDate) ->
         async {
@@ -193,7 +192,7 @@ let addEgg (conn: ConnectionString) =
                 return invalidArg "ChickenId" "Invalid chicken-id"
             else
                 use! connection = getConnection conn
-                let! _ = execute connection sql !{| date = date.ToString(); chickenId = id.Value.ToString() |}
+                let! _ = execute connection sql !{| date = date.ToDateTime(); chickenId = id.Value |}
                 return ()
         }
 
@@ -202,7 +201,7 @@ let removeEgg (conn: ConnectionString) =
             UPDATE Egg 
                 SET 
                     EggCount = EggCount - 1, 
-                    LastModified = datetime('now')
+                    LastModified = NOW()
                 WHERE ChickenId = @chickenId
                 AND Date = @date;
                   
@@ -218,7 +217,7 @@ let removeEgg (conn: ConnectionString) =
                 return invalidArg "ChickenId" "Invalid chicken-id"
             else
                 use! connection = getConnection conn
-                let! _ = execute connection sql !{| chickenId = id.Value.ToString(); date = date.ToString() |}
+                let! _ = execute connection sql !{| chickenId = id.Value; date = date.ToDateTime() |}
                 return ()
         }
         
@@ -227,7 +226,7 @@ let removeAllEggs (conn: ConnectionString) =
     fun (date: NotFutureDate) ->
         async {
             use! connection = getConnection conn
-            let! _ = execute connection sql !{| date = date.ToString() |}
+            let! _ = execute connection sql !{| date = date |}
             return ()
         }
 

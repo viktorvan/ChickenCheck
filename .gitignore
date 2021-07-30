@@ -64,3 +64,5 @@ chickencheck*.tgz
 
 #keys
 dataprotection
+
+.DS_Store

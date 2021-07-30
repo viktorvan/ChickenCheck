@@ -2,12 +2,10 @@ module ChickenCheck.Backend.ChickensController
 
 open ChickenCheck.Backend.Views
 open ChickenCheck.Backend.Views.Chickens
-open ChickenCheck.Shared
-open FSharp.Control.Tasks.V2.ContextInsensitive
+open FSharp.Control.Tasks.Affine
 open Microsoft.AspNetCore.Http
 open Saturn
 open Giraffe
-open ChickenCheck.Backend.Turbolinks
 
 let controller =
     let eggsController (chickenId: string) =

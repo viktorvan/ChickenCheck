@@ -1,12 +1,12 @@
 ﻿// Learn more about F# at http://fsharp.org
 
 open System
-open Microsoft.Data.Sqlite
 open SimpleMigrations
 open SimpleMigrations.DatabaseProvider
 open SimpleMigrations.Console
 open Argu
 open System.Reflection
+open Npgsql
 
 type CLIArguments =
     | ConnectionString of connectionString : string
@@ -25,13 +25,13 @@ let printUsage() = parser.PrintUsage() |> printfn "%s"
 [<EntryPoint>]
 let main argv =
         let args = parser.Parse argv
-
+        
         match args.TryGetResult ConnectionString with
         | Some connectionString ->
             let migrationAssembly = Assembly.GetEntryAssembly()
-            use connection = new SqliteConnection(connectionString)
+            use connection = new NpgsqlConnection(connectionString)
             connection.Open()
-            let provider = SqliteDatabaseProvider(connection)
+            let provider = PostgresqlDatabaseProvider(connection)
             let migrator = SimpleMigrator(migrationAssembly, provider)
             let consoleRunner = ConsoleRunner(migrator)
             match args.TryGetResult To with

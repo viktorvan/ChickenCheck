@@ -1,8 +1,8 @@
 module ChickenCheck.UnitTests.DomainTests
 
+open ChickenCheck.Backend
 open Expecto
 open Swensen.Unquote
-open ChickenCheck.Shared
 open System
 
 let testCase = Expecto.Tests.test

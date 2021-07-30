@@ -2,7 +2,7 @@ group Backend
 FsToolkit.ErrorHandling
 FsToolkit.ErrorHandling.TaskResult
 Dapper
-Microsoft.Data.Sqlite
+Npgsql
 FsConfig
 Microsoft.Extensions.Configuration.UserSecrets
 Saturn

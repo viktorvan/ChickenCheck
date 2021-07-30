@@ -1,6 +1,6 @@
 module ChickenCheck.Backend.Views.Statistics
 
-open ChickenCheck.Shared
+open ChickenCheck.Backend
 open Feliz.ViewEngine
 open Feliz.Bulma.ViewEngine
 
@@ -17,7 +17,7 @@ let private eggCountView (heading: string) (eggCount: int) =
                     prop.classes [ "heading" ]
                     prop.text heading 
                 ]
-                Bulma.title.p eggCount
+                Bulma.title.p (int eggCount)
             ]
         ]
     ]

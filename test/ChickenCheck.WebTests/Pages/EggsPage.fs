@@ -1,7 +1,7 @@
 module ChickenCheck.WebTests.Pages.EggsPage
 
 open System
-open ChickenCheck.Shared
+open ChickenCheck.Backend
 open OpenQA.Selenium
 open canopy.classic
 

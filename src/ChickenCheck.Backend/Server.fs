@@ -10,7 +10,7 @@ open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Primitives
 open Microsoft.AspNetCore.DataProtection
 open Saturn
-open FSharp.Control.Tasks.V2.ContextInsensitive
+open FSharp.Control.Tasks.Affine
 open Microsoft.Extensions.Logging
 open ChickenCheck.Backend.SaturnExtensions
 

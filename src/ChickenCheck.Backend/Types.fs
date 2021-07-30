@@ -1,5 +1,6 @@
-﻿namespace ChickenCheck.Shared
+﻿namespace ChickenCheck.Backend
 
+open ChickenCheck.Backend.Extensions
 open System
 open FsToolkit.ErrorHandling
 
@@ -40,12 +41,13 @@ type NotFutureDate =
     
 type FutureDate = FutureDate of DateTime
 
-type ConnectionString = ConnectionString of string
+type ConnectionString = private ConnectionString of string with
+    member this.Value = this |> fun (ConnectionString str) -> str
 
-type ChickenWithEggCount =
-    { Chicken: Chicken
-      Count: NotFutureDate * EggCount
-      TotalCount: EggCount }
+module ConnectionString =
+    let create str =
+        if String.IsNullOrEmpty str then invalidArg "ConnectionString" "ConnectionString cannot be empty"
+        else str |> ConnectionString
 
 type AuthenticationSettings =
     { Domain: string
@@ -54,6 +56,11 @@ type AuthenticationSettings =
 type IChickensApi =
     abstract AddEgg: ChickenId * NotFutureDate -> Async<unit>
     abstract RemoveEgg: ChickenId * NotFutureDate -> Async<unit>
+
+type ChickenWithEggCount =
+    { Chicken: Chicken
+      Count: NotFutureDate * EggCount
+      TotalCount: EggCount }
 
 // types - implementation
 
@@ -65,7 +72,6 @@ module Helpers =
     let tee f x =
         f x |> ignore
         x
-
 
 module Email =
     let create (str: string) =
@@ -89,7 +95,7 @@ module UserId =
         else
             UserId guid
 
-    let parse = Guid.Parse >> create
+    let parse (str: string) = str |> Guid.Parse |> create
     let value (UserId guid) = guid
 
 module ChickenId =
@@ -101,7 +107,7 @@ module ChickenId =
         else
             ChickenId guid
 
-    let parse = Guid.Parse >> create
+    let parse (str: string) = str |> Guid.Parse |> create
 
     let value (ChickenId guid) = guid
 
@@ -127,6 +133,14 @@ module EggCount =
 
     let toString (EggCount num) = num.ToString()
 
+module ChickenWithEggCount =
+    let create date (countOnDate, totalCount) chicken =
+        let onDate = Map.tryFindWithDefault EggCount.zero chicken.Id countOnDate 
+        let total = Map.tryFindWithDefault EggCount.zero chicken.Id totalCount
+        { Chicken = chicken
+          Count = date, onDate
+          TotalCount = total }
+
 module NotFutureDate =
     type ParseError =
         | FutureDateError of FutureDate
@@ -146,7 +160,7 @@ module NotFutureDate =
         | Ok d -> d
         | Error (FutureDate err) -> invalidArg "date" "date cannot be in the future"
 
-    let tryParse dateStr =
+    let tryParse (dateStr: string) =
         match DateTime.TryParse dateStr with
         | true, date -> Some date
         | false, _ -> None

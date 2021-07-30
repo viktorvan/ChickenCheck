@@ -3,7 +3,6 @@ module ChickenCheck.Backend.Views.App
 open ChickenCheck.Backend
 open Feliz.ViewEngine
 open Feliz.Bulma.ViewEngine
-open ChickenCheck.Shared
 open ChickenCheck.Backend.Extensions
 
 let layout csrfTokenInput basePath domain (user: User) content =
@@ -64,6 +63,14 @@ let layout csrfTokenInput basePath domain (user: User) content =
             ]
             Html.title "ChickenCheck"
             Html.link [
+                prop.rel.stylesheet
+                prop.href "https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css"
+            ]
+            Html.link [
+                prop.rel.stylesheet
+                prop.href "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css"
+            ]
+            Html.link [
                 prop.rel "apple-touch-icon"
                 prop.sizes "180x180"
                 prop.href "Icons/apple-touch-icon.png"
@@ -93,7 +100,6 @@ let layout csrfTokenInput basePath domain (user: User) content =
             Html.script [
                 Html.text "window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }"
             ]
-            yield! Bundle.bundle
         ]
         Html.body [
             userAttribute

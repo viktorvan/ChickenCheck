@@ -1,7 +1,7 @@
 module ChickenCheck.Backend.Views.DatePicker
 
 open ChickenCheck.Backend
-open ChickenCheck.Shared
+open ChickenCheck.Backend.Extensions
 open Feliz.ViewEngine
 open Feliz.Bulma.ViewEngine
 

@@ -1,21 +1,20 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project Sdk="Microsoft.NET.Sdk.Web">
   <PropertyGroup>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net6.0</TargetFramework>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <UserSecretsId>f1dcbf68-77d8-40ba-807d-b98d9be91d5e</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="Version.fs" />
     <Compile Include="Extensions.fs" />
+    <Compile Include="Types.fs" />
     <Compile Include="DapperOptionHandler.fs" />
     <Compile Include="Database.fs" />
     <Compile Include="Configuration.fs" />
-    <Compile Include="Domain.fs" />
     <Compile Include="Workflows.fs" />
     <Compile Include="Routing.fs" />
     <Compile Include="Views\Shared.fs" />
-    <Compile Include="Views\Bundle.fs" />
     <Compile Include="Views\App.fs" />
     <Compile Include="Views\ChickenCard.fs" />
     <Compile Include="Views\DatePicker.fs" />
@@ -28,9 +27,9 @@
     <Compile Include="ChickensController.fs" />
     <Compile Include="EggsController.fs" />
     <Compile Include="Server.fs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\ChickenCheck.Shared\ChickenCheck.Shared.fsproj" />
+    <None Include="public\**">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
   <Import Project="..\..\.paket\Paket.Restore.targets" />
 </Project>

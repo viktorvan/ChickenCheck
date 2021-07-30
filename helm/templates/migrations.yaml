@@ -29,13 +29,6 @@
 #         image: "cloud.canister.io:5000/viktorvan/chickencheck-tools:{{ .Chart.AppVersion }}-arm64" 
 #         imagePullPolicy: Always
 #         command: ["dotnet", "migrations/ChickenCheck.Migrations.dll", "--connectionstring", {{ include "helpers.connectionString" . }}]
-#         volumeMounts:
-#           - name: {{ .Release.Name }}-pvc
-#             mountPath: {{ .Values.databasePath }}
-#       volumes:
-#         - name: {{ .Release.Name }}-pvc
-#           persistentVolumeClaim:
-#             claimName: {{ .Release.Name }}-claim
 
 #   backoffLimit: 0
 #   activeDeadlineSeconds: 30

@@ -1,5 +1,0 @@
-group Client
-    FsToolkit.Errorhandling
-    Fable.Core
-    Fable.Browser.Dom
-    Fable.SimpleHttp

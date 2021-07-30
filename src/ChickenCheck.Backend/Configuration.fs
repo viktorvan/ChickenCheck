@@ -55,7 +55,7 @@ let config =
 
         match appConfig.Get<Config>() with
         | Ok config ->
-            {| ConnectionString = Database.ConnectionString.create config.ConnectionString
+            {| ConnectionString = ConnectionString.create config.ConnectionString
                ServerPort = config.ServerPort
                PublicPath = config.PublicPath |> Path.GetFullPath
                DataProtection = 

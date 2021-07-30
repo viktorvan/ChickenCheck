@@ -1,12 +1,3 @@
-#r "paket: groupref Build //"
-#load ".fake/build.fsx/intellisense.fsx"
-
-#if !FAKE
-#r "Facades/netstandard"
-#r "netstandard"
-#endif
-#load "src/tools/common.fsx"
-#load "src/tools/chickenCheckConfiguration.fsx"
 open System
 open Fake.Core
 open Fake.DotNet
@@ -15,6 +6,9 @@ open Fake.Core.TargetOperators
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open Fake.IO.Globbing.Operators
+open Helpers
+
+initializeContext()
 
 
 type Tag =
@@ -37,7 +31,9 @@ let migrationsPath = src @@ "ChickenCheck.Migrations"
 let dbBackupPath = src @@ "ChickenCheck.DbBackup"
 let unitTestsPath = rootPath @@ "test" @@ "ChickenCheck.UnitTests"
 let webTestsPath = rootPath @@ "test" @@ "ChickenCheck.WebTests"
-let connectionString = sprintf "Data Source=%s/database-dev.db" serverPath
+let localDatabaseUser = ChickenCheckConfiguration.config.Value.Local.Db.User
+let localDatabasePassword = ChickenCheckConfiguration.config.Value.Local.Db.Password
+let connectionString = sprintf $"User ID=%s{localDatabaseUser};Password=%s{localDatabasePassword};Host=localhost;Port=5432;Database=chickencheck;Pooling=true;Minimum Pool Size=0;Maximum Pool Size=100;Connection Lifetime=0;"
 let dockerRegistry = "cloud.canister.io:5000/viktorvan"
 let appName = "chickencheck"
 let serverDockerfile = "Backend.Dockerfile"
@@ -161,13 +157,6 @@ let writeVersionToFile _ =
 
     File.writeString false (serverPath @@ "Version.fs") (sb.ToString())
     
-let installClient _ =
-    printfn "Node version:"
-    Common.node [ "--version" ] rootPath
-    printfn "npm version:"
-    Common.npm [ "--version" ] rootPath
-    Common.npm [ "install" ] rootPath
-
 let dotnetBuild ctx =
     let args =
         [
@@ -181,9 +170,6 @@ let dotnetBuild ctx =
                 c.Common
                 |> DotNet.Options.withAdditionalArgs args
         }) sln
-
-let bundleClient _ =
-    Common.npx [ "webpack"; "--config webpack.config.js"; "--mode=production" ] rootPath
 
 let dotnetPublishServer ctx =
     let args =
@@ -274,17 +260,11 @@ let runWebTests ctx =
     |> (fun res -> if not res.OK then failwithf "RunWebTests failed")
 
 let watchApp _ =
-
     let server() =
-        System.Threading.Thread.Sleep 15000
-        Common.DotNetWatch "run" serverPath
+        Common.DotNetRun serverPath
+//        Common.DotNetWatch "run" serverPath // not working in .net preview 6
 
-    let bundleDevClient() =
-        [ outputDir @@ "server/public" ]
-        |> Shell.cleanDirs
-        Common.npx [ "webpack"; "--config webpack.config.js"; "--mode=development"; "--watch" ] rootPath
-
-    [ server; bundleDevClient ]
+    [ server ]
     |> Seq.iter (Common.invokeAsync >> Async.Catch >> Async.Ignore >> Async.Start)
     printfn "Press Ctrl+C (or Ctrl+Break) to stop..."
     let cancelEvent = Console.CancelKeyPress |> Async.AwaitEvent |> Async.RunSynchronously
@@ -418,10 +398,8 @@ let helmInstallProd _ =
 Target.create "Clean" clean
 Target.create "DotnetRestore" dotnetRestore
 Target.create "RunMigrations" runMigrations
-Target.create "InstallClient" installClient
 Target.create "WriteVersionToFile" writeVersionToFile
 Target.create "DotnetBuild" dotnetBuild
-Target.create "BundleClient" bundleClient
 Target.create "RunUnitTests" runUnitTests
 Target.create "WatchApp" watchApp
 Target.create "WatchTests" watchTests
@@ -451,9 +429,8 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
 //-----------------------------------------------------------------------------
 
 // Only call Clean if 'Package' was in the call chain
-// Ensure Clean is called before 'DotnetRestore' and 'InstallClient'
+// Ensure Clean is called before 'DotnetRestore'
 "Clean" ?=> "DotnetRestore"
-"Clean" ?=> "InstallClient"
 "Clean" ==> "Package"
 
 "DotnetRestore" 
@@ -463,8 +440,7 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
 "WriteVersionToFile"
     ?=> "WatchApp"
 
-"DotnetRestore" <=> "InstallClient"
-    ==> "BundleClient"
+"DotnetRestore"
     ==> "WriteVersionToFile"
     ==> "DotnetBuild"
     ==> "RunUnitTests"
@@ -488,7 +464,6 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
     ==> "CreateRelease"
 
 "Clean" ?=> "VerifyCleanWorkingDirectory"
-"VerifyCleanWorkingDirectory" ?=> "BundleClient"
 "VerifyCleanWorkingDirectory" ==> "CreateRelease"
 "VerifyDockerInstallation" ==> "DockerBuild"
 
@@ -499,4 +474,6 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
 // Start
 //-----------------------------------------------------------------------------
 
-Target.runOrDefaultWithArguments "Build"
+
+[<EntryPoint>]
+let main args = runOrDefault args

@@ -1,6 +1,5 @@
 ﻿module ChickenCheck.Backend.CompositionRoot
 
-open ChickenCheck.Shared
 open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
 open System

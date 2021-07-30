@@ -1,7 +1,6 @@
 module ChickenCheck.UnitTests.TestHelpers
 
 open Expecto
-open ChickenCheck.Shared
 
 module Result =
     let okValue res =

@@ -12,8 +12,11 @@ externalPort: 443
   
 replicaCount: 1
 
-databasePath: "/var/lib/chickencheck"
-databaseName: "database.db"
+dataPath: "/var/lib/chickencheck"
+
+databaseName: "chickencheck"
+databaseUser: "chickencheck"
+databasePassword: "secret_password"
 
 runBackup: false
 

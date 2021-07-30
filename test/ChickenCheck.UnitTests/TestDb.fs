@@ -1,37 +1,35 @@
 namespace ChickenCheck.UnitTests
 
 open System
-open System.IO
 open System.Reflection
 open ChickenCheck.Backend
-open ChickenCheck.Shared
-open Microsoft.Data.Sqlite
+open Npgsql
 open SimpleMigrations
 open SimpleMigrations.DatabaseProvider
+open ThrowawayDb.Postgres
 
-type TestDb(?file) =
-    let file = file |> Option.defaultValue (Guid.NewGuid().ToString("N") + ".db")
+type TestDb() =
+    let database = ThrowawayDatabase.Create(Configuration.config.Value.ConnectionString.Value)
     let migrateDb connectionString =
-        let migrationAssembly = Assembly.GetAssembly(typeof<ChickenCheck.Migrations.CreateChickenTable>)
-        let connection = new SqliteConnection(connectionString)
+        let migrationAssembly = Assembly.GetAssembly(typeof<ChickenCheck.Migrations.Initial>)
+        let connection = new NpgsqlConnection(connectionString)
         connection.Open()
-        let provider = SqliteDatabaseProvider(connection)
+        let provider = PostgresqlDatabaseProvider(connection)
         let migrator = SimpleMigrator(migrationAssembly, provider)
         migrator.Load()
         migrator.MigrateToLatest()
         connection
         
-    let connectionString = sprintf "Data Source=%s;" file
-    let connection = migrateDb connectionString
+    let connection = migrateDb database.ConnectionString
     do OptionHandler.register()
     
-    let chickenStore = Database.ChickenStore (Database.ConnectionString.create connectionString)
+    let chickenStore = Database.ChickenStore (ConnectionString.create database.ConnectionString)
     
     member this.ChickenStore = chickenStore
     interface IDisposable with
         member this.Dispose() =
             connection.Close()
-            File.Delete file
+            database.Dispose()
 
 module DbChickens =
     let bjork = {| Id = ChickenId.parse "b65e8809-06dd-4338-a55e-418837072c0f" 

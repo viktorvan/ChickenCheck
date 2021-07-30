@@ -1,0 +1,12 @@
+group Build
+    Fake.Core.Target
+    Fake.Core.ReleaseNotes
+    FAKE.Core.Environment
+    FAKE.Core.Process
+    FAKE.Net.Http
+    Fake.DotNet.Cli
+    Fake.IO.FileSystem
+    Fake.Tools.Git
+    Fake.Core.UserInput
+    FsConfig
+    Microsoft.Extensions.Configuration.UserSecrets 

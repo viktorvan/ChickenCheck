@@ -1,6 +1,7 @@
 module ChickenCheck.Backend.Views.Chickens
 
-open ChickenCheck.Shared
+open ChickenCheck.Backend
+open ChickenCheck.Backend.Extensions
 open Feliz.ViewEngine
 open Feliz.Bulma.ViewEngine
 

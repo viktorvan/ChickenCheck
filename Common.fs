@@ -1,6 +1,4 @@
-#if !FAKE
-#load "../../.fake/build.fsx/intellisense.fsx"
-#endif
+module Common
 
 open System
 open Fake.Core
@@ -30,6 +28,13 @@ let DotNetWatch watchCmd workingDir =
         (sprintf "watch %s" watchCmd)
         ""
     |> ignore
+    
+let DotNetRun workingDir =
+    DotNet.exec
+        (fun p -> { p with WorkingDirectory = workingDir })
+        (sprintf "run")
+        ""
+    |> ignore
 
 let runMigrations migrationsPath connectionString =
     let args = sprintf "--connectionstring \"%s\"" connectionString
@@ -48,9 +53,6 @@ module Tools =
                 "See https://safe-stack.github.io/docs/quickstart/#install-pre-requisites for more info"
             failwith errorMsg
 
-    let nodeTool = platformTool "node" "node.exe"
-    let npmTool = platformTool "npm" "npx.exe"
-    let npxTool = platformTool "npx" "npx.exe"
     let docker = platformTool "docker" "docker.exe"
     let helm = platformTool "helm" "helm.exe"
     let kubectl = platformTool "kubectl" "kubectl.exe"
@@ -66,9 +68,6 @@ module Tools =
         |> Proc.run
         |> ignore
 
-let node (args: string list) = Tools.runTool Tools.nodeTool args
-let npm (args: string list) = Tools.runTool Tools.npmTool args
-let npx (args: string list) = Tools.runTool Tools.npxTool args
 let docker (args: string list) = Tools.runTool Tools.docker args
 let kubectl (args: string list) = Tools.runTool Tools.kubectl args
 let helm (args: string list) = Tools.runTool Tools.helm args

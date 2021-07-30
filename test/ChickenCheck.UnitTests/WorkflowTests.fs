@@ -3,7 +3,6 @@ module ChickenCheck.UnitTests.WorkflowTests
 open ChickenCheck.Backend
 open Expecto
 open Swensen.Unquote
-open ChickenCheck.Shared
 open FsToolkit.ErrorHandling
 
 let date = NotFutureDate.today()
@@ -51,13 +50,14 @@ let addEggTests =
                         chickenStore.GetEggCount [DbChickens.bjork.Id] date
                         |> Async.map (fun x -> x.[DbChickens.bjork.Id])
                     // act
-                    do! addEggs chickenStore 3 date DbChickens.bjork.Id
+                    let expectedAdded = 3
+                    do! addEggs chickenStore expectedAdded date DbChickens.bjork.Id
                     // assert
                     let! newCount = 
                         chickenStore.GetEggCount [DbChickens.bjork.Id] date
                         |> Async.map (fun x -> x.[DbChickens.bjork.Id])
                     let added = newCount.Value - beforeCount.Value
-                    test <@ added = 3 @>
+                    test <@ added = expectedAdded @>
                 }
             "Adding eggs to one chicken, does not increase count of another",
             fun chickenStore ->

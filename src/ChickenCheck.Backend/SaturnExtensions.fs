@@ -2,6 +2,7 @@ module ChickenCheck.Backend.SaturnExtensions
 
 open System.IO
 open ChickenCheck.Backend.Configuration
+open ChickenCheck.Backend.Extensions
 open Microsoft.AspNetCore.Authentication
 open Microsoft.AspNetCore.Authentication.Cookies
 open Microsoft.AspNetCore.Authentication.OpenIdConnect
@@ -16,7 +17,6 @@ open Microsoft.IdentityModel.Protocols.OpenIdConnect
 open Microsoft.IdentityModel.Tokens
 open Microsoft.Net.Http.Headers
 open Saturn
-open ChickenCheck.Shared
 
 type Application.ApplicationBuilder with
     [<CustomOperation("use_cached_static_files_with_max_age")>]
@@ -87,7 +87,6 @@ type Application.ApplicationBuilder with
                             ctx.HandleResponse()
                             System.Threading.Tasks.Task.CompletedTask),
                         OnUserInformationReceived = fun ctx ->
-                            printfn "received user info"
                             System.Threading.Tasks.Task.CompletedTask))
                 |> ignore
             services

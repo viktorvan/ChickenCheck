@@ -9,6 +9,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 * Expenses page
 * Statistics charts
 
+## [2.0.0] - 2021-07-30
+### Changed
+* Replace Turbolinks with htmx
+* Remove frontend client
+* Replace sqlite with postgresql
+
 ## [1.11.3] - 2021-01-21
 ### Changed
 * Use Canister container registry

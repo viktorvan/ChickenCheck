@@ -2,10 +2,9 @@
 
 open Microsoft.AspNetCore.Authentication.Cookies
 open Giraffe
-open ChickenCheck.Shared
 open FsToolkit.ErrorHandling
 open Microsoft.AspNetCore.Authentication
-open FSharp.Control.Tasks.V2.ContextInsensitive
+open FSharp.Control.Tasks.Affine
 
 let challenge : HttpHandler =
     fun next ctx ->
