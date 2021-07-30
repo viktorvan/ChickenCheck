@@ -1,10 +1,9 @@
-module ChickenCheck.Backend.Views.ChickenCard
+namespace ChickenCheck.Backend.Views
 
 open ChickenCheck.Backend
-open Feliz.ViewEngine
-open Feliz.Bulma.ViewEngine
+open Giraffe.ViewEngine
 
-type Model =
+type ChickenCardModel =
     { Id: ChickenId
       Name: string
       Breed: string
@@ -12,95 +11,60 @@ type Model =
       EggCount: EggCount
       CurrentDate: NotFutureDate }
     
-let chickenIdAttr (id: ChickenId) = prop.custom (DataAttributes.ChickenId, id.Value.ToString())
-    
-[<AutoOpen>]
-module private Helpers =
-    let eggIcons model =
-        let eggIcon = 
-            Bulma.icon [
-                icon.isLarge
-                color.hasTextWhite
-                prop.children [
-                    Html.i [
-                        prop.classes [ "fa-5x fas fa-egg" ]
-                    ]
-                ]
-            ]
-
-        let eggsForCount eggCount =
-            [ for _ in 1..eggCount do
-                Bulma.column [
-                    column.is3
-                    chickenIdAttr model.Id
-                    prop.classes [ "egg-icon" ]
-                    prop.children eggIcon
-                ]
-              Bulma.column [
-                  column.is3
-                  chickenIdAttr model.Id
-                  helpers.isHidden
-                  prop.classes [ "egg-icon-loader" ]
-                  prop.children Shared.loading
-              ]
-              Bulma.column [
-                  column.is3
-                  chickenIdAttr model.Id
-                  helpers.isHidden
-                  prop.classes [ "egg-error" ]
-                  prop.children Shared.error
-              ]
-            ]
-
-        Bulma.columns [
-            columns.isCentered
-            columns.isVCentered
-            columns.isMobile
-            prop.style [ style.height (length.percent 100) ]
-            prop.children (eggsForCount model.EggCount.Value)
-        ]
+module ChickenCard =
+    let chickenIdAttr (id: ChickenId) = attr DataAttributes.ChickenId (id.Value.ToString())
         
-    let header (model: Model) =
-        Bulma.text.div [
-            prop.children [
-                Bulma.title.h4 [
-                    color.hasTextWhite
-                    prop.text model.Name
+    [<AutoOpen>]
+    module private Helpers =
+        let eggIcons model =
+            let eggIcon = 
+                span 
+                    [ _class "icon is-large has-text-white" ]
+                    [ i [ _class "fa-5x fas fa-egg" ] [ ] ]
+
+            let eggsForCount eggCount =
+                [ for _ in 1..eggCount do
+                  div [ _class "column is-3 egg-icon"; chickenIdAttr model.Id ] [ eggIcon ]
+                  div [ _class "column is-3 egg-icon is-hidden egg-icon-loader"; chickenIdAttr model.Id ] [ Shared.loading ]
+                  div [ _class "column is-3 egg-icon is-hidden egg-error"; chickenIdAttr model.Id ] [ Shared.error ]
                 ]
-                Bulma.subtitle.p [
-                    color.hasTextWhite
-                    prop.text model.Breed
-                ]
-            ]
-        ]
-        
-    let cardBackgroundStyle (model: Model) =
-        let imageUrlStr =
-            model.ImageUrl
-            |> Option.map (ImageUrl.value)
-            |> Option.defaultValue ""
+
+            div [ _class "columns is-centered is-vcentered is-mobile"; _style "height:100%;" ] 
+                [ yield! eggsForCount model.EggCount.Value ]
             
-        prop.style [
-            style.backgroundImage (sprintf "linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s)" imageUrlStr)
-            style.backgroundRepeat.noRepeat
-            style.backgroundSize.cover
-            style.height (length.px 300)
-            style.display.flex
-            style.flexDirection.column
-        ]
-    
-let layout (model: Model) =
-    Bulma.card [
-        chickenIdAttr model.Id
-        prop.classes [ "chicken-card" ]
-        cardBackgroundStyle model
-        prop.children [
-            Bulma.cardHeader (header model)
-            Bulma.cardContent [ 
-                prop.style [ style.flexGrow 1 ]
-                prop.children [
-                    eggIcons model
+        let header (model: ChickenCardModel) =
+            header [ _class "header" ] 
+                [
+                    h4 [ _class "title has-text-white" ] [ str model.Name ]
+                    p [ _class "subtitle has-text-white" ] [ str model.Breed ]
                 ]
+            
+        let cardBackgroundStyle (model: ChickenCardModel) =
+            let imageUrlStr =
+                model.ImageUrl
+                |> Option.map (ImageUrl.value)
+                |> Option.defaultValue ""
+                
+            _style $"""background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0)), url(%s{imageUrlStr});
+                       background-repeat: no-repeat;
+                       background-size: cover;
+                       height: 300px;
+                       display: flex;
+                       flex-direction: column;"""
+                       
+    
+        
+    let layout (model: ChickenCardModel) =
+        div 
+            [ _class "card chicken-card"
+              chickenIdAttr model.Id
+              cardBackgroundStyle model
+              Htmx.hxPost $"/chickens/%s{model.Id.Value.ToString()}/eggs/%s{model.CurrentDate.ToUrlString()}"
+              Htmx.hxTarget "this"
+              Htmx.hxSwap "outerHTML"
+              Htmx.hxTrigger "click" ] 
+            [
+                header model
+                div [ _class "card-content"; _style "flex-grow: 1;"] 
+                    [ eggIcons model ]
             ]
-        ]
-    ]

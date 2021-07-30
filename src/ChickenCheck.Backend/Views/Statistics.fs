@@ -1,47 +1,36 @@
 module ChickenCheck.Backend.Views.Statistics
 
 open ChickenCheck.Backend
-open Feliz.ViewEngine
-open Feliz.Bulma.ViewEngine
+open Giraffe.ViewEngine
 
 type Chicken =
     { Name: string
       EggCount: EggCount }
 
 let private eggCountView (heading: string) (eggCount: int) =
-    Bulma.levelItem [
-        text.hasTextCentered
-        prop.children [
-            Html.div [
-                Html.p [
-                    prop.classes [ "heading" ]
-                    prop.text heading 
+    div [ _class "level-item" ] 
+        [
+            div [] 
+                [
+                    p [ _class "heading" ] [ str heading ]
+                    p [ _class "title" ] [ str $"%i{eggCount}" ]
                 ]
-                Bulma.title.p (int eggCount)
-            ]
         ]
-    ]
 
 let eggCountViews (chickens: Chicken list) =
     
     chickens
     |> List.sortBy (fun c -> c.Name)
     |> List.map (fun c -> eggCountView c.Name c.EggCount.Value)
-    |> Bulma.level
+    |> div [ _class "level has-text-centered" ] 
         
 
 let layout (model: {| Chickens: Chicken list |}) =
-    let header = 
-        Bulma.subtitle.h3 [
-            text.hasTextCentered
-            prop.text "Hur mycket har de värpt totalt?"
-        ]
-    Bulma.container [
-        prop.style [ style.marginTop (length.px 10) ]
-        prop.children [
+    let header = h3 [ _class "subtitle has-text-centered" ] [ str "Hur mycket har de värpt totalt?" ]
+    div [ _class "container"; _style "margin-top: 10px;" ]
+        [
             header
-            eggCountView "Totalt" (model.Chickens |> List.sumBy (fun c -> c.EggCount.Value))
+            div [ _class "level has-text-centered" ] [ eggCountView "Totalt" (model.Chickens |> List.sumBy (fun c -> c.EggCount.Value)) ]
             eggCountViews model.Chickens
         ]
-    ]
     

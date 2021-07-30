@@ -3,11 +3,11 @@ module ChickenCheck.Backend.Workflows
 open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
         
-let getAllChickens (chickenStore: Database.IChickenStore) =
+let getAllChickens (getChickens: Database.GetAllChickens) (getEggCount: Database.GetEggCount) (getTotalEggCount: Database.GetTotalEggCount) =
     let getEggCounts chickenIds date  =
         async {
-            let! eggCountA = chickenStore.GetEggCount chickenIds date |> Async.StartChild
-            let! totalEggCountA = chickenStore.GetTotalEggCount chickenIds |> Async.StartChild
+            let! eggCountA = getEggCount chickenIds date |> Async.StartChild
+            let! totalEggCountA = getTotalEggCount chickenIds |> Async.StartChild
             
             let! eggCount = eggCountA
             let! totalEggCount = totalEggCountA
@@ -16,7 +16,7 @@ let getAllChickens (chickenStore: Database.IChickenStore) =
           
     fun (date: NotFutureDate) ->
         async {
-            let! chickens = chickenStore.GetAllChickens()
+            let! chickens = getChickens()
             let chickenIds = chickens |> List.map (fun c -> c.Id)
             
             let! eggCounts = getEggCounts chickenIds date 
@@ -26,20 +26,33 @@ let getAllChickens (chickenStore: Database.IChickenStore) =
                 |> List.map (ChickenWithEggCount.create date eggCounts)
         }
         
-let addEgg (chickenStore: Database.IChickenStore) =
-    fun chicken (date: NotFutureDate) ->
-        chickenStore.AddEgg chicken date
-        
-let removeEgg (chickenStore: Database.IChickenStore) =
-    fun chicken (date: NotFutureDate) ->
-        chickenStore.RemoveEgg chicken date
-        
-let removeAllEggs (chickenStore: Database.IChickenStore) =
-    fun (date: NotFutureDate) -> chickenStore.RemoveAllEggs date
+let getChicken (getChicken: Database.GetChicken) (getEggCount: Database.GetEggCount) =
+    fun chickenId date ->
+        async {
+            let! chickenA = getChicken chickenId |> Async.StartChild
+            let! eggCountA = getEggCount [ chickenId ] date |> Async.StartChild
+            
+            let! chicken = chickenA
+            let! eggCount = eggCountA
+            return
+                chicken
+                |> Option.map (fun c ->
+                    {| Name = c.Name
+                       Breed = c.Breed
+                       ImageUrl = c.ImageUrl
+                       EggCount = eggCount.[c.Id] |})
+        }
     
-let healthCheck (chickenStore: Database.IChickenStore) =
+let addEgg (addEggToDb: Database.AddEgg) chicken date =
+    addEggToDb chicken date
+        
+let removeEgg (removeEgg: Database.RemoveEgg) =
+    fun chicken (date: NotFutureDate) ->
+        removeEgg chicken date
+        
+let healthCheck (testDbAccess: Database.TestDatabaseAccess) =
     fun () ->
         async {
-            do! chickenStore.TestDatabaseAccess()
+            do! testDbAccess()
             return System.DateTime.Now
         }

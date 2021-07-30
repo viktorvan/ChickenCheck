@@ -7,5 +7,4 @@ FsConfig
 Microsoft.Extensions.Configuration.UserSecrets
 Saturn
 Saturn.Extensions.Authorization
-Feliz.ViewEngine
-Feliz.Bulma.ViewEngine
+Giraffe.ViewEngine

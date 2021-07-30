@@ -11,59 +11,61 @@ let noEggs = EggCount.zero
 let oneEgg = EggCount.create 1
 let twoEggs = EggCount.create 2
 
-let withChickenStore f =
+let withChickenDb f =
     async {
         use testDb = new TestDb()
-        return! f (testDb.ChickenStore :> Database.IChickenStore)
+        return! f testDb
     }
     
 let testFixtureAsync setup =
     Seq.map (fun (name, partialTest) ->
     testCaseAsync name <| setup partialTest)
     
-let addEggs chickenStore count date chickenId  =
+let addEggs (addEgg: Database.AddEgg) count date chickenId  =
     async {
         let! _ =
             [ for _ in 1..count do
-                  Workflows.addEgg chickenStore chickenId date ]
+                  addEgg chickenId date ]
             |> Async.Sequential
         return ()
     }
     
-let removeEggs chickenStore count date chickenId  =
+let removeEggs (removeEgg: Database.RemoveEgg) count date chickenId  =
     async {
         let! _ =
             [ for _ in 1..count do
-                  Workflows.removeEgg chickenStore chickenId date ]
+                  removeEgg chickenId date ]
             |> Async.Sequential
         return ()
     }
+    
+let getAllChickens (db: TestDb) date = Workflows.getAllChickens db.GetAllChickens db.GetEggCount db.GetTotalEggCount date
     
 let addEggTests =
     testList "AddEgg" [
-        yield! testFixtureAsync withChickenStore [
+        yield! testFixtureAsync withChickenDb [
             "Adding eggs, increases count",
-            fun (chickenStore: Database.IChickenStore) ->
+            fun db ->
                 async {
                     // arrange
                     let! beforeCount = 
-                        chickenStore.GetEggCount [DbChickens.bjork.Id] date
+                        db.GetEggCount [DbChickens.bjork.Id] date
                         |> Async.map (fun x -> x.[DbChickens.bjork.Id])
                     // act
                     let expectedAdded = 3
-                    do! addEggs chickenStore expectedAdded date DbChickens.bjork.Id
+                    do! addEggs db.AddEgg expectedAdded date DbChickens.bjork.Id
                     // assert
                     let! newCount = 
-                        chickenStore.GetEggCount [DbChickens.bjork.Id] date
+                        db.GetEggCount [DbChickens.bjork.Id] date
                         |> Async.map (fun x -> x.[DbChickens.bjork.Id])
                     let added = newCount.Value - beforeCount.Value
                     test <@ added = expectedAdded @>
                 }
             "Adding eggs to one chicken, does not increase count of another",
-            fun chickenStore ->
+            fun db ->
                 async {
-                    do! addEggs chickenStore 1 date DbChickens.bjork.Id 
-                    let! count = chickenStore.GetEggCount [ DbChickens.bjork.Id; DbChickens.bodil.Id ] date
+                    do! addEggs db.AddEgg 1 date DbChickens.bjork.Id 
+                    let! count = db.GetEggCount [ DbChickens.bjork.Id; DbChickens.bodil.Id ] date
                     test <@ count.[DbChickens.bjork.Id] = oneEgg @>
                     test <@ count.[DbChickens.bodil.Id] = noEggs @>
                 }
@@ -72,20 +74,20 @@ let addEggTests =
     
 let removeEggTests =
     testList "RemoveEgg" [
-        yield! testFixtureAsync withChickenStore [
+        yield! testFixtureAsync withChickenDb [
             "Removing an egg when count is already zero keeps count at zero",
-            fun chickenStore ->
+            fun db ->
                 async {
-                    do! Workflows.removeEgg chickenStore DbChickens.bjork.Id date
-                    let! count = chickenStore.GetEggCount [ DbChickens.bjork.Id ] date
+                    do! Workflows.removeEgg db.RemoveEgg DbChickens.bjork.Id date
+                    let! count = db.GetEggCount [ DbChickens.bjork.Id ] date
                     test <@ count.[DbChickens.bjork.Id] = noEggs @>
                 }
             "Removing egg decreases count",
-            fun chickenStore ->
+            fun db ->
                 async {
-                    do! addEggs chickenStore 3 date DbChickens.bjork.Id 
-                    do! removeEggs chickenStore 2 date DbChickens.bjork.Id 
-                    let! count = chickenStore.GetEggCount [ DbChickens.bjork.Id ] date
+                    do! addEggs db.AddEgg 3 date DbChickens.bjork.Id 
+                    do! removeEggs db.RemoveEgg 2 date DbChickens.bjork.Id 
+                    let! count = db.GetEggCount [ DbChickens.bjork.Id ] date
                     test <@ count.[DbChickens.bjork.Id] = oneEgg @>
                 }
         ]
@@ -93,12 +95,12 @@ let removeEggTests =
     
 let getAllChickensTests =
     testList "GetAllChickens" [
-        yield! testFixtureAsync withChickenStore [
+        yield! testFixtureAsync withChickenDb [
             "Returns chickens with egg counts for a date and the total count",
-            fun chickenStore ->
+            fun db ->
                 async {
                     // arrange
-                    let! initialChickens = Workflows.getAllChickens chickenStore date
+                    let! initialChickens = getAllChickens db date
                         
                     let chickenIds =
                         initialChickens
@@ -108,14 +110,14 @@ let getAllChickensTests =
                     do! chickenIds
                         |> List.map (fun id ->
                             async {
-                                do! addEggs chickenStore 1 date id
-                                do! addEggs chickenStore 1 yesterday id
+                                do! addEggs db.AddEgg 1 date id
+                                do! addEggs db.AddEgg 1 yesterday id
                             })
                         |> Async.Sequential
                         |> Async.map ignore
                         
                     // act
-                    let! newChickens = Workflows.getAllChickens chickenStore date
+                    let! newChickens = getAllChickens db date
                     
                     // assert
                     // all chickens have 1 egg on date

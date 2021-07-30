@@ -2,30 +2,26 @@ module ChickenCheck.Backend.Views.DatePicker
 
 open ChickenCheck.Backend
 open ChickenCheck.Backend.Extensions
-open Feliz.ViewEngine
-open Feliz.Bulma.ViewEngine
+open Giraffe.ViewEngine
 
 let private icon faIcon =
-    Bulma.icon [
-        Html.i [
-            prop.classes [ sprintf "fas fa-3x %s" faIcon ]
-        ]
-    ]
+    span 
+        [ _class "icon" ]
+        [ i [ _class $"fas fa-3x %s{faIcon}" ] [ ] ]
     
 let private iconLeft = icon "fa-caret-left"
 let private iconRight = icon "fa-caret-right"
 
 let layout (currentDate: NotFutureDate) =
     let dateButton (id: string) icon (href: string option) =
-        Bulma.button.a [
-            prop.id id
-            if href.IsSome then color.isPrimary else color.isLight
-            button.isOutlined
-            button.isLarge
-            if href.IsSome then prop.href href.Value
-            if href.IsNone then prop.style [ style.custom ("pointer-events", "none") ]
-            prop.children [ icon ]
-        ]
+        let buttonColor = if href.IsSome then "is-primary" else "is-light"
+        a 
+            [ _class $"button %s{buttonColor} is-outlined is-large"
+              _id id
+              if href.IsSome then _href href.Value
+              if href.IsNone then _style "pointer-events: none;"
+            ] 
+            [ icon ]
 
     let previousDateButton =
         currentDate
@@ -41,25 +37,26 @@ let layout (currentDate: NotFutureDate) =
         |> Option.map Routing.eggsPage
         |> dateButton "next-date" iconRight
         
-    let currentDateAttr = prop.custom (DataAttributes.CurrentDate, currentDate.ToString())
+    let currentDateAttr = attr DataAttributes.CurrentDate (currentDate.ToString())
     
-    Bulma.level [
-        level.isMobile
-        prop.children [
-            Bulma.levelItem [ previousDateButton ]
-            Bulma.levelItem [
-                Bulma.field.div [
-                    prop.style [ style.width (length.percent 100) ]
-                    prop.children [
-                        Html.input [
-                            prop.id "chickencheck-datepicker"
-                            currentDateAttr
-                            prop.type'.date
-                            prop.value (currentDate.ToDateTime().ToString("yyyy-MM-dd"))
+    nav [ _class "level is-mobile" ] 
+        [
+            div [ _class "level-item" ] [ previousDateButton ]
+            div 
+                [ _class "level-item" ] 
+                [
+                    div 
+                        [ _class "field"; _style "width: 100%;" ] 
+                        [
+                            input 
+                                [
+                                    _class "input"
+                                    _id "chickencheck-datepicker"
+                                    currentDateAttr
+                                    _type "date"
+                                    _value (currentDate.ToDateTime().ToString("yyyy-MM-dd"))
+                                ]
                         ]
-                    ]
                 ]
-            ]
-            Bulma.levelItem [ nextDateButton ]
+            div [ _class "level-item" ] [ nextDateButton ]
         ]
-    ]

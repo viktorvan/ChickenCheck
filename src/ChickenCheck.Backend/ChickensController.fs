@@ -1,7 +1,6 @@
 module ChickenCheck.Backend.ChickensController
 
 open ChickenCheck.Backend.Views
-open ChickenCheck.Backend.Views.Chickens
 open FSharp.Control.Tasks.Affine
 open Microsoft.AspNetCore.Http
 open Saturn
@@ -13,21 +12,40 @@ let controller =
             task {
                 let chickenId = ChickenId.parse chickenId
                 let date = NotFutureDate.parse date
-                let! _ = CompositionRoot.addEgg (chickenId, date)
+                let! _ = CompositionRoot.addEgg chickenId date
                 return! Response.accepted ctx ()
             }
+        let addEggX ctx (date: string) =
+            task {
+                let chickenId = ChickenId.parse chickenId
+                let date = NotFutureDate.parse date
+                let! addEgg = CompositionRoot.addEgg chickenId date
+                let! chicken = CompositionRoot.getChicken chickenId date
+                let chicken = chicken |> Option.defaultWith (fun _ -> invalidArg "ChickenId" "Invalid chicken-id")
+                let model = 
+                    { ChickenCardModel.Id = chickenId
+                      Name = chicken.Name
+                      Breed = chicken.Breed
+                      ImageUrl = chicken.ImageUrl
+                      EggCount = chicken.EggCount
+                      CurrentDate = date }
+                return
+                    ChickenCard.layout model
+                    |> CompositionRoot.writeHtmlFragment ctx
+            }
+            
             
         let removeEgg (ctx: HttpContext) (date: string) = 
             task {
                 let chickenId = ChickenId.parse chickenId
                 let date = NotFutureDate.parse date
-                let! _ = CompositionRoot.removeEgg (chickenId, date)
+                let! _ = CompositionRoot.removeEgg chickenId date
                 return! Response.accepted ctx ()
             }
         
         controller {
             plug [All] (CompositionRoot.authorizeUser >=> protectFromForgery) 
-            update addEgg
+            update addEggX
             delete removeEgg
         }
     
@@ -53,9 +71,9 @@ let controller =
                           TotalEggCount = c.TotalCount
                           EggCountOnDate = snd c.Count })
 
-                return! ctx.WriteHtmlStringAsync
-                            (layout model date
-                             |> App.layout (CompositionRoot.csrfTokenInput ctx) CompositionRoot.config.BasePath CompositionRoot.config.Domain (CompositionRoot.getUser ctx))
+                return! 
+                    Chickens.layout model date
+                    |> CompositionRoot.writeHtml ctx
             }
 
     controller {

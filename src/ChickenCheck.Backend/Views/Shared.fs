@@ -1,36 +1,13 @@
 module ChickenCheck.Backend.Views.Shared
 
-open Feliz.ViewEngine
-open Feliz.Bulma.ViewEngine
+open Giraffe.ViewEngine
 
 let loading =
-    Html.span
-        [
-            Bulma.icon [
-                color.hasTextWhite
-                prop.children [
-                    Html.i [
-                        prop.classes [ "fa-3x fas fa-spinner fa-spin" ]
-                    ]
-                ]
-            ]
-        ]
+    span 
+        [ _class "icon has-text-white" ]
+        [ i [ _class "fa-3x fas fa-spinner fa-spin" ] [ ] ]
         
 let error =
-    Html.span
-        [
-            Bulma.icon [
-                color.hasTextWhite
-                prop.children [
-                    Html.i [
-                        prop.classes [ "fa-3x fas fa-exclamation-circle" ]
-                    ]
-                ]
-            ]
-        ]
-        
-[<AutoOpen>]
-module MyExtensions =
-    type prop with
-        static member onClick(value) = prop.custom("onclick", value)
-
+    span 
+        [ _class "icon has-text-white" ]
+        [ i [ _class "fa-3x fas fa-exclamation-circle" ] [ ] ]

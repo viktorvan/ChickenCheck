@@ -216,6 +216,7 @@ type EggCount with
 
 type NotFutureDate with
     member this.ToDateTime() = NotFutureDate.toDateTime this
+    member this.ToUrlString() = $"%i{this.Year}-%i{this.Month}-%i{this.Day}"
 
 module Route =
     let builder typeName methodName =

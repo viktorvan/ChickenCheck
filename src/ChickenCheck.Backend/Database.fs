@@ -8,6 +8,15 @@ open Npgsql
 open ChickenCheck.Backend.Extensions
 
 
+type TestDatabaseAccess = unit -> Async<unit>
+type AddEgg = ChickenId -> NotFutureDate -> Async<unit>
+type GetAllChickens = unit -> Async<Chicken list>
+type GetChicken = ChickenId -> Async<Chicken option>
+type GetEggCount = ChickenId list -> NotFutureDate -> Async<Map<ChickenId, EggCount>>
+type GetTotalEggCount = ChickenId list -> Async<Map<ChickenId, EggCount>>
+type RemoveEgg = ChickenId -> NotFutureDate -> Async<unit>
+
+
 [<AutoOpen>]
 module private DbHelpers =
     let getConnection (ConnectionString str) =
@@ -64,31 +73,31 @@ type private ChickenEntity =
       Breed: string
       ImageUrl: string option }
 
-let getAllChickens (conn: ConnectionString) =
+let private toDomainChicken (entity: ChickenEntity) =
+    result {
+        let id = entity.Id |> ChickenId.create
+        let! name = 
+            entity.Name 
+            |> String.notNullOrEmpty
+            |> Result.requireSome "Name cannot be empty"
+        let! breed = 
+            entity.Breed 
+            |> String.notNullOrEmpty
+            |> Result.requireSome "Breed cannot be empty"
+        let! imageUrl = 
+            entity.ImageUrl 
+            |> Option.traverseResult ImageUrl.create 
+        return 
+            { Chicken.Id = id
+              Name = name
+              Breed = breed
+              ImageUrl = imageUrl }
+    } |> throwOnParsingError
+
+let getAllChickens (conn: ConnectionString) : GetAllChickens =
     let sql = """SELECT c.Id, c.Name, c.Breed, c.ImageUrl 
                  FROM Chicken c
                  ORDER BY c.Name"""
-
-    let toDomain (entity: ChickenEntity) =
-        result {
-            let id = entity.Id |> ChickenId.create
-            let! name = 
-                entity.Name 
-                |> String.notNullOrEmpty
-                |> Result.requireSome "Name cannot be empty"
-            let! breed = 
-                entity.Breed 
-                |> String.notNullOrEmpty
-                |> Result.requireSome "Breed cannot be empty"
-            let! imageUrl = 
-                entity.ImageUrl 
-                |> Option.traverseResult ImageUrl.create 
-            return 
-                { Chicken.Id = id
-                  Name = name
-                  Breed = breed
-                  ImageUrl = imageUrl }
-        } |> throwOnParsingError
 
     fun () ->
         async {
@@ -96,8 +105,23 @@ let getAllChickens (conn: ConnectionString) =
             let! result = query connection sql None
             return 
                 result 
-                |> Seq.map toDomain 
+                |> Seq.map toDomainChicken
                 |> Seq.toList 
+        }
+        
+let getChicken (conn: ConnectionString) : GetChicken =
+    let sql = """SELECT c.Id, c.Name, c.Breed, c.ImageUrl 
+                 FROM Chicken c
+                 WHERE c.Id = @chickenId
+                 LIMIT 2"""
+                 
+    fun (ChickenId chickenId) ->
+        async {
+            use! connection = getConnection conn
+            let! result = querySingle connection sql !{| chickenId = chickenId |}
+            return
+                result
+                |> Option.map toDomainChicken
         }
 
 type private EggCountEntity =
@@ -114,7 +138,7 @@ module private EggCountEntity =
             |> EggCount.create
         chickenId, eggsOrZero
         
-let getEggCount (conn: ConnectionString) =
+let getEggCount (conn: ConnectionString) : GetEggCount =
     let sql = """
             SELECT c.Id AS ChickenId, Sum(e.EggCount) AS EggCount 
             FROM Chicken c
@@ -140,7 +164,7 @@ let getEggCount (conn: ConnectionString) =
                 |> Map.ofSeq
         }
         
-let getTotalEggCount (conn: ConnectionString) =
+let getTotalEggCount (conn: ConnectionString) : GetTotalEggCount =
     let sql = """
             SELECT c.Id AS ChickenId, Sum(e.EggCount) AS EggCount 
             FROM Chicken c
@@ -163,7 +187,7 @@ let private validChickenIds conn =
     getAllChickens conn ()
     |> Async.map (List.map (fun c -> c.Id))
 
-let addEgg (conn: ConnectionString) =
+let addEgg (conn: ConnectionString) : AddEgg =
     let sql = """
             INSERT INTO Egg 
             ( ChickenId
@@ -196,7 +220,7 @@ let addEgg (conn: ConnectionString) =
                 return ()
         }
 
-let removeEgg (conn: ConnectionString) =
+let removeEgg (conn: ConnectionString) : RemoveEgg =
     let sql = """
             UPDATE Egg 
                 SET 
@@ -221,30 +245,12 @@ let removeEgg (conn: ConnectionString) =
                 return ()
         }
         
-let removeAllEggs (conn: ConnectionString) =
-    let sql = """ DELETE FROM Egg WHERE Date = @date;"""
-    fun (date: NotFutureDate) ->
-        async {
-            use! connection = getConnection conn
-            let! _ = execute connection sql !{| date = date |}
-            return ()
-        }
-
-type IChickenStore =
-    abstract TestDatabaseAccess: unit -> Async<unit>
-    abstract GetAllChickens: unit -> Async<Chicken list>
-    abstract GetEggCount: ChickenId list -> NotFutureDate -> Async<Map<ChickenId, EggCount>>
-    abstract GetTotalEggCount: ChickenId list -> Async<Map<ChickenId, EggCount>>
-    abstract AddEgg: ChickenId -> NotFutureDate -> Async<unit>
-    abstract RemoveEgg: ChickenId -> NotFutureDate -> Async<unit>
-    abstract RemoveAllEggs: NotFutureDate -> Async<unit>
-    
-type ChickenStore(connectionString) =
-    interface IChickenStore with
-        member this.TestDatabaseAccess() = testConnection connectionString ()
-        member this.GetAllChickens() = getAllChickens connectionString ()
-        member this.GetEggCount chickens date  = getEggCount connectionString chickens date
-        member this.GetTotalEggCount(chickens: ChickenId list) = getTotalEggCount connectionString chickens
-        member this.AddEgg chicken date = addEgg connectionString chicken date
-        member this.RemoveEgg chicken date = removeEgg connectionString chicken date
-        member this.RemoveAllEggs date = removeAllEggs connectionString date
+type Database(connString) =
+    member this.TestDatabaseAccess = testConnection connString
+    member this.AddEgg = addEgg connString
+    member this.GetAllChickens = getAllChickens connString
+    member this.GetEggCount = getEggCount connString
+    member this.GetTotalEggCount = getTotalEggCount connString
+    member this.RemoveEgg = removeEgg connString
+    member this.GetChicken = getChicken connString
+ 

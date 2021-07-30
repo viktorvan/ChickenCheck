@@ -14,6 +14,7 @@
     <Compile Include="Configuration.fs" />
     <Compile Include="Workflows.fs" />
     <Compile Include="Routing.fs" />
+    <Compile Include="Views\Htmx.fs" />
     <Compile Include="Views\Shared.fs" />
     <Compile Include="Views\App.fs" />
     <Compile Include="Views\ChickenCard.fs" />

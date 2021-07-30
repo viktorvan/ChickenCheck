@@ -1,160 +1,145 @@
 module ChickenCheck.Backend.Views.App
 
 open ChickenCheck.Backend
-open Feliz.ViewEngine
-open Feliz.Bulma.ViewEngine
+open Giraffe.ViewEngine
 open ChickenCheck.Backend.Extensions
 
-let layout csrfTokenInput basePath domain (user: User) content =
+
+
+let layout csrfToken basePath domain (user: User) content =
     let logInLink =
-        Bulma.navbarItem.a [
-            prop.disableTurbolinks
-            prop.href "/login"
-            prop.text "log in" ]
+        a [ _href "/login"; _class "navbar-item" ] [ str "log in" ]
 
     let logOutLink (username: string) =
-        Bulma.navbarItem.div [
-            navbarItem.hasDropdown
-            navbarItem.isHoverable
-            prop.children [
-                Bulma.navbarLink.a username
-                Bulma.navbarDropdown.div [
-                    Bulma.navbarItem.a [
-                        prop.disableTurbolinks
-                        prop.href "/logout"
-                        prop.text "log out"
-                    ]
-                ]
+        div 
+            [ _class "navbar-item has-dropdown is-hoverable" ] 
+            [
+                a [ _class "navbar-item" ] [ str username ]
+                div [ _class "navbar-dropdown" ] [ a [ _class "navbar-item"; _href "/logout" ] [ str "log out" ] ]
             ]
-        ]
     
     let userAttribute =
         let userStr =
             match user with
             | ApiUser { Name = name } -> sprintf "ApiUser:%s" name
             | Anonymous -> "Anonymous"
-        prop.custom (DataAttributes.User, userStr)
+        attr DataAttributes.User userStr
+        
+    let base' = voidTag "base"
 
     let githubLink =
-        Html.a [
-            prop.href "https://github.com/viktorvan/chickencheck"
-            prop.children [
-                Bulma.icon [
-                    prop.children [
-                        Html.i [
-                            prop.classes [ "fab fa-fw fa-github" ]
-                        ]
-                    ]
-                ]
+        a 
+            [ _href "https://github.com/viktorvan/chickencheck" ]
+            [
+                span 
+                    [ _class "icon" ]
+                    [ i [ _class "fab fa-fw fa-github" ] [ ] ]
             ]
-        ]
         
-    Html.html [
-        Html.head [
-            Html.base' [
-                prop.href basePath
-            ]
-            Html.meta [
-                prop.charset.utf8
-            ]
-            Html.meta [
-                prop.content "width=device-width, initial-scale=1"
-                prop.name "viewport"
-            ]
-            Html.title "ChickenCheck"
-            Html.link [
-                prop.rel.stylesheet
-                prop.href "https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css"
-            ]
-            Html.link [
-                prop.rel.stylesheet
-                prop.href "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css"
-            ]
-            Html.link [
-                prop.rel "apple-touch-icon"
-                prop.sizes "180x180"
-                prop.href "Icons/apple-touch-icon.png"
-            ]
-            Html.link [
-                prop.rel "icon" 
-                prop.type' "image/png" 
-                prop.sizes "32x32" 
-                prop.href "Icons/favicon-32x32.png"
-            ]
-            Html.link [
-                prop.rel "icon"
-                prop.type' "image/png"
-                prop.sizes "16x16"
-                prop.href "Icons/favicon-16x16.png" 
-            ]
-            Html.link [ 
-                prop.rel "manifest" 
-                prop.href "Icons/site.json"
-            ]
-            Html.script [
-                prop.async true
-                prop.defer true
-                prop.custom ("data-domain", domain)
-                prop.src "https://plausible.io/js/plausible.js"
-            ]
-            Html.script [
-                Html.text "window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }"
-            ]
-        ]
-        Html.body [
-            userAttribute
-            prop.children [
-                csrfTokenInput
-                Bulma.navbar [
-                    prop.id "chickencheck-navbar"
-                    prop.custom ("data-turbolinks-permanent", "")
-                    color.isInfo
-                    prop.children [ 
-                        Bulma.navbarBrand.div [
-                            prop.children [
-                                Bulma.navbarItem.a [
-                                    prop.href "/eggs"
-                                    prop.children [
-                                        Html.img [
-                                            prop.src "/Icons/android-chrome-512x512.png"
-                                            prop.alt "Icon"
-                                            prop.style [ style.width (length.px 28); style.height (length.px 28)]
+    html 
+        [] 
+        [
+            head
+                []
+                [
+                    base' [
+                        _href basePath
+                    ]
+                    meta [
+                        _charset "UTF-8"
+                    ]
+                    meta [
+                        _content "width=device-width, initial-scale=1"
+                        _name "viewport"
+                    ]
+                    title [] [ str "ChickenCheck" ]
+                    link [
+                        _rel "stylesheet"
+                        _href "https://cdn.jsdelivr.net/npm/bulma@0.9.3/css/bulma.min.css"
+                    ]
+                    link [
+                        _rel "stylesheet"
+                        _href "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css"
+                    ]
+                    link [
+                        _rel "apple-touch-icon"
+                        _sizes "180x180"
+                        _href "Icons/apple-touch-icon.png"
+                    ]
+                    link [
+                        _rel "icon" 
+                        _type "image/png" 
+                        _sizes "32x32" 
+                        _href "Icons/favicon-32x32.png"
+                    ]
+                    link [
+                        _rel "icon"
+                        _type "image/png"
+                        _sizes "16x16"
+                        _href "Icons/favicon-16x16.png" 
+                    ]
+                    link [ 
+                        _rel "manifest" 
+                        _href "Icons/site.json"
+                    ]
+                    script [
+                        _src "https://unpkg.com/htmx.org@1.5.0"
+                        _integrity "sha384-oGA+prIp5Vchu6we2YkI51UtVzN9Jpx2Z7PnR1I78PnZlN8LkrCT4lqqqmDkyrvI"
+                        _crossorigin "anonymous"
+                    ] []
+                    script [
+                        _async
+                        _defer
+                        attr "data-domain" domain
+                        _src "https://plausible.io/js/plausible.js"
+                    ] []
+                    script [ ] [str "window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }"]
+                ]
+            body [ userAttribute ]
+                [
+                    script [] 
+                        [ rawText $"""document.body.addEventListener('htmx:configRequest', function(evt) {{ evt.detail.headers['RequestVerificationToken'] = '%s{csrfToken}'; }});""" ]
+                    nav [ _class "navbar is-info"; _id "chickencheck-navbar" ]
+                        [
+                            div 
+                                [ _class "navbar-brand" ] 
+                                [
+                                    a
+                                        [ _class "navbar-item"; _href "/eggs" ]
+                                        [
+                                            img [
+                                                _src "/Icons/android-chrome-512x512.png"
+                                                _alt "Icon"
+                                                _style "width: 28px; height: 28px;"
+                                            ]
+                                            str "ChickenCheck"
                                         ]
-                                        Html.text "ChickenCheck"
+                                    a 
+                                        [ _id "chickencheck-navbar-burger" ] 
+                                        [ yield! List.replicate 3 (span [] []) ]  
+                                ]
+                            div [ _class "navbar-menu"; _id "chickencheck-navbar-menu" ]
+                                [
+                                    div [ _class "navbar-end" ] [
+                                        match user with
+                                        | Anonymous -> logInLink
+                                        | ApiUser { Name = name } -> logOutLink name
                                     ]
-                                ]
-                                Bulma.navbarBurger [
-                                    prop.id "chickencheck-navbar-burger"
-                                    navbarItem.hasDropdown
-                                    prop.children [ yield! List.replicate 3 (Html.span []) ] 
                                 ] 
-                            ]
-                        ]
-                        Bulma.navbarMenu [
-                            prop.id "chickencheck-navbar-menu"
-                            prop.children [ 
-                                Bulma.navbarEnd.div [
-                                    match user with
-                                    | Anonymous -> logInLink
-                                    | ApiUser { Name = name } -> logOutLink name
-                                ]
-                            ] 
                         ] 
-                    ] 
-                ]
-                content
-                Bulma.footer [
-                    githubLink
-                    Html.span [
-                        Html.text "Version: "
-                        Html.a [
-                            prop.href "https://github.com/viktorvan/ChickenCheck/blob/master/CHANGELOG.md"
-                            prop.target.blank
-                            prop.text Version.version ]
+                    content
+                    footer [] 
+                        [
+                            githubLink
+                            span [] 
+                                [
+                                    str "Version: "
+                                    a 
+                                        [ _href "https://github.com/viktorvan/ChickenCheck/blob/master/CHANGELOG.md"; _target "blank" ]
+                                        [ str Version.version ]
+                                ]
                         ]
                 ]
-            ]
         ]
-    ]
-    |> Render.htmlDocument
+    |> RenderView.AsString.htmlDocument
         

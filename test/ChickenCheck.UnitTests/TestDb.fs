@@ -9,7 +9,7 @@ open SimpleMigrations.DatabaseProvider
 open ThrowawayDb.Postgres
 
 type TestDb() =
-    let database = ThrowawayDatabase.Create(Configuration.config.Value.ConnectionString.Value)
+    let testDb = ThrowawayDatabase.Create(Configuration.config.Value.ConnectionString.Value)
     let migrateDb connectionString =
         let migrationAssembly = Assembly.GetAssembly(typeof<ChickenCheck.Migrations.Initial>)
         let connection = new NpgsqlConnection(connectionString)
@@ -20,16 +20,21 @@ type TestDb() =
         migrator.MigrateToLatest()
         connection
         
-    let connection = migrateDb database.ConnectionString
+    let connection = migrateDb testDb.ConnectionString
     do OptionHandler.register()
     
-    let chickenStore = Database.ChickenStore (ConnectionString.create database.ConnectionString)
     
-    member this.ChickenStore = chickenStore
+    let testConnString = ConnectionString.create testDb.ConnectionString
+    member this.TestDatabaseAccess = Database.testConnection testConnString
+    member this.AddEgg = Database.addEgg testConnString
+    member this.GetAllChickens = Database.getAllChickens testConnString
+    member this.GetEggCount = Database.getEggCount testConnString
+    member this.GetTotalEggCount = Database.getTotalEggCount testConnString
+    member this.RemoveEgg = Database.removeEgg testConnString
     interface IDisposable with
         member this.Dispose() =
             connection.Close()
-            database.Dispose()
+            testDb.Dispose()
 
 module DbChickens =
     let bjork = {| Id = ChickenId.parse "b65e8809-06dd-4338-a55e-418837072c0f" 

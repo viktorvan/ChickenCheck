@@ -7,22 +7,23 @@ open Microsoft.AspNetCore.Antiforgery
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.Logging
 open Giraffe
-open Feliz.ViewEngine
+open Giraffe.ViewEngine
 
 let config = Configuration.config.Value
 
 // Helpers
-let csrfTokenInput (ctx: HttpContext) =
+let csrfTokens (ctx: HttpContext) =
         match ctx.GetService<IAntiforgery>() with
         | null -> failwith "missing Antiforgery feature, setup with Saturn pipeline with 'use_antiforgery'"
-        | antiforgery ->
-            let tokens = antiforgery.GetAndStoreTokens(ctx)
-            Html.input [
-                prop.id "RequestVerificationToken"
-                prop.name tokens.FormFieldName
-                prop.value tokens.RequestToken
-                prop.type'.hidden
-            ]
+        | antiforgery -> antiforgery.GetAndStoreTokens(ctx)
+            
+let csrfTokenInput (tokens:AntiforgeryTokenSet) (ctx: HttpContext) =
+        input [
+            _id "RequestVerificationToken"
+            _name tokens.FormFieldName
+            _value tokens.RequestToken
+            _type "hidden"
+        ]
 
 let defaultRoute() = sprintf "/eggs/%s" (NotFutureDate.today().ToString())
 
@@ -40,13 +41,26 @@ let getUser (ctx: HttpContext) =
     | _ -> Anonymous
     
     
-// services
-let chickenStore = Database.ChickenStore config.ConnectionString
+module Services =
+    let connectionString = config.ConnectionString
+    let db = Database.Database connectionString
+
 
 // workflows
-let healthCheck() = Workflows.healthCheck chickenStore ()
-let getAllChickens date = Workflows.getAllChickens chickenStore date
-let addEgg (chicken, date) = Workflows.addEgg chickenStore chicken date
-let removeEgg (chicken, date) = Workflows.removeEgg chickenStore chicken date
-let removeAllEggs date = Workflows.removeAllEggs chickenStore date
+let healthCheck = Workflows.healthCheck Services.db.TestDatabaseAccess
+let getAllChickens = Workflows.getAllChickens Services.db.GetAllChickens Services.db.GetEggCount Services.db.GetTotalEggCount
+let getChicken = Workflows.getChicken Services.db.GetChicken Services.db.GetEggCount
+let addEgg = Workflows.addEgg Services.db.AddEgg 
+let removeEgg = Workflows.removeEgg Services.db.RemoveEgg
 
+
+// views
+let writeHtml ctx content =
+    let csrfToken = (csrfTokens ctx).RequestToken
+    content 
+    |> Views.App.layout csrfToken config.BasePath config.Domain (getUser ctx)
+    |> ctx.WriteHtmlStringAsync
+let writeHtmlFragment (ctx: HttpContext) content =
+    content
+    |> RenderView.AsString.htmlNode
+    |> ctx.WriteHtmlStringAsync
