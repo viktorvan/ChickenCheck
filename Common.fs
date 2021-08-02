@@ -24,7 +24,9 @@ let configuration (targets : Target list) =
 
 let DotNetWatch watchCmd workingDir =
     DotNet.exec
-        (fun p -> { p with WorkingDirectory = workingDir })
+        (fun p -> 
+            { p with WorkingDirectory = workingDir
+                     CustomParams = Some "--no-hot-reload" })
         (sprintf "watch %s" watchCmd)
         ""
     |> ignore

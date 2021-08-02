@@ -261,8 +261,7 @@ let runWebTests ctx =
 
 let watchApp _ =
     let server() =
-        Common.DotNetRun serverPath
-//        Common.DotNetWatch "run" serverPath // not working in .net preview 6
+        Common.DotNetWatch "run" serverPath // not working in .net preview 6
 
     [ server ]
     |> Seq.iter (Common.invokeAsync >> Async.Catch >> Async.Ignore >> Async.Start)
@@ -402,6 +401,7 @@ Target.create "WriteVersionToFile" writeVersionToFile
 Target.create "DotnetBuild" dotnetBuild
 Target.create "RunUnitTests" runUnitTests
 Target.create "WatchApp" watchApp
+Target.create "Run" ignore
 Target.create "WatchTests" watchTests
 Target.create "Build" ignore
 Target.create "DotnetPublishServer" dotnetPublishServer
@@ -439,6 +439,7 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
 
 "WriteVersionToFile"
     ?=> "WatchApp"
+    ==> "Run"
 
 "DotnetRestore"
     ==> "WriteVersionToFile"

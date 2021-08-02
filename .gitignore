@@ -66,3 +66,5 @@ chickencheck*.tgz
 dataprotection
 
 .DS_Store
+
+chickencheck_export.sql

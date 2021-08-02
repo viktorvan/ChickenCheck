@@ -31,7 +31,10 @@ type Chicken =
       ImageUrl: ImageUrl option
       Breed: string }
 
-type EggCount = EggCount of int
+type EggCount = EggCount of int with
+    static member (+) (EggCount count1, EggCount count2) = EggCount (count1 + count2)
+    static member Zero = EggCount 0
+    
 
 type NotFutureDate =
     { Year: int

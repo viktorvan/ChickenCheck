@@ -3,7 +3,7 @@ module ChickenCheck.Backend.Workflows
 open ChickenCheck.Backend
 open FsToolkit.ErrorHandling
         
-let getAllChickens (getChickens: Database.GetAllChickens) (getEggCount: Database.GetEggCount) (getTotalEggCount: Database.GetTotalEggCount) =
+let getAllChickensWithEggCounts (getChickens: Database.GetAllChickens) (getEggCount: Database.GetChickenEggCount) (getTotalEggCount: Database.GetChickenTotalEggCount) =
     let getEggCounts chickenIds date  =
         async {
             let! eggCountA = getEggCount chickenIds date |> Async.StartChild
@@ -26,7 +26,7 @@ let getAllChickens (getChickens: Database.GetAllChickens) (getEggCount: Database
                 |> List.map (ChickenWithEggCount.create date eggCounts)
         }
         
-let getChicken (getChicken: Database.GetChicken) (getEggCount: Database.GetEggCount) =
+let getChickenWithEggCount (getChicken: Database.GetChicken) (getEggCount: Database.GetChickenEggCount) =
     fun chickenId date ->
         async {
             let! chickenA = getChicken chickenId |> Async.StartChild
@@ -42,6 +42,9 @@ let getChicken (getChicken: Database.GetChicken) (getEggCount: Database.GetEggCo
                        ImageUrl = c.ImageUrl
                        EggCount = eggCount.[c.Id] |})
         }
+
+let getTotalEggCountOnDate (getEggCount: Database.GetTotalEggCount) date =
+    getEggCount date
     
 let addEgg (addEggToDb: Database.AddEgg) chicken date =
     addEggToDb chicken date

@@ -4,6 +4,7 @@ open System
 open System.Security.Cryptography.X509Certificates
 open ChickenCheck.Backend
 open ChickenCheck.Backend.Turbolinks
+open ChickenCheck.Backend.Views
 open Giraffe
 open Microsoft.AspNetCore.Http
 open Microsoft.Extensions.DependencyInjection
@@ -38,20 +39,22 @@ let browserRouter =
         get "/logout" Authentication.logout
         forward "/eggs" EggsController.controller
         forward "/chickens" ChickensController.controller
+        get "/statistics" Statistics.statistics
+        get "/chickens/header" ChickensController.header
     }
 
-let health: HttpHandler =
-    let checkHealth: HttpHandler =
-        fun next ctx ->
-            let healthView (time: DateTime) =
-                sprintf
-                    "<div>Healthy at <span id=healthCheckTime>%s</span></div>"
-                    (time.ToString("yyyy-MM-dd hh:mm:ss"))
+let checkHealth: HttpHandler =
+    fun next ctx ->
+        let healthView (time: DateTime) =
+            sprintf
+                "<div>Healthy at <span id=healthCheckTime>%s</span></div>"
+                (time.ToString("yyyy-MM-dd hh:mm:ss"))
 
-            task {
-                let! time = CompositionRoot.healthCheck ()
-                return! (htmlString (healthView time)) next ctx
-            }
+        task {
+            let! time = CompositionRoot.healthCheck ()
+            return! (htmlString (healthView time)) next ctx
+        }
+let health: HttpHandler =
 
     router { get "/health" checkHealth }
 
@@ -65,7 +68,7 @@ let notFoundHandler: HttpHandler =
         }
 
 let webApp =
-    choose [ health
+    choose [ GET >=> route "/health" >=> checkHealth
              browserRouter
              notFoundHandler ]
 

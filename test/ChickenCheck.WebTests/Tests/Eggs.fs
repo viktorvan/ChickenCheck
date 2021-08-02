@@ -46,30 +46,10 @@ let all rootUrl =
         click Selectors.nextDateLink
         onn (eggsUrl today)
         
-    "navigate by datepicker" &&& fun _ ->
-        let testNavigateToDay (day: DateTime) =
-            describe ("navigating by datepicker to: " + day.ToString())
-            click Selectors.datePicker
-            click Selectors.previousMonth
-            click (Selectors.dayButton day)
-            onn (eggsUrl day)
-            waitForCurrentDate day
-        
-        let inAPreviousMonth = today.AddMonths(-1)
-        url (eggsUrl inAPreviousMonth)
-        
-        let firstDayOfMonth = DateTime(inAPreviousMonth.Year, inAPreviousMonth.Month, 1)
-        let twentiethDayOfMonth = DateTime(inAPreviousMonth.Year, inAPreviousMonth.Month, 20)
-        
-        testNavigateToDay firstDayOfMonth
-        url (rootUrl + "/eggs")
-        testNavigateToDay twentiethDayOfMonth
-        
     "add and remove egg" &&& fun _ ->
         login()
         let chicken = first Selectors.chickenCard
         let id = parseChickenId chicken
-        
         notDisplayed (Selectors.eggIcon id)
         
         click (Selectors.chickenCardById id)
@@ -93,11 +73,3 @@ let all rootUrl =
         let tomorrow = today.AddDays(1.)
         url (eggsUrl tomorrow)
         onn (eggsUrl today)
-        
-    "browser navigation does not add multiple datepickers" &&& fun _ ->
-        click Selectors.previousDateLink
-        click Selectors.previousDateLink
-        navigate back
-        navigate back
-        navigate forward
-        count Selectors.datePicker 1

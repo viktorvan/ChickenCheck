@@ -28,8 +28,8 @@ type TestDb() =
     member this.TestDatabaseAccess = Database.testConnection testConnString
     member this.AddEgg = Database.addEgg testConnString
     member this.GetAllChickens = Database.getAllChickens testConnString
-    member this.GetEggCount = Database.getEggCount testConnString
-    member this.GetTotalEggCount = Database.getTotalEggCount testConnString
+    member this.GetEggCount = Database.getChickenEggCount testConnString
+    member this.GetTotalEggCount = Database.getChickenTotalEggCount testConnString
     member this.RemoveEgg = Database.removeEgg testConnString
     interface IDisposable with
         member this.Dispose() =

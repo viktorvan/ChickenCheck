@@ -26,6 +26,7 @@
     <Compile Include="SaturnExtensions.fs" />
     <Compile Include="CompositionRoot.fs" />
     <Compile Include="ChickensController.fs" />
+    <Compile Include="Statistics.fs" />
     <Compile Include="EggsController.fs" />
     <Compile Include="Server.fs" />
     <None Include="public\**">

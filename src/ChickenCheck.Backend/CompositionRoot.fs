@@ -48,8 +48,9 @@ module Services =
 
 // workflows
 let healthCheck = Workflows.healthCheck Services.db.TestDatabaseAccess
-let getAllChickens = Workflows.getAllChickens Services.db.GetAllChickens Services.db.GetEggCount Services.db.GetTotalEggCount
-let getChicken = Workflows.getChicken Services.db.GetChicken Services.db.GetEggCount
+let getAllChickensWithEggCounts = Workflows.getAllChickensWithEggCounts Services.db.GetAllChickens Services.db.GetChickenEggCount Services.db.GetChickenTotalEggCount
+let getChicken = Workflows.getChickenWithEggCount Services.db.GetChicken Services.db.GetChickenEggCount
+let getTotalEggCountOnDate = Workflows.getTotalEggCountOnDate Services.db.GetTotalEggCount
 let addEgg = Workflows.addEgg Services.db.AddEgg 
 let removeEgg = Workflows.removeEgg Services.db.RemoveEgg
 
@@ -64,3 +65,5 @@ let writeHtmlFragment (ctx: HttpContext) content =
     content
     |> RenderView.AsString.htmlNode
     |> ctx.WriteHtmlStringAsync
+let setHxTrigger (ctx: HttpContext) evt =
+    ctx.SetHttpHeader("HX-Trigger", evt)

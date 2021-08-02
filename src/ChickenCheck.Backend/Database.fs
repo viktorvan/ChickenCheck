@@ -12,8 +12,9 @@ type TestDatabaseAccess = unit -> Async<unit>
 type AddEgg = ChickenId -> NotFutureDate -> Async<unit>
 type GetAllChickens = unit -> Async<Chicken list>
 type GetChicken = ChickenId -> Async<Chicken option>
-type GetEggCount = ChickenId list -> NotFutureDate -> Async<Map<ChickenId, EggCount>>
-type GetTotalEggCount = ChickenId list -> Async<Map<ChickenId, EggCount>>
+type GetChickenEggCount = ChickenId list -> NotFutureDate -> Async<Map<ChickenId, EggCount>>
+type GetChickenTotalEggCount = ChickenId list -> Async<Map<ChickenId, EggCount>>
+type GetTotalEggCount = NotFutureDate -> Async<EggCount>
 type RemoveEgg = ChickenId -> NotFutureDate -> Async<unit>
 
 
@@ -45,6 +46,12 @@ module private DbHelpers =
             let! result = query<'T> conn sql parameters
             return List.tryHead result
         }
+        
+    let executeScalar<'T> (conn: NpgsqlConnection) (sql: string) parameters =
+        match parameters with
+        | None -> conn.ExecuteScalarAsync<'T>(sql) |> Async.AwaitTask
+        | Some p -> conn.ExecuteScalarAsync<'T>(sql, p) |> Async.AwaitTask
+        
 
     let (!) p = Some (box p)
 
@@ -138,7 +145,7 @@ module private EggCountEntity =
             |> EggCount.create
         chickenId, eggsOrZero
         
-let getEggCount (conn: ConnectionString) : GetEggCount =
+let getChickenEggCount (conn: ConnectionString) : GetChickenEggCount =
     let sql = """
             SELECT c.Id AS ChickenId, Sum(e.EggCount) AS EggCount 
             FROM Chicken c
@@ -164,7 +171,7 @@ let getEggCount (conn: ConnectionString) : GetEggCount =
                 |> Map.ofSeq
         }
         
-let getTotalEggCount (conn: ConnectionString) : GetTotalEggCount =
+let getChickenTotalEggCount (conn: ConnectionString) : GetChickenTotalEggCount =
     let sql = """
             SELECT c.Id AS ChickenId, Sum(e.EggCount) AS EggCount 
             FROM Chicken c
@@ -181,6 +188,19 @@ let getTotalEggCount (conn: ConnectionString) : GetTotalEggCount =
                 result 
                 |> Seq.map EggCountEntity.toDomain 
                 |> Map.ofSeq
+        }
+        
+let getTotalEggCount (conn: ConnectionString) : GetTotalEggCount =
+    let sql = """
+            SELECT Sum(e.EggCount) AS EggCount 
+            FROM Egg e
+            WHERE e.Date = @date"""
+
+    fun date ->
+        async {
+            use! connection = getConnection conn
+            let! eggCount = executeScalar connection sql !{| date = date.ToDateTime() |}
+            return EggCount.create eggCount
         }
         
 let private validChickenIds conn =
@@ -249,7 +269,8 @@ type Database(connString) =
     member this.TestDatabaseAccess = testConnection connString
     member this.AddEgg = addEgg connString
     member this.GetAllChickens = getAllChickens connString
-    member this.GetEggCount = getEggCount connString
+    member this.GetChickenEggCount = getChickenEggCount connString
+    member this.GetChickenTotalEggCount = getChickenTotalEggCount connString
     member this.GetTotalEggCount = getTotalEggCount connString
     member this.RemoveEgg = removeEgg connString
     member this.GetChicken = getChicken connString

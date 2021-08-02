@@ -12,7 +12,7 @@ let controller =
         | Error _ -> Controller.redirect ctx (CompositionRoot.defaultRoute())
         | Ok date -> 
             task {
-                let! chickensWithEggCounts = CompositionRoot.getAllChickens date
+                let! chickensWithEggCounts = CompositionRoot.getAllChickensWithEggCounts date
 
                 let model =
                     chickensWithEggCounts

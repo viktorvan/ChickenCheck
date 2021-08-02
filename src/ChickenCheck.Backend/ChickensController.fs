@@ -8,18 +8,8 @@ open Giraffe
 
 let controller =
     let eggsController (chickenId: string) =
-        let addEgg ctx (date: string) =
+        let buildChickenCard chickenId date =
             task {
-                let chickenId = ChickenId.parse chickenId
-                let date = NotFutureDate.parse date
-                let! _ = CompositionRoot.addEgg chickenId date
-                return! Response.accepted ctx ()
-            }
-        let addEggX ctx (date: string) =
-            task {
-                let chickenId = ChickenId.parse chickenId
-                let date = NotFutureDate.parse date
-                let! addEgg = CompositionRoot.addEgg chickenId date
                 let! chicken = CompositionRoot.getChicken chickenId date
                 let chicken = chicken |> Option.defaultWith (fun _ -> invalidArg "ChickenId" "Invalid chicken-id")
                 let model = 
@@ -29,23 +19,38 @@ let controller =
                       ImageUrl = chicken.ImageUrl
                       EggCount = chicken.EggCount
                       CurrentDate = date }
-                return
-                    ChickenCard.layout model
+                return ChickenCard.layout model
+            }
+        
+        let addEgg (ctx: HttpContext) (date: string) =
+            task {
+                let chickenId = ChickenId.parse chickenId
+                let date = NotFutureDate.parse date
+                let! _ = CompositionRoot.addEgg chickenId date
+                let! chickenCard = buildChickenCard chickenId date
+                
+                CompositionRoot.setHxTrigger ctx "updatedEggs"
+                return!
+                    chickenCard
                     |> CompositionRoot.writeHtmlFragment ctx
             }
-            
             
         let removeEgg (ctx: HttpContext) (date: string) = 
             task {
                 let chickenId = ChickenId.parse chickenId
                 let date = NotFutureDate.parse date
                 let! _ = CompositionRoot.removeEgg chickenId date
-                return! Response.accepted ctx ()
+                let! chickenCard = buildChickenCard chickenId date
+                
+                CompositionRoot.setHxTrigger ctx "updatedEggs"
+                return!
+                    chickenCard
+                    |> CompositionRoot.writeHtmlFragment ctx
             }
         
         controller {
             plug [All] (CompositionRoot.authorizeUser >=> protectFromForgery) 
-            update addEggX
+            update addEgg
             delete removeEgg
         }
     
@@ -59,7 +64,7 @@ let controller =
         | Error _ -> Controller.redirect ctx (CompositionRoot.defaultRoute()) 
         | Ok date ->
             task {
-                let! chickensWithEggCounts = CompositionRoot.getAllChickens date
+                let! chickensWithEggCounts = CompositionRoot.getAllChickensWithEggCounts date
 
                 let model =
                     chickensWithEggCounts
@@ -81,3 +86,17 @@ let controller =
         index listChickens
     }
 
+let header : HttpHandler =
+    fun next ctx ->
+        task {
+            match ctx.GetQueryStringValue "date" with
+            | Error _ ->
+                return! RequestErrors.BAD_REQUEST "query string date is required" next ctx
+            | Ok dateStr ->
+                let date = NotFutureDate.parse dateStr
+                let! totalEggCount = CompositionRoot.getTotalEggCountOnDate date
+                    
+                return!
+                    Chickens.header totalEggCount date
+                    |> CompositionRoot.writeHtmlFragment ctx
+        }

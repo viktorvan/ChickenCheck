@@ -61,6 +61,10 @@ let layout csrfToken basePath domain (user: User) content =
                         _rel "stylesheet"
                         _href "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.13.0/css/all.min.css"
                     ]
+//                    link [
+//                        _rel "stylesheet"
+//                        _href "Style/site.css"
+//                    ]
                     link [
                         _rel "apple-touch-icon"
                         _sizes "180x180"
@@ -95,10 +99,12 @@ let layout csrfToken basePath domain (user: User) content =
                     ] []
                     script [ ] [str "window.plausible = window.plausible || function() { (window.plausible.q = window.plausible.q || []).push(arguments) }"]
                 ]
-            body [ userAttribute ]
+            body 
+                [ 
+                    userAttribute
+                    Htmx.hxHeaders $"""{{"RequestVerificationToken":"{csrfToken}"}}"""
+                ]
                 [
-                    script [] 
-                        [ rawText $"""document.body.addEventListener('htmx:configRequest', function(evt) {{ evt.detail.headers['RequestVerificationToken'] = '%s{csrfToken}'; }});""" ]
                     nav [ _class "navbar is-info"; _id "chickencheck-navbar" ]
                         [
                             div 

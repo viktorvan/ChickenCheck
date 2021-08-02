@@ -39,7 +39,7 @@ let removeEggs (removeEgg: Database.RemoveEgg) count date chickenId  =
         return ()
     }
     
-let getAllChickens (db: TestDb) date = Workflows.getAllChickens db.GetAllChickens db.GetEggCount db.GetTotalEggCount date
+let getAllChickens (db: TestDb) date = Workflows.getAllChickensWithEggCounts db.GetAllChickens db.GetEggCount db.GetTotalEggCount date
     
 let addEggTests =
     testList "AddEgg" [
