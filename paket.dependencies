@@ -1,5 +1,3 @@
-version 5.245.1
-
 group Backend
     source https://api.nuget.org/v3/index.json
     framework: net6.0
@@ -59,7 +57,7 @@ group Build
     source https://api.nuget.org/v3/index.json
     framework: net5.0
     storage: none
-    
+
     nuget Fake.Core.Target
     nuget Fake.Core.ReleaseNotes
     nuget FAKE.Core.Environment
