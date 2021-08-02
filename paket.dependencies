@@ -58,6 +58,8 @@ group Build
     source https://www.nuget.org/api/v2
     source https://api.nuget.org/v3/index.json
     framework: net5.0
+    storage: none
+    
     nuget Fake.Core.Target
     nuget Fake.Core.ReleaseNotes
     nuget FAKE.Core.Environment
