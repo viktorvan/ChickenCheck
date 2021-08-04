@@ -35,7 +35,6 @@ group UnitTests
     nuget FSharp.Core
     nuget Expecto
     nuget Unquote
-    nuget Fable.Elmish ~> 3
     nuget Simple.Migrations
     nuget ThrowawayDb.Postgres
     

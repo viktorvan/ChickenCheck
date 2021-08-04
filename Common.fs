@@ -45,7 +45,7 @@ let runMigrations migrationsPath connectionString =
 
 module Tools =
     let platformTool tool winTool =
-        let tool = if Environment.isUnix then printfn "*** IS UNIX"; tool else printfn "*** IS WINDOWS"; winTool
+        let tool = if Environment.isUnix then tool else winTool
         match ProcessUtils.tryFindFileOnPath tool with
         | Some t -> t
         | _ ->

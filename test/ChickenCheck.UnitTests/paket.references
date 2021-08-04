@@ -1,6 +1,5 @@
 group UnitTests
 Expecto
 Unquote
-Fable.Elmish
 Simple.Migrations
 ThrowawayDb.Postgres
