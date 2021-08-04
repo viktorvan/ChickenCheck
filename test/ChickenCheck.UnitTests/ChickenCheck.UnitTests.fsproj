@@ -2,7 +2,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <RootNamespace>ChickenCheck.ApiTests</RootNamespace>
     <UserSecretsId>f1dcbf68-77d8-40ba-807d-b98d9be91d5e</UserSecretsId>
   </PropertyGroup>

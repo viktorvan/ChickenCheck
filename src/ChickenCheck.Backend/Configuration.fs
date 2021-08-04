@@ -19,7 +19,7 @@ type Config =
     { ConnectionString: string
       [<DefaultValue("8085")>]
       ServerPort: uint16
-      [<DefaultValue("bin/debug/net6.0/public")>]
+      [<DefaultValue("bin/debug/net5.0/public")>]
       PublicPath: string
       DataProtection: DataProtection
       Authentication: Authentication

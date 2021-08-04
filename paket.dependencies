@@ -1,6 +1,6 @@
 group Backend
     source https://api.nuget.org/v3/index.json
-    framework: net6.0
+    framework: net5.0
     storage: none
 
     nuget Giraffe
@@ -20,7 +20,7 @@ group Backend
     
 group Migrations
     source https://api.nuget.org/v3/index.json
-    framework: net6.0
+    framework: net5.0
     storage: none
 
     nuget Argu
@@ -29,7 +29,7 @@ group Migrations
     
 group UnitTests
     source https://www.nuget.org/api/v2
-    framework: net6.0
+    framework: net5.0
     storage: none
     
     nuget FSharp.Core
@@ -41,7 +41,7 @@ group UnitTests
     
 group WebTests
     source https://www.nuget.org/api/v2
-    framework: net6.0
+    framework: net5.0
     storage: none
     
     nuget canopy
@@ -56,6 +56,7 @@ group Build
     source https://www.nuget.org/api/v2
     source https://api.nuget.org/v3/index.json
     framework: net5.0
+    storage: none
 
     nuget FSharp.Core ~> 5
     nuget Fake.Core.Target
@@ -74,7 +75,7 @@ group Build
 
 group DbBackup
     source https://api.nuget.org/v3/index.json
-    framework: net6.0
+    framework: net5.0
     storage: none
 
     nuget FSharp.Core

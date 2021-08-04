@@ -2,7 +2,7 @@
 
 GROUP Backend
 STORAGE: NONE
-RESTRICTION: == net6.0
+RESTRICTION: == net5.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
     Dapper (2.0.90)
@@ -206,6 +206,7 @@ NUGET
       System.ValueTuple (>= 4.4)
 
 GROUP Build
+STORAGE: NONE
 RESTRICTION: == net5.0
 NUGET
   remote: https://www.nuget.org/api/v2
@@ -454,7 +455,7 @@ NUGET
 
 GROUP DbBackup
 STORAGE: NONE
-RESTRICTION: == net6.0
+RESTRICTION: == net5.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
     Argu (6.1.1)
@@ -774,7 +775,7 @@ NUGET
 
 GROUP Migrations
 STORAGE: NONE
-RESTRICTION: == net6.0
+RESTRICTION: == net5.0
 NUGET
   remote: https://api.nuget.org/v3/index.json
     Argu (6.1.1)
@@ -806,7 +807,7 @@ NUGET
 
 GROUP UnitTests
 STORAGE: NONE
-RESTRICTION: == net6.0
+RESTRICTION: == net5.0
 NUGET
   remote: https://www.nuget.org/api/v2
     Expecto (9.0.2)
@@ -830,7 +831,7 @@ NUGET
 
 GROUP WebTests
 STORAGE: NONE
-RESTRICTION: == net6.0
+RESTRICTION: == net5.0
 NUGET
   remote: https://www.nuget.org/api/v2
     canopy (2.1.5)
