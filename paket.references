@@ -9,4 +9,5 @@ group Build
     Fake.Tools.Git
     Fake.Core.UserInput
     FsConfig
+    BlackFox.Fake.BuildTask
     Microsoft.Extensions.Configuration.UserSecrets 

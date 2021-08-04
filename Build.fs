@@ -1,15 +1,15 @@
 open System
+open BlackFox
+open BlackFox.Fake
 open Fake.Core
 open Fake.DotNet
 open Fake.Tools
-open Fake.Core.TargetOperators
 open Fake.IO
 open Fake.IO.FileSystemOperators
 open Fake.IO.Globbing.Operators
-open Helpers
 
-initializeContext()
-
+let execContext = Context.FakeExecutionContext.Create false "Build.fs" [ ]
+Context.setExecutionContext (Context.RuntimeContext.Fake execContext)
 
 type Tag =
     | Build
@@ -164,7 +164,7 @@ let dotnetBuild ctx =
         ]
     DotNet.build(fun c ->
         { c with
-            Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+//            Configuration = Common.configuration ctx.Context.AllExecutingTargets
             NoRestore = true
             Common =
                 c.Common
@@ -178,7 +178,7 @@ let dotnetPublishServer ctx =
         ]
     DotNet.publish(fun c ->
         { c with
-            Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+//            Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
             NoBuild = true
             NoRestore = true
             SelfContained = Some false
@@ -195,7 +195,7 @@ let dotnetPublishMigrations ctx =
         ]
     DotNet.publish(fun c ->
         { c with
-            Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+//            Configuration = Common.configuration (ctx.Context.AllExecutingTargets)
             NoBuild = true
             NoRestore = true
             SelfContained = Some false
@@ -234,7 +234,7 @@ let dockerPush _ =
     dockerPushImage (appName + "-tools") tag
 
 let runUnitTests ctx =
-    let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+    let configuration = "release"//Common.configuration (ctx.Context.AllExecutingTargets)
     let args = sprintf "--configuration %s --no-restore --no-build --fail-on-focused-tests" (configuration.ToString())
     DotNet.exec (fun c ->
         { c with 
@@ -253,7 +253,7 @@ let runUnitTests ctx =
 //        sln
 
 let runWebTests ctx =
-    let configuration = Common.configuration (ctx.Context.AllExecutingTargets)
+    let configuration = "release"//Common.configuration (ctx.Context.AllExecutingTargets)
     let args = sprintf "--configuration %s --no-restore --no-build -- https://dev.chickens.viktorvan.com true" (configuration.ToString())
     DotNet.exec (fun c ->
         { c with WorkingDirectory = webTestsPath }) "run" args
@@ -394,82 +394,38 @@ let helmInstallProd _ =
 // Build Target Declaration
 //-----------------------------------------------------------------------------
 
-Target.create "Clean" clean
-Target.create "DotnetRestore" dotnetRestore
-Target.create "RunMigrations" runMigrations
-Target.create "WriteVersionToFile" writeVersionToFile
-Target.create "DotnetBuild" dotnetBuild
-Target.create "RunUnitTests" runUnitTests
-Target.create "WatchApp" watchApp
-Target.create "Run" ignore
-Target.create "WatchTests" watchTests
-Target.create "Build" ignore
-Target.create "DotnetPublishServer" dotnetPublishServer
-Target.create "DotnetPublishMigrations" dotnetPublishMigrations
-Target.create "DotnetPublishDbBackup" dotnetPublishDbBackup
-Target.create "Package" ignore
-Target.create "GitTagBuild" (gitTagDeployment Build)
-Target.create "VerifyDockerInstallation" verifyDockerInstallation
-Target.create "DockerBuild" dockerBuild
-Target.create "DockerPush" dockerPush
-Target.create "GitTagDockerDeployment" (gitTagDeployment Docker)
-Target.create "HelmPackage" helmPackage
-Target.create "HelmInstallDev" helmInstallDev
-Target.create "WaitForDevDeployment" (waitForDeployment Dev)
-Target.create "WaitForProdDeployment" (waitForDeployment Prod)
-Target.create "GitTagDevDeployment" (gitTagDeployment Dev)
-Target.create "RunWebTests" runWebTests
-Target.create "VerifyCleanWorkingDirectory" verifyCleanWorkingDirectory
-Target.create "CreateRelease" ignore
-Target.create "HelmInstallProd" helmInstallProd
-Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
+module Targets =
+    let createTargetsAndGetDefault() =
+        let clean = BuildTask.createFn "Clean" [] (fun _ -> clean())
+        //let clean = BuildTask.create "Clean" [] { clean() }
+        let dotnetRestore = BuildTask.create "DotnetRestore" [ clean.IfNeeded ] { dotnetRestore() }
+        let runMigrations = BuildTask.create "RunMigrations" [ dotnetRestore ] { runMigrations() }
+        let writeVersionToFile = BuildTask.create "WriteVersionToFile" [ dotnetRestore ] { writeVersionToFile() }
+        let dotnetBuild = BuildTask.create "DotnetBuild" [ runMigrations; writeVersionToFile ] { dotnetBuild() }
+        let runUnitTests = BuildTask.create "RunUnitTests" [ dotnetBuild ] { runUnitTests() }
+        let watchApp = BuildTask.create "WatchApp" [ writeVersionToFile ] { watchApp() }
+        let run = BuildTask.createEmpty "Run" [ watchApp ]
+        let watchTests = BuildTask.create "WatchTests" [ dotnetRestore ] { watchTests() }
+        let build = BuildTask.createEmpty "Build" [ runUnitTests ]
+        let publishServer = BuildTask.create "DotnetPublishServer" [ build ] { dotnetPublishServer() }
+        let publishMigrations = BuildTask.create "dotnetPublishMigrations" [ build ] { dotnetPublishMigrations() }
+        let package = BuildTask.createEmpty "Package" [ clean; publishServer; publishMigrations ]
+        let verifyDockerInstallation = BuildTask.create "VerifyDockerInstallation" [] { verifyDockerInstallation() }
+        let dockerBuild = BuildTask.create "DockerBuild" [ package; verifyDockerInstallation ] { dockerBuild() }
+        let dockerPush = BuildTask.create "DockerPush" [ dockerBuild ] { dockerPush() }
+        let gitTagDockerDeployment = BuildTask.create "GitTagDockerDeployment" [ dockerPush ] { gitTagDeployment Docker () }
+        let helmPackage = BuildTask.create "HelmPackage" [ gitTagDockerDeployment ] { helmPackage() }
+        let helmInstallDev = BuildTask.create "HelmInstallDev" [ helmPackage ] { helmInstallDev() }
+        let gitTagDevDeployment = BuildTask.create "GitTagDevDeployment" [ helmInstallDev ] { gitTagDeployment Dev () }
+        let waitForDevDeployment = BuildTask.create "WaitForDevDeployment" [ gitTagDevDeployment ] { waitForDeployment Dev () }
+        let runWebTests = BuildTask.create "RunWebTests" [ waitForDevDeployment ] { runWebTests() }
+        let helmInstallProd = BuildTask.create "HelmInstallProd" [ runWebTests ] { helmInstallProd() }
+        let gitTagProdDeployment = BuildTask.create "GitTagProdDeployment" [ helmInstallProd ] { gitTagDeployment Prod () }
+        let waitForProdDeployment = BuildTask.create "WaitForProdDeployment" [ gitTagProdDeployment ] { waitForDeployment Prod () }
+        let verifyCleanWorkingDirectory = BuildTask.create "VerifyCleanWorkingDirectory" [ clean ] { verifyCleanWorkingDirectory() }
+        let createRelease = BuildTask.createEmpty "CreateRelease" [ verifyCleanWorkingDirectory.IfNeeded; waitForProdDeployment ]
+        BuildTask.createEmpty "Default" [ run ]
 
-//-----------------------------------------------------------------------------
-// Build Target Dependencies
-//-----------------------------------------------------------------------------
-
-// Only call Clean if 'Package' was in the call chain
-// Ensure Clean is called before 'DotnetRestore'
-"Clean" ?=> "DotnetRestore"
-"Clean" ==> "Package"
-
-"DotnetRestore" 
-    ==> "RunMigrations" 
-    ==> "DotNetBuild"
-
-"WriteVersionToFile"
-    ?=> "WatchApp"
-    ==> "Run"
-
-"DotnetRestore"
-    ==> "WriteVersionToFile"
-    ==> "DotnetBuild"
-    ==> "RunUnitTests"
-    ==> "Build"
-    ==> "DotnetPublishServer"
-    ==> "DotnetPublishMigrations"
-    ==> "DotnetPublishDbBackup"
-    ==> "GitTagBuild"
-    ==> "Package"
-    ==> "DockerBuild"
-    ==> "DockerPush"
-    ==> "GitTagDockerDeployment"
-    ==> "HelmPackage"
-    ==> "HelmInstallDev"
-    ==> "GitTagDevDeployment"
-    ==> "WaitForDevDeployment"
-    ==> "RunWebTests"
-    ==> "HelmInstallProd"
-    ==> "GitTagProdDeployment"
-    ==> "WaitForProdDeployment"
-    ==> "CreateRelease"
-
-"Clean" ?=> "VerifyCleanWorkingDirectory"
-"VerifyCleanWorkingDirectory" ==> "CreateRelease"
-"VerifyDockerInstallation" ==> "DockerBuild"
-
-"DotnetRestore"
-    ==> "WatchTests"
 
 //-----------------------------------------------------------------------------
 // Start
@@ -477,4 +433,8 @@ Target.create "GitTagProdDeployment" (gitTagDeployment Prod)
 
 
 [<EntryPoint>]
-let main args = runOrDefault args
+
+let main args =
+    BuildTask.setupContextFromArgv args
+    let defaultTarget = Targets.createTargetsAndGetDefault()
+    BuildTask.runOrDefaultApp defaultTarget
