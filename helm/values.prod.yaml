@@ -7,5 +7,5 @@ basePath: https://chickens.viktorvan.com/
 
 replicaCount: 2
 
-runBackup: true
+runBackup: false
 azureStorageConnectionString: "azure connection string"

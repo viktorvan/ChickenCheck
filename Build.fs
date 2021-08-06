@@ -336,6 +336,12 @@ let helmInstallDev _ =
         sprintf "authentication.clientSecret=%s" ChickenCheckConfiguration.config.Value.Dev.ClientSecret
         "--set"
         sprintf "dataProtectionCertificatePassword=%s" ChickenCheckConfiguration.config.Value.DataProtectionCertificatePassword |> escapeComma
+        "--set"
+        $"databaseName=chickencheck-dev"
+        "--set"
+        $"databaseUser=%s{ChickenCheckConfiguration.config.Value.DevDb.User}"
+        "--set"
+        $"databasePassword=%s{ChickenCheckConfiguration.config.Value.DevDb.Password}"
         getHelmPackageName()
     ]
 

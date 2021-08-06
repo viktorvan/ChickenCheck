@@ -18,7 +18,9 @@ type Config =
     { DataProtectionCertificatePassword: string
       Local: Local
       Dev: Authentication 
+      DevDb: Database
       Prod: Authentication
+      ProdDb: Database
       Backup: Backup }
 
 let configRoot =
