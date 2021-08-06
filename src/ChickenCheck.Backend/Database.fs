@@ -20,9 +20,9 @@ type RemoveEgg = ChickenId -> NotFutureDate -> Async<unit>
 
 [<AutoOpen>]
 module private DbHelpers =
-    let getConnection (ConnectionString str) =
+    let getConnection (connString: ConnectionString) =
         async {
-            let conn = new NpgsqlConnection(str)
+            let conn = new NpgsqlConnection(connString.Value)
             let! _ = conn.OpenAsync() |> Async.AwaitTask
             return conn
         }

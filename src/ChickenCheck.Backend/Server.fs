@@ -51,6 +51,7 @@ let checkHealth: HttpHandler =
                 (time.ToString("yyyy-MM-dd hh:mm:ss"))
 
         task {
+            CompositionRoot.logInfo ctx $"checking health, connString: %s{CompositionRoot.Services.connectionString.Value}"
             let! time = CompositionRoot.healthCheck ()
             return! (htmlString (healthView time)) next ctx
         }

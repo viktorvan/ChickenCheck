@@ -67,3 +67,8 @@ let writeHtmlFragment (ctx: HttpContext) content =
     |> ctx.WriteHtmlStringAsync
 let setHxTrigger (ctx: HttpContext) evt =
     ctx.SetHttpHeader("HX-Trigger", evt)
+
+// logging
+let logInfo (ctx: HttpContext) msg =
+    let logger = ctx.GetLogger "chickencheck-logger"
+    logger.LogInformation msg
