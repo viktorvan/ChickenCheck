@@ -124,7 +124,7 @@ let escapeComma (str: string) =
 //-----------------------------------------------------------------------------
 
 let clean _ =
-    [ "bin"; "temp"; outputDir ]
+    [ "temp"; outputDir ]
     |> Shell.cleanDirs
 
     !! srcGlob
@@ -397,7 +397,6 @@ let helmInstallProd _ =
 module Targets =
     let createTargetsAndGetDefault() =
         let clean = BuildTask.createFn "Clean" [] (fun _ -> clean())
-        //let clean = BuildTask.create "Clean" [] { clean() }
         let dotnetRestore = BuildTask.create "DotnetRestore" [ clean.IfNeeded ] { dotnetRestore() }
         let runMigrations = BuildTask.create "RunMigrations" [ dotnetRestore ] { runMigrations() }
         let writeVersionToFile = BuildTask.create "WriteVersionToFile" [ dotnetRestore ] { writeVersionToFile() }
@@ -422,8 +421,8 @@ module Targets =
         let helmInstallProd = BuildTask.create "HelmInstallProd" [ runWebTests ] { helmInstallProd() }
         let gitTagProdDeployment = BuildTask.create "GitTagProdDeployment" [ helmInstallProd ] { gitTagDeployment Prod () }
         let waitForProdDeployment = BuildTask.create "WaitForProdDeployment" [ gitTagProdDeployment ] { waitForDeployment Prod () }
-        let verifyCleanWorkingDirectory = BuildTask.create "VerifyCleanWorkingDirectory" [ clean ] { verifyCleanWorkingDirectory() }
-        let createRelease = BuildTask.createEmpty "CreateRelease" [ verifyCleanWorkingDirectory.IfNeeded; waitForProdDeployment ]
+        let verifyCleanWorkingDirectory = BuildTask.create "VerifyCleanWorkingDirectory" [ clean.IfNeeded ] { verifyCleanWorkingDirectory() }
+        let createRelease = BuildTask.createEmpty "CreateRelease" [ verifyCleanWorkingDirectory; waitForProdDeployment ]
         BuildTask.createEmpty "Default" [ run ]
 
 
