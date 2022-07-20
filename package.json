@@ -12,7 +12,7 @@
         "bulma-tooltip": "^2.0.2",
         "core-js": "^3.3.2",
         "open-sans-fonts": "^1.5.1",
-        "terser": "^4.3.9",
+        "terser": "^4.8.1",
         "turbolinks": "^5.2.0",
         "whatwg-fetch": "^3.0.0"
     },
